@@ -1,0 +1,179 @@
+/* 自定义Header组件样式 */
+
+/* 滚动效果 */
+#header-bg.scrolled {
+  backdrop-filter: blur(6px);
+  background: rgba(249, 250, 251, 0.8);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 2px 4px rgba(0, 0, 0, 0.04),
+    0 4px 8px rgba(0, 0, 0, 0.04);
+}
+
+/* 黑暗模式样式 */
+[data-theme="dark"] #header-bg.scrolled {
+  background: rgba(15, 23, 42, 0.8);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3),
+    0 2px 4px -1px rgba(0, 0, 0, 0.2);
+}
+
+/* 导航高亮元素的基础样式 */
+#nav-primary-highlight {
+  position: absolute;
+  background-color: var(--color-primary-100);
+  border-radius: 0.75rem;
+  z-index: 0;
+  transition: left 0.3s ease, top 0.3s ease, width 0.3s ease, height 0.3s ease, opacity 0.3s ease;
+}
+
+[data-theme="dark"] #nav-primary-highlight {
+  background-color: color-mix(in oklab, var(--color-primary-800) 30%, transparent);
+}
+
+#nav-secondary-highlight {
+  position: absolute;
+  background-color: color-mix(in oklab, var(--color-primary-300) 80%, transparent);
+  border-radius: 0.75rem;
+  z-index: 10;
+  transition: left 0.3s ease, top 0.3s ease, width 0.3s ease, height 0.3s ease, opacity 0.3s ease;
+}
+
+[data-theme="dark"] #nav-secondary-highlight {
+  background-color: color-mix(in oklab, var(--color-primary-700) 60%, transparent);
+}
+
+/* 导航选择器的状态管理 */
+.nav-selector[data-has-active="false"] #nav-primary-highlight,
+.nav-selector[data-has-active="false"] #nav-secondary-highlight {
+  opacity: 0;
+}
+
+.nav-selector[data-has-active="true"] #nav-primary-highlight,
+.nav-selector[data-has-active="true"] #nav-secondary-highlight {
+  opacity: 1;
+}
+
+/* 导航项状态样式 */
+.nav-item[data-state="inactive"], 
+.nav-subitem[data-state="inactive"], 
+.nav-group-toggle[data-state="inactive"] {
+  color: var(--color-gray-600);
+  font-weight: 400;
+}
+
+[data-theme="dark"] .nav-item[data-state="inactive"], 
+[data-theme="dark"] .nav-subitem[data-state="inactive"], 
+[data-theme="dark"] .nav-group-toggle[data-state="inactive"] {
+  color: var(--color-gray-300);
+}
+
+.nav-item[data-state="active"], 
+.nav-subitem[data-state="active"], 
+.nav-group-toggle[data-state="active"] {
+  color: var(--color-primary-700);
+  font-weight: 600;
+}
+
+[data-theme="dark"] .nav-item[data-state="active"], 
+[data-theme="dark"] .nav-subitem[data-state="active"], 
+[data-theme="dark"] .nav-group-toggle[data-state="active"] {
+  color: var(--color-primary-300);
+}
+
+/* 导航组展开状态 */
+.nav-group[data-expanded="false"] .nav-group-items {
+  display: none;
+}
+
+.nav-group[data-expanded="true"] .nav-group-items {
+  display: block;
+  opacity: 1;
+  z-index: 21;
+}
+
+/* 导航组切换按钮状态 */
+.nav-group[data-expanded="true"] .nav-group-toggle {
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+}
+
+/* 导航项的文字颜色过渡 */
+.nav-item, .nav-subitem, .nav-group-toggle {
+  transition: color 0.3s ease, font-weight 0.15s ease;
+}
+
+/* 汉堡菜单动画样式 */
+.hamburger-menu {
+  width: 24px;
+  height: 24px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.hamburger-line {
+  width: 100%;
+  height: 2px;
+  background-color: currentColor;
+  border-radius: 2px;
+  transition: all 0.3s ease;
+  transform-origin: center;
+}
+
+/* 菜单打开时的样式 */
+[aria-expanded="true"] .hamburger-menu .line-1 {
+  transform: translateY(8px) rotate(45deg);
+}
+
+[aria-expanded="true"] .hamburger-menu .line-2 {
+  opacity: 0;
+}
+
+[aria-expanded="true"] .hamburger-menu .line-3 {
+  transform: translateY(-8px) rotate(-45deg);
+}
+
+/* 移动端子菜单展开动画 */
+.mobile-menu-arrow {
+  transition: transform 0.3s ease;
+}
+
+/* 移动端菜单图标容器 */
+.mobile-menu-icon {
+  position: relative;
+  transition: transform 0.3s ease;
+}
+
+/* 子菜单展开/收起动画 */
+.mobile-submenu {
+  height: auto;
+  max-height: 0;
+  visibility: hidden;
+  opacity: 0;
+  overflow: hidden;
+  transform: translateY(-10px);
+  transition: 
+    max-height 0.3s ease, 
+    opacity 0.3s ease, 
+    transform 0.3s ease,
+    visibility 0s linear 0.3s,
+    padding 0.3s ease;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.mobile-submenu[data-expanded="true"] {
+  max-height: 500px; /* 足够大以容纳所有内容 */
+  visibility: visible;
+  opacity: 1;
+  transform: translateY(0);
+  transition: 
+    max-height 0.3s ease, 
+    opacity 0.3s ease, 
+    transform 0.3s ease,
+    visibility 0s linear 0s,
+    padding 0.3s ease;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+}

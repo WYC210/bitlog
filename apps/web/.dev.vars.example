@@ -1,0 +1,2 @@
+# Local dev: point the web worker at the locally running API worker.
+API_BASE_URL=http://127.0.0.1:8787

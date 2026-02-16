@@ -1,0 +1,23 @@
+{
+  "name": "bitlog",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "typecheck": "tsc -b",
+    "build": "tsc -b",
+    "clean": "powershell -NoProfile -Command \"Get-ChildItem -Recurse -Force -Directory -Filter dist | Remove-Item -Recurse -Force\"",
+    "dev:api": "wrangler dev --cwd apps/api -c wrangler.toml --port 8787",
+    "dev:web": "pnpm -C apps/admin run build && wrangler dev --cwd apps/web -c wrangler.toml --port 8788",
+    "deploy:api": "wrangler deploy --cwd apps/api -c wrangler.toml",
+    "deploy:web": "pnpm -C apps/admin run build && wrangler deploy --cwd apps/web -c wrangler.toml",
+    "build:admin": "pnpm -C apps/admin run build"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3",
+    "wrangler": "^4.10.0"
+  }
+}

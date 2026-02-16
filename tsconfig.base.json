@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
+    "module": "ES2022",
+    "moduleResolution": "Bundler",
+    "baseUrl": ".",
+    "paths": {
+      "@bitlog/db": ["packages/db/src/index.ts"],
+      "@bitlog/db/sql": ["packages/db/src/sql.ts"],
+      "@bitlog/db/node": ["packages/db/src/node.ts"],
+      "@bitlog/db/worker": ["packages/db/src/worker.ts"]
+    },
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "skipLibCheck": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "resolveJsonModule": true,
+    "verbatimModuleSyntax": true
+  }
+}

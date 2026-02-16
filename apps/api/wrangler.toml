@@ -1,0 +1,25 @@
+name = "bitlog-api"
+main = "src/entry.worker.ts"
+compatibility_date = "2026-02-15"
+
+# Recommended (same-domain routing):
+# routes = [
+#   { pattern = "example.com/api/*", zone_name = "example.com" },
+#   { pattern = "example.com/assets/*", zone_name = "example.com" },
+#   { pattern = "example.com/rss.xml", zone_name = "example.com" },
+#   { pattern = "example.com/sitemap.xml", zone_name = "example.com" }
+# ]
+
+# API worker owns D1/R2.
+d1_databases = [
+  { binding = "DB", database_name = "bitlog", database_id = "f3270ce2-50c8-49d9-a8e7-34924eedc8b8", migrations_dir = "migrations" }
+]
+
+# Optional R2 bucket. Uncomment to enable uploads.
+#
+# r2_buckets = [
+#   { binding = "ASSETS_R2", bucket_name = "bitlog-assets" }
+# ]
+
+[vars]
+# Reserved for future.

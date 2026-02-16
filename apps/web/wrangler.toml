@@ -1,0 +1,17 @@
+name = "bitlog-web"
+main = "src/entry.worker.ts"
+compatibility_date = "2026-02-15"
+
+# Recommended (same-domain routing):
+# routes = [
+#   { pattern = "example.com/*", zone_name = "example.com" }
+# ]
+
+services = [{ binding = "API", service = "bitlog-api" }]
+
+# Serve static files from `public/` but always let the Worker handle routing first.
+assets = { directory = "./public", binding = "ASSETS", run_worker_first = true, not_found_handling = "none" }
+
+[vars]
+# Optional: set in `.dev.vars` for local dev, e.g. http://127.0.0.1:8787
+# API_BASE_URL = ""

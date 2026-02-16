@@ -1,0 +1,1751 @@
+---
+import { SITE_TITLE, NAV_STRUCTURE } from "@/consts.ts";
+import ThemeToggle from "@/components/ThemeToggle.astro";
+import Search from "@/components/Search.tsx";
+import "@/styles/header.css";
+// 获取当前路径
+const currentPath = Astro.url.pathname;
+
+// 移除结尾的斜杠以统一路径格式（保留根路径的斜杠）
+const normalizedPath =
+  currentPath === "/"
+    ? "/"
+    : currentPath.endsWith("/")
+      ? currentPath.slice(0, -1)
+      : currentPath;
+
+
+// 在服务器端预先查找激活项
+let activeItem = null;
+let activeSubItem = null;
+let activeGroupId = null;
+
+// 首先检查子菜单项匹配
+for (const item of NAV_STRUCTURE) {
+  if (item.items) {
+    for (const subItem of item.items) {
+      if (subItem.href === normalizedPath || 
+         (normalizedPath.startsWith(subItem.href) && subItem.href !== '/')) {
+        activeSubItem = subItem;
+        activeGroupId = item.id;
+        break;
+      }
+    }
+  }
+  if (activeSubItem) break;
+}
+
+// 如果没有找到子菜单项匹配，检查主菜单项
+if (!activeSubItem) {
+  for (const item of NAV_STRUCTURE) {
+    if (item.href && (
+      item.href === normalizedPath || 
+      (normalizedPath.startsWith(item.href) && item.href !== '/')
+    )) {
+      activeItem = item;
+      break;
+    }
+  }
+}
+
+// 计算活动状态
+const hasActiveNavItem = activeItem || activeGroupId || activeSubItem ? true : false;
+---
+
+<header
+  class="fixed w-full top-0 z-50"
+  id="main-header"
+>
+  <div
+    class="absolute inset-0 bg-gray-50/95 dark:bg-dark-bg/95"
+    id="header-bg"
+  >
+  </div>
+  <nav class="relative">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16">
+        <!-- Logo 部分 -->
+        <div class="flex items-center">
+          <a
+            href="/"
+            class="text-xl md:text-2xl font-bold tracking-tight bg-linear-to-r from-primary-600 to-primary-400 bg-clip-text text-transparent hover:from-primary-500 hover:to-primary-300 dark:from-primary-400 dark:to-primary-200 dark:hover:from-primary-300 dark:hover:to-primary-100"
+          >
+            {SITE_TITLE}
+          </a>
+        </div>
+
+        <!-- 搜索框 - 桌面显示 -->
+        <div class="hidden md:flex md:items-center md:justify-end md:flex-1 max-w-xs ml-auto mr-4">
+          <Search client:load placeholder="搜索文章..." maxResults={5} />
+        </div>
+
+        <!-- 导航链接 - 集成NavSelector组件 -->
+        <div class="hidden md:flex md:items-center md:space-x-4">
+          <!-- 集成的NavSelector代码 -->
+          <nav class="nav-selector relative mr-4" data-duration="300" data-has-active={hasActiveNavItem.toString()}>
+            <!-- 高亮背景元素 -->
+            <div id="nav-primary-highlight" 
+                class="absolute z-0 bg-primary-100 dark:bg-primary-800/30 rounded-xl shadow-md backdrop-blur-sm transition-all duration-300"></div>
+            <div id="nav-secondary-highlight" 
+                class="absolute z-10 bg-primary-300/80 dark:bg-primary-700/60 rounded-xl shadow-md backdrop-blur-sm transition-all duration-300"></div>
+            <!-- 悬停高亮元素 -->
+            <div id="nav-hover-highlight" 
+                class="absolute z-5 bg-primary-100/50 dark:bg-primary-800/20 rounded-xl shadow-sm backdrop-blur-sm transition-all duration-200 opacity-0"></div>
+            
+            <!-- 导航菜单项 -->
+            <div class="flex items-center relative z-20 space-x-8">
+              {NAV_STRUCTURE.map((item) => (
+                <>
+                  {!item.items ? (
+                    <!-- 单项导航 -->
+                    <a 
+                      href={item.href} 
+                      class="nav-item relative flex items-center justify-center h-10 px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400"
+                      data-item-id={item.id}
+                      data-state={activeItem && activeItem.id === item.id ? "active" : "inactive"}
+                      data-astro-prefetch="hover"
+                    >
+                      {item.text}
+                    </a>
+                  ) : (
+                    <!-- 带子菜单的导航组 -->
+                    <div class="nav-group relative flex items-center min-h-10" 
+                         data-group-id={item.id}
+                         data-expanded={activeGroupId === item.id ? "true" : "false"}>
+                      <!-- 一级菜单按钮 -->
+                      <button 
+                        type="button"
+                        class="nav-group-toggle relative flex items-center justify-center h-10 px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400"
+                        data-toggle-id={item.id}
+                        data-state={activeGroupId === item.id ? "active" : "inactive"}
+                        data-height-reference="true"
+                      >
+                        {item.text}
+                      </button>
+                      
+                      <!-- 二级菜单容器 -->
+                      <div class={`nav-group-items relative min-w-full ${activeGroupId === item.id ? 'menu-visible' : 'hidden'}`}>
+                        <div class="flex flex-row flex-wrap justify-center items-center">
+                          {item.items.map((subItem) => (
+                            <a 
+                              href={subItem.href} 
+                              class="nav-subitem relative flex items-center justify-center h-10 px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400"
+                              data-subitem-id={`${item.id}-${subItem.id}`}
+                              data-parent-id={item.id}
+                              data-state={activeSubItem && activeSubItem.id === subItem.id ? "active" : "inactive"}
+                              data-astro-prefetch="hover"
+                            >
+                              {subItem.text}
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </>
+              ))}
+            </div>
+          </nav>
+          
+          <!-- 使用自定义主题切换组件 -->
+          <div class="flex items-center">
+            <ThemeToggle  transitionDuration={700} />
+          </div>
+        </div>
+
+        <!-- 移动端按钮区域 -->
+        <div class="flex items-center md:hidden space-x-1">
+          <!-- 移动端搜索按钮 -->
+          <button
+            type="button"
+            class="inline-flex items-center justify-center p-2 rounded-md text-secondary-400 dark:text-secondary-500 hover:text-secondary-500 dark:hover:text-secondary-400 hover:bg-secondary-100 dark:hover:bg-dark-card focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500"
+            id="mobile-search-button"
+            aria-expanded="false"
+            aria-label="搜索"
+          >
+            <span class="sr-only">搜索</span>
+            <svg
+              class="h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              ></path>
+            </svg>
+          </button>
+          
+          <!-- 移动端菜单按钮 -->
+          <button
+            type="button"
+            class="inline-flex items-center justify-center p-2 rounded-md text-secondary-400 dark:text-secondary-500 hover:text-secondary-500 dark:hover:text-secondary-400 hover:bg-secondary-100 dark:hover:bg-dark-card focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500"
+            id="mobile-menu-button"
+            aria-expanded="false"
+            aria-label="打开菜单"
+          >
+            <span class="sr-only">打开菜单</span>
+            <!-- 替换SVG图标为CSS汉堡菜单 -->
+            <div class="hamburger-menu">
+              <span class="hamburger-line line-1"></span>
+              <span class="hamburger-line line-2"></span>
+              <span class="hamburger-line line-3"></span>
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 移动端搜索框 -->
+    <div
+      class="hidden md:hidden fixed inset-x-0 top-16 z-40"
+      id="mobile-search"
+    >
+      <div
+        class="bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm shadow-lg border-t border-gray-200 dark:border-gray-700/50 rounded-b-lg"
+      >
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+          <div class="relative">
+            <Search client:load placeholder="搜索文章..." maxResults={5} />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 移动端菜单 - 使用新的NAV_STRUCTURE结构 -->
+    <div
+      class="hidden md:hidden fixed inset-x-0 top-16 z-40"
+      id="mobile-menu"
+    >
+      <div
+        id="mobile-menu-bg"
+        class="bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm shadow-lg border-t border-gray-200 dark:border-gray-700/50 rounded-b-lg"
+      >
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
+          <div class="grid gap-1 mt-2">
+            {
+              NAV_STRUCTURE.map((item) => (
+                !item.items ? (
+                  // 普通导航项
+                  <a
+                    href={item.href}
+                    class={`flex items-center px-3 py-3 rounded-lg text-base font-medium ${
+                      normalizedPath === item.href
+                        ? "text-white bg-primary-600 dark:bg-primary-500 shadow-sm"
+                        : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800/70"
+                    }`}
+                    data-astro-prefetch="hover"
+                  >
+                    {item.text}
+                  </a>
+                ) : (
+                  // 带子菜单的分组
+                  <div class="mt-1 mb-2">
+                    <div 
+                      class="flex items-center justify-between px-3 py-2 rounded-lg text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800/70 cursor-pointer"
+                      data-mobile-menu-toggle={item.id}
+                    >
+                      <span>{item.text}</span>
+                      <div class="mobile-menu-icon w-5 h-5 flex items-center justify-center">
+                        <svg 
+                          class="mobile-menu-arrow w-4 h-4 text-gray-500 dark:text-gray-400" 
+                          fill="none" 
+                          viewBox="0 0 24 24" 
+                          stroke="currentColor"
+                        >
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                      </div>
+                    </div>
+                    <div class="mobile-submenu pl-4 border-l-2 border-gray-200 dark:border-gray-700" 
+                         data-parent-id={item.id}
+                         data-expanded="false">
+                      {item.items.map(subItem => (
+                        <a
+                          href={subItem.href}
+                          class={`flex items-center px-3 py-2 rounded-lg text-base font-medium ${
+                            normalizedPath === subItem.href
+                              ? "text-white bg-primary-600 dark:bg-primary-500 shadow-sm"
+                              : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800/70"
+                          }`}
+                          data-astro-prefetch="hover"
+                        >
+                          {subItem.text}
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )
+              ))
+            }
+            <div
+              class="mt-2 pt-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800/70 rounded-lg px-3 py-2"
+              id="theme-toggle-container"
+            >
+              <span class="text-sm font-medium text-gray-600 dark:text-gray-300"
+                >切换主题</span
+              >
+              <div
+                class="group relative w-7 h-7 flex items-center justify-center"
+              >
+                <ThemeToggle
+                  width={14}
+                  height={14}
+                  className="group"
+                  transitionDuration={700}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+
+<script is:inline>
+// 导航逻辑 - 自销毁模式
+(function() {
+  // 尽早检查导航元素是否存在
+  const navSelector = document.querySelector('.nav-selector');
+  
+  // 集中管理所有事件监听器
+  const allListeners = [];
+  
+  // 单独保存清理事件的监听器引用
+  const cleanupListeners = [];
+  
+  // 内部状态管理
+  const state = {
+    isCleaningUp: false,
+    lastActivePath: '',
+    originalPushState: window.history.pushState,
+    originalReplaceState: window.history.replaceState
+  };
+  
+  // 获取当前URL路径
+  function getCurrentPath() {
+    const path = window.location.pathname;
+    return path === '/' ? '/' : path.endsWith('/') ? path.slice(0, -1) : path;
+  }
+  
+  // 添加事件监听器并记录，方便后续统一清理
+  function addListener(element, eventType, handler, options) {
+    if (!element) {
+      console.warn(`导航元素不存在`);
+      return null;
+    }
+
+    element.addEventListener(eventType, handler, options);
+    allListeners.push({ element, eventType, handler, options });
+    return handler;
+  }
+  
+  // 更新高亮背景的函数声明（提前声明）
+  let updateHighlights;
+  
+  // 初始化当前页面的激活状态函数声明（提前声明） 
+  let initActiveState;
+  
+  // 统一的路径变化处理函数
+  function handlePathChange() {
+    if (state.isCleaningUp) return;
+    
+    const currentPath = getCurrentPath();
+    
+    if (currentPath !== state.lastActivePath) {
+      // 主动调用初始化和更新高亮
+      initActiveState();
+      updateHighlights(false);
+      
+      state.lastActivePath = currentPath;
+    }
+  }
+  
+  // 统一的清理函数，执行完整清理并自销毁
+  function selfDestruct() {
+    // 标记清理状态
+    state.isCleaningUp = true;
+    
+    // 1. 移除所有普通事件监听器
+    allListeners.forEach(({ element, eventType, handler, options }) => {
+      try {
+        element.removeEventListener(eventType, handler, options);
+      } catch (err) {
+        console.error(`导航脚本移除事件监听器出错:`, err);
+      }
+    });
+    
+    // 清空监听器数组
+    allListeners.length = 0;
+    
+    // 2. 恢复原始history方法
+    if (state.originalPushState && state.originalReplaceState) {
+      try {
+        window.history.pushState = state.originalPushState;
+        window.history.replaceState = state.originalReplaceState;
+      } catch (err) {
+        console.error('恢复History方法失败:', err);
+      }
+    }
+    
+    // 3. 最后移除清理事件监听器自身
+    cleanupListeners.forEach(({ element, eventType, handler, options }) => {
+      try {
+        element.removeEventListener(eventType, handler, options);
+      } catch (err) {
+        console.error(`导航脚本移除清理监听器出错:`, err);
+      }
+    });
+    
+    // 清空清理监听器数组
+    cleanupListeners.length = 0;
+  }
+  
+  // 注册清理事件，并保存引用
+  function registerCleanupEvents() {
+    // 所有可能触发清理的事件
+    const cleanupEvents = [
+      { element: document, eventType: "astro:before-swap", options: { once: true } },
+      { element: window, eventType: "beforeunload", options: { once: true } },
+      { element: document, eventType: "page-transition", options: null }
+    ];
+    
+    // 为每个事件添加监听器
+    cleanupEvents.forEach(({ element, eventType, options }) => {
+      // 添加监听器
+      element.addEventListener(eventType, selfDestruct, options);
+      
+      // 保存引用以便后续清理
+      cleanupListeners.push({ 
+        element, 
+        eventType, 
+        handler: selfDestruct, 
+        options 
+      });
+    });
+  }
+
+  // 创建一个共享的计算高亮位置的函数
+  function calculateHighlightPositions(options = {}) {
+    const { navSelector, immediate = false } = options;
+    if (!navSelector) return null;
+    
+    const primaryHighlight = document.getElementById('nav-primary-highlight');
+    const secondaryHighlight = document.getElementById('nav-secondary-highlight');
+    
+    if (!primaryHighlight || !secondaryHighlight) {
+      console.warn(`导航高亮元素未找到`);
+      return null;
+    }
+    
+    // 获取标准高度
+    const getStandardHeight = () => {
+      // 尝试获取普通菜单项的高度作为标准
+      const standardItem = document.querySelector('.nav-item');
+      if (standardItem) {
+        return standardItem.offsetHeight;
+      }
+      // 如果没有普通菜单项，使用默认值
+      return 40; // 2.5rem 约等于 40px
+    };
+    
+    const standardHeight = getStandardHeight();
+    
+    // 查找活动元素
+    const activeItem = document.querySelector('.nav-item[data-state="active"]');
+    const activeGroup = document.querySelector('.nav-group[data-expanded="true"]');
+    const activeSubItem = document.querySelector('.nav-subitem[data-state="active"]');
+    
+    // 计算一级高亮目标
+    let primaryTarget = activeItem;
+    let isGroupActive = false;
+    
+    if (!primaryTarget && activeGroup) {
+      primaryTarget = activeGroup.querySelector('.nav-group-toggle[data-height-reference="true"]') || activeGroup;
+      isGroupActive = true;
+    }
+    
+    // 计算二级高亮目标
+    const secondaryTarget = activeSubItem;
+    
+    // 高亮位置结果
+    const result = {
+      primaryTarget,
+      secondaryTarget,
+      positions: {
+        primary: null,
+        secondary: null
+      },
+      applyPositions: function(applyImmediate = false) {
+        // 获取持续时间
+        const duration = parseInt(navSelector.dataset.duration || 300);
+        
+        // 应用一级高亮位置
+        if (this.positions.primary && primaryHighlight) {
+          const { left, top, width, height } = this.positions.primary;
+          
+          if (applyImmediate || immediate) {
+            // 立即模式，不使用过渡效果
+            primaryHighlight.style.transition = 'none';
+            primaryHighlight.style.left = `${left}px`;
+            primaryHighlight.style.top = `${top}px`;
+            primaryHighlight.style.width = `${width}px`;
+            primaryHighlight.style.height = `${height}px`;
+            
+            // 强制重排以确保过渡效果被重置
+            primaryHighlight.offsetHeight;
+            
+            // 恢复过渡属性
+            requestAnimationFrame(() => {
+              primaryHighlight.style.transition = `left ${duration}ms ease, top ${duration}ms ease, width ${duration}ms ease, height ${duration}ms ease, opacity ${duration}ms ease`;
+            });
+          } else {
+            // 非立即模式，使用过渡效果
+            primaryHighlight.style.transition = `left ${duration}ms ease, top ${duration}ms ease, width ${duration}ms ease, height ${duration}ms ease, opacity ${duration}ms ease`;
+            primaryHighlight.style.left = `${left}px`;
+            primaryHighlight.style.top = `${top}px`;
+            primaryHighlight.style.width = `${width}px`;
+            primaryHighlight.style.height = `${height}px`;
+          }
+          
+          // 确保高亮可见
+          primaryHighlight.style.opacity = '1';
+          navSelector.setAttribute('data-has-active', 'true');
+        } else if (primaryHighlight) {
+          // 隐藏高亮背景
+          primaryHighlight.style.opacity = '0';
+          
+          // 如果没有二级高亮也处于活动状态，更新data-has-active
+          if (!secondaryTarget || !secondaryHighlight || secondaryHighlight.style.opacity === '0') {
+            navSelector.setAttribute('data-has-active', 'false');
+          }
+        }
+        
+        // 应用二级高亮位置
+        if (this.positions.secondary && secondaryHighlight) {
+          const { left, top, width, height } = this.positions.secondary;
+          
+          if (applyImmediate || immediate) {
+            // 立即模式，不使用过渡效果
+            secondaryHighlight.style.transition = 'none';
+            secondaryHighlight.style.left = `${left}px`;
+            secondaryHighlight.style.top = `${top}px`;
+            secondaryHighlight.style.width = `${width}px`;
+            secondaryHighlight.style.height = `${height}px`;
+            
+            // 强制重排以确保过渡效果被重置
+            secondaryHighlight.offsetHeight;
+            
+            // 恢复过渡属性
+            requestAnimationFrame(() => {
+              secondaryHighlight.style.transition = `left ${duration}ms ease, top ${duration}ms ease, width ${duration}ms ease, height ${duration}ms ease, opacity ${duration}ms ease`;
+            });
+          } else {
+            // 非立即模式，使用过渡效果
+            secondaryHighlight.style.transition = `left ${duration}ms ease, top ${duration}ms ease, width ${duration}ms ease, height ${duration}ms ease, opacity ${duration}ms ease`;
+            secondaryHighlight.style.left = `${left}px`;
+            secondaryHighlight.style.top = `${top}px`;
+            secondaryHighlight.style.width = `${width}px`;
+            secondaryHighlight.style.height = `${height}px`;
+          }
+          
+          // 确保高亮可见
+          secondaryHighlight.style.opacity = '1';
+          navSelector.setAttribute('data-has-active', 'true');
+        } else if (secondaryHighlight) {
+          // 隐藏高亮背景
+          secondaryHighlight.style.opacity = '0';
+          
+          // 如果没有一级高亮也处于活动状态，更新data-has-active
+          if (!primaryTarget || !primaryHighlight || primaryHighlight.style.opacity === '0') {
+            navSelector.setAttribute('data-has-active', 'false');
+          }
+        }
+      }
+    };
+    
+    // 如果有活动元素，计算位置
+    const navRect = navSelector.getBoundingClientRect();
+    
+    // 计算一级高亮位置
+    if (primaryTarget) {
+      const rect = primaryTarget.getBoundingClientRect();
+      
+      // 如果是激活的导航组且有二级菜单展开，计算包含整个二级菜单的区域
+      if (isGroupActive && activeGroup) {
+        const groupRect = activeGroup.getBoundingClientRect();
+        const subMenuContainer = activeGroup.querySelector('.nav-group-items.menu-visible');
+        
+        if (subMenuContainer) {
+          const subMenuRect = subMenuContainer.getBoundingClientRect();
+          
+          // 计算包含组和二级菜单的组合高度
+          const totalHeight = subMenuRect.bottom - groupRect.top;
+          
+          // 计算位置和大小，确保包含整个二级菜单
+          result.positions.primary = {
+            left: groupRect.left - navRect.left,
+            top: groupRect.top - navRect.top,
+            width: Math.max(groupRect.width, subMenuRect.width),
+            height: totalHeight
+          };
+        } else {
+          // 如果没有展开的二级菜单，使用标准高度
+          result.positions.primary = {
+            left: rect.left - navRect.left,
+            top: rect.top - navRect.top - (standardHeight - rect.height) / 2,
+            width: rect.width,
+            height: standardHeight
+          };
+        }
+      } else {
+        // 对于普通一级菜单项，计算元素中心点，使用标准高度
+        const centerY = rect.top - navRect.top + rect.height / 2;
+        
+        result.positions.primary = {
+          left: rect.left - navRect.left,
+          top: centerY - standardHeight / 2,
+          width: rect.width,
+          height: standardHeight
+        };
+      }
+    }
+    
+    // 计算二级高亮位置
+    if (secondaryTarget) {
+      const rect = secondaryTarget.getBoundingClientRect();
+      
+      // 计算元素中心点，使用与一级菜单相同的标准高度
+      const centerY = rect.top - navRect.top + rect.height / 2;
+      
+      result.positions.secondary = {
+        left: rect.left - navRect.left,
+        top: centerY - standardHeight / 2,
+        width: rect.width,
+        height: standardHeight
+      };
+    }
+    
+    return result;
+  }
+  
+  // 在DOMContentLoaded前预先执行一次定位，减少闪烁
+  (function prePositionHighlights() {
+    if (!navSelector) return;
+    
+    // 如果有活动项，尝试预先定位高亮
+    if (navSelector.getAttribute('data-has-active') === 'true') {
+      const highlightPositions = calculateHighlightPositions({
+        navSelector,
+        immediate: true
+      });
+      
+      if (highlightPositions) {
+        highlightPositions.applyPositions(true);
+      }
+    }
+  })();
+  
+  // 注册清理事件
+  registerCleanupEvents();
+  
+  // 更新高亮背景 - 提升到顶部作用域
+  updateHighlights = function(immediate = false) {
+    requestAnimationFrame(() => {
+      const highlightPositions = calculateHighlightPositions({
+        navSelector,
+        immediate
+      });
+      
+      if (highlightPositions) {
+        highlightPositions.applyPositions(immediate);
+      }
+    });
+  };
+  
+  // 初始化当前页面的激活状态 - 提升到顶部作用域
+  initActiveState = function() {
+    // 获取当前路径
+    const currentPath = getCurrentPath();
+    
+    // 先清除所有导航项的激活状态
+    const allNavItems = document.querySelectorAll('.nav-item, .nav-subitem');
+    allNavItems.forEach(item => {
+      item.setAttribute('data-state', 'inactive');
+    });
+    
+    const allNavGroups = document.querySelectorAll('.nav-group');
+    allNavGroups.forEach(group => {
+      group.setAttribute('data-expanded', 'false');
+      const toggle = group.querySelector('.nav-group-toggle');
+      if (toggle) {
+        toggle.setAttribute('data-state', 'inactive');
+      }
+      
+      // 处理子菜单状态
+      const menuItems = group.querySelector('.nav-group-items');
+      if (menuItems) {
+        menuItems.classList.remove('menu-visible');
+        menuItems.classList.add('hidden');
+      }
+    });
+    
+    // 标记变量，用于跟踪是否找到匹配的导航项
+    let foundMatch = false;
+    
+    // 先检查子菜单项
+    const subItems = document.querySelectorAll('.nav-subitem');
+    
+    for (const subItem of subItems) {
+      const href = subItem.getAttribute('href');
+      if (!href) continue;
+      
+      // 检查是否匹配当前路径（完全匹配或前缀匹配，但排除根路径的前缀匹配）
+      if (href === currentPath || (currentPath.startsWith(href) && href !== '/')) {
+        // 找到匹配项，设置为active
+        subItem.setAttribute('data-state', 'active');
+        
+        // 激活父组
+        const parentId = subItem.dataset.parentId;
+        if (parentId) {
+          const parentGroup = document.querySelector(`.nav-group[data-group-id="${parentId}"]`);
+          if (parentGroup) {
+            parentGroup.setAttribute('data-expanded', 'true');
+            
+            // 设置组切换按钮样式
+            const toggle = parentGroup.querySelector('.nav-group-toggle');
+            if (toggle) {
+              toggle.setAttribute('data-state', 'active');
+            }
+            
+            // 确保子菜单可见
+            const items = parentGroup.querySelector('.nav-group-items');
+            if (items) {
+              items.classList.remove('hidden');
+              items.classList.add('menu-visible');
+            }
+          }
+        }
+        
+        foundMatch = true;
+        break;
+      }
+    }
+    
+    // 如果没找到匹配的子菜单项，检查主菜单项
+    if (!foundMatch) {
+      const items = document.querySelectorAll('.nav-item');
+      
+      for (const item of items) {
+        const href = item.getAttribute('href');
+        if (!href) continue;
+        
+        // 检查是否匹配当前路径（完全匹配或前缀匹配，但排除根路径的前缀匹配）
+        if (href === currentPath || (currentPath.startsWith(href) && href !== '/')) {
+          // 找到匹配项，设置为active
+          item.setAttribute('data-state', 'active');
+          
+          foundMatch = true;
+          break;
+        }
+      }
+    }
+    
+    // 如果仍然没找到匹配项，记录警告
+    if (!foundMatch) {
+      console.warn(`找不到匹配当前路径的导航项: ${currentPath}`);
+    }
+    
+    // 计算正确高亮位置
+    updateHighlights(false);
+  };
+  
+  // DOM加载完成后执行初始化
+  function initNavigation() {
+    // 检查DOM是否已加载
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", setupNavigation, { once: true });
+    } else {
+      setupNavigation();
+    }
+  }
+  
+  // 主要设置函数
+  function setupNavigation() {
+    // 初始化路径记录
+    state.lastActivePath = getCurrentPath();
+    
+    // 设置桌面导航
+    setupNavSelector();
+    
+    // 设置移动端导航
+    setupMobileNav();
+    
+    // 监听hashchange事件 - 当URL的hash部分改变时触发
+    addListener(window, 'hashchange', () => {
+      handlePathChange();
+    });
+    
+    // 为所有导航链接添加点击拦截
+    addListener(document, 'click', (e) => {
+      // 检查点击的是否为站内导航链接
+      const link = e.target.closest('a');
+      if (link && link.host === window.location.host && !e.ctrlKey && !e.metaKey) {
+        // 延迟检查以确保导航已完成
+        setTimeout(handlePathChange, 50);
+      }
+    });
+    
+    // 设置History API监控
+    setupHistoryMonitoring();
+  }
+  
+  // 监听history API的方法
+  function setupHistoryMonitoring() {
+    // 保存初始状态 - 确保引用正确
+    state.originalPushState = window.history.pushState;
+    state.originalReplaceState = window.history.replaceState;
+    
+    // 监听页面转换事件来设置清理标记
+    addListener(document, 'page-transition', () => {
+      state.isCleaningUp = true;
+    });
+    
+    // 重写pushState
+    window.history.pushState = function() {
+      if (state.isCleaningUp) {
+        return state.originalPushState.apply(this, arguments);
+      }
+      
+      state.originalPushState.apply(this, arguments);
+      handlePathChange();
+    };
+    
+    // 重写replaceState
+    window.history.replaceState = function() {
+      if (state.isCleaningUp) {
+        return state.originalReplaceState.apply(this, arguments);
+      }
+      
+      state.originalReplaceState.apply(this, arguments);
+      handlePathChange();
+    };
+  }
+  
+  // 初始化导航选择器
+  function setupNavSelector() {
+    // 获取DOM元素
+    if (!navSelector) return;
+    
+    const primaryHighlight = document.getElementById('nav-primary-highlight');
+    const secondaryHighlight = document.getElementById('nav-secondary-highlight');
+    const hoverHighlight = document.getElementById('nav-hover-highlight');
+    const navItems = document.querySelectorAll('.nav-item');
+    const navGroups = document.querySelectorAll('.nav-group');
+    const navToggles = document.querySelectorAll('.nav-group-toggle');
+    const navSubItems = document.querySelectorAll('.nav-subitem');
+    
+    if (!primaryHighlight || !secondaryHighlight) {
+      console.warn(`导航高亮元素未找到`);
+    }
+    
+    // 悬停状态管理
+    const hoverState = {
+      currentTarget: null,
+      isHovering: false,
+      showHoverOnActive: false, // 是否在激活项上也显示悬停效果
+      debounceTimer: null
+    };
+    
+    const activeClass = "font-medium";
+    
+    // 当前活动项的状态 - 从DOM中提取当前激活状态
+    let activeItemId = null;
+    let activeSubItemId = null;
+    let activeGroupId = null;
+    
+    // 读取初始激活状态
+    const activeItemElement = document.querySelector('.nav-item.active');
+    if (activeItemElement) {
+      activeItemId = activeItemElement.dataset.itemId;
+    }
+    
+    const activeSubItemElement = document.querySelector('.nav-subitem.active');
+    if (activeSubItemElement) {
+      activeSubItemId = activeSubItemElement.dataset.subitemId;
+      activeGroupId = activeSubItemElement.dataset.parentId;
+    }
+    
+    const activeGroupElement = document.querySelector('.nav-group.active');
+    if (activeGroupElement && !activeSubItemId) {
+      activeGroupId = activeGroupElement.dataset.groupId;
+    }
+    
+    // 设置CSS变量
+    function setCssVariables() {
+      // 从primaryHighlight和secondaryHighlight中提取背景色
+      if (primaryHighlight && secondaryHighlight) {
+        const primaryStyle = window.getComputedStyle(primaryHighlight);
+        const secondaryStyle = window.getComputedStyle(secondaryHighlight);
+        
+        // 设置CSS变量
+        navSelector.style.setProperty('--primary-highlight-bg', primaryStyle.backgroundColor);
+        navSelector.style.setProperty('--secondary-highlight-bg', secondaryStyle.backgroundColor);
+      }
+    }
+    
+    // 初始调用一次设置CSS变量
+    setCssVariables();
+    
+    // 重置所有菜单状态
+    function resetAllMenus() {
+      // 关闭所有二级菜单
+      navGroups.forEach(group => {
+        const items = group.querySelector('.nav-group-items');
+        const toggle = group.querySelector('.nav-group-toggle');
+        
+        if (items) {
+          items.classList.remove('menu-visible');
+          items.classList.add('hidden');
+          items.classList.remove('menu-hidden');
+        }
+        
+        if (toggle) {
+          toggle.classList.remove('menu-up');
+        }
+        
+        // 移除组的激活状态
+        group.classList.remove('active');
+      });
+    }
+    
+    // 更新悬停高亮
+    function updateHoverHighlight(target) {
+      if (!hoverHighlight || !navSelector || !target) return;
+      
+      // 清除之前的定时器
+      if (hoverState.debounceTimer) {
+        clearTimeout(hoverState.debounceTimer);
+      }
+      
+      // 设置当前悬停目标
+      hoverState.currentTarget = target;
+      hoverState.isHovering = true;
+      
+      // 检查目标是否已激活
+      const isActive = target.getAttribute('data-state') === 'active';
+      
+      // 如果目标已激活且不希望在激活项上显示悬停效果，则直接返回
+      if (isActive && !hoverState.showHoverOnActive) {
+        hideHoverHighlight();
+        return;
+      }
+      
+      // 使用防抖处理，减少不必要的计算
+      hoverState.debounceTimer = setTimeout(() => {
+        // 确保在计算时仍处于悬停状态
+        if (!hoverState.isHovering) return;
+        
+        const navRect = navSelector.getBoundingClientRect();
+        const targetRect = target.getBoundingClientRect();
+        
+        // 获取标准高度
+        const getStandardHeight = () => {
+          // 尝试获取普通菜单项的高度作为标准
+          const standardItem = document.querySelector('.nav-item');
+          if (standardItem) {
+            return standardItem.offsetHeight;
+          }
+          // 如果没有普通菜单项，使用默认值
+          return 40; // 2.5rem 约等于 40px
+        };
+        
+        const standardHeight = getStandardHeight();
+        
+        // 计算元素中心点，使用标准高度
+        const centerY = targetRect.top - navRect.top + targetRect.height / 2;
+        
+        // 计算位置
+        const left = targetRect.left - navRect.left;
+        const top = centerY - standardHeight / 2;
+        const width = targetRect.width;
+        const height = standardHeight;
+        
+        // 应用位置
+        hoverHighlight.style.transition = 'left 200ms ease, top 200ms ease, width 200ms ease, height 200ms ease, opacity 200ms ease';
+        hoverHighlight.style.left = `${left}px`;
+        hoverHighlight.style.top = `${top}px`;
+        hoverHighlight.style.width = `${width}px`;
+        hoverHighlight.style.height = `${height}px`;
+        hoverHighlight.style.opacity = '1';
+      }, 10); // 短暂延迟，提高响应性
+    }
+    
+    // 隐藏悬停高亮
+    function hideHoverHighlight() {
+      if (!hoverHighlight) return;
+      
+      // 清除悬停状态
+      hoverState.isHovering = false;
+      hoverState.currentTarget = null;
+      
+      // 清除之前的定时器
+      if (hoverState.debounceTimer) {
+        clearTimeout(hoverState.debounceTimer);
+      }
+      
+      // 隐藏高亮
+      hoverHighlight.style.opacity = '0';
+    }
+    
+    // 处理导航项悬停
+    function handleNavItemHover(e, isEnter) {
+      const target = e.currentTarget;
+      
+      if (isEnter) {
+        // 更新悬停高亮
+        updateHoverHighlight(target);
+      } else {
+        // 检查是否离开到了其他导航项
+        const relatedTarget = e.relatedTarget;
+        const isStillInNav = relatedTarget && (
+          relatedTarget.classList.contains('nav-item') || 
+          relatedTarget.classList.contains('nav-subitem') ||
+          relatedTarget.classList.contains('nav-group-toggle')
+        );
+        
+        // 如果不是移动到其他导航项，则隐藏悬停高亮
+        if (!isStillInNav) {
+          hideHoverHighlight();
+        }
+      }
+    }
+    
+    // 设置激活的一级菜单项
+    function setActiveItem(itemId) {
+      // 清除所有菜单状态
+      resetAllMenus();
+      
+      // 清除所有激活状态
+      navItems.forEach(item => {
+        item.setAttribute('data-state', 'inactive');
+      });
+      
+      navSubItems.forEach(item => {
+        item.setAttribute('data-state', 'inactive');
+      });
+      
+      // 清除所有组的激活状态和按钮样式
+      navGroups.forEach(group => {
+        group.setAttribute('data-expanded', 'false');
+        
+        // 清除组内按钮的激活状态
+        const toggle = group.querySelector('.nav-group-toggle');
+        if (toggle) {
+          toggle.setAttribute('data-state', 'inactive');
+        }
+      });
+      
+      // 设置新的激活状态
+      const targetItem = document.querySelector(`.nav-item[data-item-id="${itemId}"]`);
+      if (targetItem) {
+        targetItem.setAttribute('data-state', 'active');
+        
+        // 更新状态
+        activeItemId = itemId;
+        activeGroupId = null;
+        activeSubItemId = null;
+      }
+      
+      // 更新高亮背景
+      updateHighlights();
+      
+      // 隐藏悬停高亮
+      hideHoverHighlight();
+    }
+    
+    // 设置激活的二级菜单项
+    function setActiveSubItem(subItemId) {
+      if (!subItemId) {
+        console.warn(`[导航日志] 无效的subItemId`);
+        return;
+      }
+      
+      // 查找目标项
+      const targetItem = document.querySelector(`.nav-subitem[data-subitem-id="${subItemId}"]`);
+      if (!targetItem) {
+        console.warn(`[导航日志] 未找到目标子菜单项: ${subItemId}`);
+        return;
+      }
+      
+      // 获取父组ID
+      const parentId = targetItem.dataset.parentId;
+      if (!parentId) {
+        console.warn(`[导航日志] 目标子菜单项没有父组ID: ${subItemId}`);
+        return;
+      }
+      
+      // 清除所有普通菜单项的高亮
+      navItems.forEach(item => {
+        item.setAttribute('data-state', 'inactive');
+      });
+      
+      // 清除所有二级菜单项的高亮
+      navSubItems.forEach(item => {
+        item.setAttribute('data-state', 'inactive');
+      });
+      
+      // 清除所有组按钮的激活状态
+      navGroups.forEach(group => {
+        const groupId = group.dataset.groupId;
+        // 只保留当前激活组的激活状态
+        if (groupId !== parentId) {
+          group.setAttribute('data-expanded', 'false');
+          const toggle = group.querySelector('.nav-group-toggle');
+          if (toggle) {
+            toggle.setAttribute('data-state', 'inactive');
+          }
+          
+          // 确保子菜单是隐藏的
+          const items = group.querySelector('.nav-group-items');
+          if (items) {
+            items.classList.add('hidden');
+            items.classList.remove('menu-visible');
+          }
+        }
+      });
+      
+      // 设置新的激活状态
+      targetItem.setAttribute('data-state', 'active');
+      
+      // 更新状态
+      activeSubItemId = subItemId;
+      activeGroupId = parentId;
+      activeItemId = null;
+      
+      // 确保父组处于激活状态
+      const parentGroup = document.querySelector(`.nav-group[data-group-id="${parentId}"]`);
+      if (parentGroup) {
+        parentGroup.setAttribute('data-expanded', 'true');
+        
+        // 确保二级菜单可见
+        const items = parentGroup.querySelector('.nav-group-items');
+        const toggle = parentGroup.querySelector('.nav-group-toggle');
+        
+        if (items && toggle) {
+          toggle.setAttribute('data-state', 'active');
+          items.classList.remove('hidden');
+          items.classList.add('menu-visible');
+        }
+      }
+      
+      // 更新高亮背景
+      updateHighlights();
+      
+      // 隐藏悬停高亮
+      hideHoverHighlight();
+    }
+    
+    // 切换导航组的显示状态
+    function toggleNavGroup(groupId, forceState = null) {
+      const targetGroup = document.querySelector(`.nav-group[data-group-id="${groupId}"]`);
+      if (!targetGroup) {
+        console.error(`导航组未找到: ${groupId}`);
+        return;
+      }
+      
+      const items = targetGroup.querySelector('.nav-group-items');
+      const toggle = targetGroup.querySelector('.nav-group-toggle');
+      
+      if (!items || !toggle) {
+        console.error(`导航组元素未找到: ${groupId}`);
+        return;
+      }
+      
+      // 获取过渡动画持续时间
+      const duration = parseInt(navSelector.dataset.duration || 300);
+      
+      // 当前菜单是否可见
+      const isExpanded = targetGroup.getAttribute('data-expanded') === 'true';
+      
+      // 确定最终状态（展开或收起）
+      const shouldOpen = forceState !== null ? forceState : !isExpanded;
+      
+      // 如果状态相同，无需操作
+      if ((shouldOpen && isExpanded) || (!shouldOpen && !isExpanded)) {
+        return;
+      }
+      
+      // 清除所有普通菜单项的高亮状态
+      navItems.forEach(item => {
+        item.setAttribute('data-state', 'inactive');
+      });
+      
+      // 收起菜单
+      if (!shouldOpen) {
+        // 先设置过渡类
+        items.classList.add('menu-hidden');
+        
+        // 延迟隐藏菜单，等待过渡完成
+        setTimeout(() => {
+          // 移除组的激活状态
+          targetGroup.setAttribute('data-expanded', 'false');
+          
+          // 显示一级菜单按钮
+          toggle.setAttribute('data-state', 'inactive');
+          
+          // 隐藏二级菜单
+          items.classList.remove('menu-visible');
+          items.classList.add('hidden');
+          items.classList.remove('menu-hidden');
+          
+          // 清除激活状态
+          if (activeGroupId === groupId) {
+            activeGroupId = null;
+            activeSubItemId = null;
+            
+            // 重置高亮背景，确保切换时背景样式清理干净
+            if (primaryHighlight) primaryHighlight.style.opacity = '0';
+            if (secondaryHighlight) secondaryHighlight.style.opacity = '0';
+            navSelector.setAttribute('data-has-active', 'false');
+          }
+          
+          // 给DOM渲染一些时间，然后更新高亮
+          setTimeout(() => {
+            updateHighlights(false);
+          }, 50);
+        }, duration);
+      } 
+      // 展开菜单
+      else {
+        // 先关闭所有其他菜单组
+        resetAllMenus();
+        
+        // 清除一级菜单的高亮状态
+        activeItemId = null;
+        
+        // 清除所有组的激活状态和按钮样式
+        navGroups.forEach(group => {
+          const gid = group.dataset.groupId;
+          if (gid !== groupId) {
+            group.setAttribute('data-expanded', 'false');
+            
+            // 清除组内按钮的激活状态
+            const groupToggle = group.querySelector('.nav-group-toggle');
+            if (groupToggle) {
+              groupToggle.setAttribute('data-state', 'inactive');
+            }
+          }
+        });
+        
+        // 标记组为激活状态
+        targetGroup.setAttribute('data-expanded', 'true');
+        
+        // 设置一级菜单按钮样式
+        toggle.setAttribute('data-state', 'active');
+        
+        // 展开二级菜单
+        items.classList.remove('hidden', 'menu-hidden');
+        
+        // 使用requestAnimationFrame确保DOM更新后再添加visible类
+        requestAnimationFrame(() => {
+          items.classList.add('menu-visible');
+          
+          // 当菜单展开后更新高亮背景
+          setTimeout(() => {
+            updateHighlights(false);
+          }, 50);
+        });
+        
+        // 设置激活状态
+        activeGroupId = groupId;
+        
+        // 如果没有选中的二级菜单项，则选中第一个并模拟点击
+        const activeSubItemBelongsToGroup = activeSubItemId && new RegExp(`^${groupId}-`).test(activeSubItemId);
+        
+        if (!activeSubItemId || !activeSubItemBelongsToGroup) {
+          const firstSubItem = targetGroup.querySelector('.nav-subitem');
+          if (firstSubItem) {
+            const subItemId = firstSubItem.dataset.subitemId;
+            
+            // 清除所有二级菜单项的高亮
+            navSubItems.forEach(item => {
+              item.setAttribute('data-state', 'inactive');
+            });
+            
+            // 设置新的二级菜单项高亮
+            firstSubItem.setAttribute('data-state', 'active');
+            
+            // 设置高亮
+            activeSubItemId = subItemId;
+            
+            // 直接模拟点击第一个子菜单项
+            setTimeout(() => {
+              try {
+                // 检查元素是否仍然存在于DOM中
+                const currentFirstSubItem = document.querySelector(`.nav-subitem[data-subitem-id="${subItemId}"]`);
+                if (currentFirstSubItem) {
+                  // 使用事件分发而不是直接点击，可能更可靠
+                  const clickEvent = new MouseEvent('click', {
+                    bubbles: true,
+                    cancelable: true,
+                    view: window
+                  });
+                  currentFirstSubItem.dispatchEvent(clickEvent);
+                } else {
+                  console.error(`[导航日志] 模拟点击失败，元素不再存在于DOM中`);
+                }
+              } catch (err) {
+                console.error(`[导航日志] 模拟点击出错: ${err.message}`);
+              }
+            }, 50); // 增加延迟时间以确保DOM已更新
+          } else {
+            console.warn(`[导航日志] 未找到子菜单项，无法选中第一项`);
+          }
+        } else {
+          // 已有选中的二级菜单项，找到并重新设置高亮
+          const activeSubItem = document.querySelector(`.nav-subitem[data-subitem-id="${activeSubItemId}"]`);
+          if (activeSubItem) {
+            // 清除所有二级菜单项的高亮
+            navSubItems.forEach(item => {
+              item.setAttribute('data-state', 'inactive');
+            });
+            
+            // 设置高亮
+            activeSubItem.setAttribute('data-state', 'active');
+          }
+          
+          // 更新高亮
+          updateHighlights(false);
+        }
+      }
+      
+      // 隐藏悬停高亮
+      hideHoverHighlight();
+    }
+    
+    // 注册事件监听
+    
+    // 普通菜单项点击
+    navItems.forEach(item => {
+      addListener(item, 'click', (e) => {
+        e.preventDefault();
+        
+        const itemId = item.dataset.itemId;
+        
+        // 设置高亮
+        setActiveItem(itemId);
+      });
+      
+      // 添加悬停事件
+      addListener(item, 'mouseenter', (e) => handleNavItemHover(e, true));
+      addListener(item, 'mouseleave', (e) => handleNavItemHover(e, false));
+    });
+    
+    // 一级菜单按钮点击
+    navToggles.forEach(toggle => {
+      addListener(toggle, 'click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const groupId = toggle.dataset.toggleId;
+        
+        // 切换菜单状态
+        toggleNavGroup(groupId);
+      });
+      
+      // 添加悬停事件
+      addListener(toggle, 'mouseenter', (e) => handleNavItemHover(e, true));
+      addListener(toggle, 'mouseleave', (e) => handleNavItemHover(e, false));
+    });
+    
+    // 二级菜单项点击
+    navSubItems.forEach(item => {
+      addListener(item, 'click', (e) => {
+        e.preventDefault();
+        
+        const subItemId = item.dataset.subitemId;
+        
+        // 设置高亮
+        setActiveSubItem(subItemId);
+      });
+      
+      // 添加悬停事件
+      addListener(item, 'mouseenter', (e) => handleNavItemHover(e, true));
+      addListener(item, 'mouseleave', (e) => handleNavItemHover(e, false));
+    });
+    
+    // 初始化
+    initActiveState();
+    
+    // 处理页面切换
+    const hasSwup = typeof window.swup !== 'undefined';
+    if (hasSwup) {
+      // 页面内容替换后重新初始化
+      addListener(document, 'swup:contentReplaced', () => {
+        setTimeout(() => {
+          initActiveState();
+        }, 50);
+      });
+      
+      // 视图转换结束
+      addListener(document, 'swup:animationInDone', () => {
+        // 再次调用初始化
+        initActiveState();
+        // 确保高亮背景位置正确
+        updateHighlights(false);
+      });
+    }
+    
+    // 添加 astro:after-swap 事件监听
+    addListener(document, 'astro:after-swap', () => {
+      setTimeout(() => {
+        initActiveState();
+        updateHighlights(false);
+      }, 50);
+    });
+    
+    // 添加Astro View Transitions事件监听
+    addListener(document, 'astro:page-load', () => {
+      setTimeout(initActiveState, 50);
+      updateHighlights(false);
+    });
+    
+    // 添加popstate事件监听
+    addListener(window, 'popstate', (e) => {
+      setTimeout(() => {
+        initActiveState();
+        updateHighlights(false);
+        
+        // 修复：确保激活的菜单组的子菜单是可见的
+        const activeGroupsAfter = document.querySelectorAll('.nav-group.active');
+        activeGroupsAfter.forEach(group => {
+          const groupId = group.dataset.groupId;
+          const items = group.querySelector('.nav-group-items');
+          
+          if (items && !items.classList.contains('menu-visible')) {
+            // 移除隐藏状态并添加可见状态
+            items.classList.remove('hidden', 'menu-hidden');
+            items.classList.add('menu-visible');
+            
+            // 确保切换按钮也具有正确的状态
+            const toggle = group.querySelector('.nav-group-toggle');
+            if (toggle) {
+              toggle.classList.add('menu-up', 'font-semibold', 'text-primary-700', 'dark:text-primary-300');
+              toggle.classList.remove('text-gray-600', 'dark:text-gray-300', 'hover:text-primary-600', 'dark:hover:text-primary-400');
+            }
+          }
+        });
+      }, 50);
+    });
+    
+    
+    // 窗口大小变化时重新计算高亮位置
+    addListener(window, 'resize', () => {
+      updateHighlights(false);
+      hideHoverHighlight(); // 重置悬停高亮
+    });
+    
+    // 添加全局鼠标移动监听，处理从导航区域外移入的情况
+    addListener(navSelector, 'mouseleave', () => {
+      hideHoverHighlight();
+    });
+  }
+  
+  // 初始化移动端菜单和搜索功能
+  function setupMobileNav() {
+    const mobileMenuButton = document.getElementById('mobile-menu-button');
+    const mobileSearchButton = document.getElementById('mobile-search-button');
+    const mobileMenu = document.getElementById('mobile-menu');
+    const mobileSearch = document.getElementById('mobile-search');
+    const menuOpenIcon = document.getElementById('menu-open-icon');
+    const menuCloseIcon = document.getElementById('menu-close-icon');
+    
+    if (!mobileMenuButton || !mobileMenu) {
+      console.warn(`移动端菜单组件未找到`);
+      return;
+    }
+    
+    // 更新移动端菜单高亮状态的函数
+    function updateMobileMenuHighlight() {
+      
+      // 获取当前路径
+      const currentPath = window.location.pathname;
+      const normalizedPath = currentPath === '/' ? '/' : 
+        currentPath.endsWith('/') ? currentPath.slice(0, -1) : currentPath;
+      
+      // 选择所有移动端菜单项
+      const mobileMenuItems = document.querySelectorAll('#mobile-menu a');
+      
+      // 找到匹配的菜单项并设置高亮
+      mobileMenuItems.forEach(item => {
+        const href = item.getAttribute('href');
+        // 检查是否完全匹配或者路径前缀匹配（但排除根路径'/'的前缀匹配）
+        if (href === normalizedPath || (normalizedPath.startsWith(href) && href !== '/')) {
+          // 应用高亮样式
+          item.classList.add('text-white', 'bg-primary-600', 'dark:bg-primary-500', 'shadow-sm');
+          item.classList.remove('text-gray-700', 'dark:text-gray-200', 'hover:bg-gray-100', 'dark:hover:bg-gray-800/70');
+          
+          // 如果是子菜单项，自动展开其父菜单
+          const submenu = item.closest('.mobile-submenu');
+          if (submenu) {
+            const parentId = submenu.getAttribute('data-parent-id');
+            const toggle = document.querySelector(`[data-mobile-menu-toggle="${parentId}"]`);
+            if (toggle && !submenu.getAttribute('data-expanded') === 'true') {
+              // 展开子菜单
+              toggleSubmenu(parentId, true);
+            }
+          }
+        } else {
+          // 移除高亮样式
+          item.classList.remove('text-white', 'bg-primary-600', 'dark:bg-primary-500', 'shadow-sm');
+          item.classList.add('text-gray-700', 'dark:text-gray-200', 'hover:bg-gray-100', 'dark:hover:bg-gray-800/70');
+        }
+      });
+    }
+    
+    // 切换子菜单显示状态
+    function toggleSubmenu(parentId, forceOpen = null) {
+      const toggle = document.querySelector(`[data-mobile-menu-toggle="${parentId}"]`);
+      const submenu = document.querySelector(`.mobile-submenu[data-parent-id="${parentId}"]`);
+      const menuIcon = toggle ? toggle.querySelector('.mobile-menu-icon') : null;
+      const arrow = menuIcon ? menuIcon.querySelector('.mobile-menu-arrow') : null;
+      
+      if (!toggle || !submenu) return;
+      
+      // 确定是展开还是收起
+      const isExpanded = submenu.getAttribute('data-expanded') === 'true';
+      const shouldOpen = forceOpen !== null ? forceOpen : !isExpanded;
+      
+      if (shouldOpen) {
+        // 展开子菜单
+        submenu.setAttribute('data-expanded', 'true');
+        
+        // 设置图标动画
+        if (menuIcon) menuIcon.style.transform = 'rotate(180deg)';
+      } else {
+        // 收起子菜单
+        submenu.setAttribute('data-expanded', 'false');
+        
+        // 重置图标动画
+        if (menuIcon) menuIcon.style.transform = '';
+      }
+    }
+    
+    // 关闭所有子菜单
+    function closeAllSubmenus() {
+      const toggles = document.querySelectorAll('[data-mobile-menu-toggle]');
+      toggles.forEach(toggle => {
+        const parentId = toggle.getAttribute('data-mobile-menu-toggle');
+        if (parentId) {
+          const submenu = document.querySelector(`.mobile-submenu[data-parent-id="${parentId}"]`);
+          const menuIcon = toggle ? toggle.querySelector('.mobile-menu-icon') : null;
+          
+          if (submenu) {
+            submenu.setAttribute('data-expanded', 'false');
+            if (menuIcon) menuIcon.style.transform = '';
+          }
+        }
+      });
+    }
+    
+    // 为所有子菜单切换按钮添加点击事件
+    function setupMobileSubmenuToggles() {
+      // 关闭所有子菜单（默认状态）
+      closeAllSubmenus();
+      
+      // 为所有子菜单切换按钮添加点击事件
+      const submenuToggles = document.querySelectorAll('[data-mobile-menu-toggle]');
+      submenuToggles.forEach(toggle => {
+        addListener(toggle, 'click', (e) => {
+          const parentId = toggle.getAttribute('data-mobile-menu-toggle');
+          if (parentId) {
+            toggleSubmenu(parentId);
+          }
+        });
+      });
+    }
+    
+    // 关闭移动端菜单
+    function closeMobileMenu() {
+      if (mobileMenu && !mobileMenu.classList.contains('hidden')) {
+        mobileMenu.classList.add('hidden');
+        
+        if (mobileMenuButton) {
+          mobileMenuButton.setAttribute('aria-expanded', 'false');
+        }
+        
+        // 同时关闭所有子菜单
+        closeAllSubmenus();
+      }
+    }
+    
+    // 关闭移动端搜索
+    function closeMobileSearch() {
+      if (mobileSearch && !mobileSearch.classList.contains('hidden')) {
+        mobileSearch.classList.add('hidden');
+        
+        if (mobileSearchButton) {
+          mobileSearchButton.setAttribute('aria-expanded', 'false');
+        }
+      }
+    }
+    
+    // 移动端菜单按钮点击事件
+    if (mobileMenuButton && mobileMenu) {
+      addListener(mobileMenuButton, 'click', () => {
+        // 切换菜单显示状态
+        const isExpanded = mobileMenuButton.getAttribute('aria-expanded') === 'true';
+        
+        // 更新按钮状态
+        mobileMenuButton.setAttribute('aria-expanded', isExpanded ? 'false' : 'true');
+        
+        // 显示/隐藏菜单
+        mobileMenu.classList.toggle('hidden');
+        
+        // 如果搜索面板是开着的，关闭它
+        closeMobileSearch();
+        
+        // 确保高亮状态是最新的
+        updateMobileMenuHighlight();
+      });
+    }
+    
+    // 移动端搜索按钮点击事件
+    if (mobileSearchButton && mobileSearch) {
+      addListener(mobileSearchButton, 'click', () => {
+        // 切换搜索面板显示状态
+        const isExpanded = mobileSearchButton.getAttribute('aria-expanded') === 'true';
+        
+        // 更新按钮状态
+        mobileSearchButton.setAttribute('aria-expanded', isExpanded ? 'false' : 'true');
+        
+        // 显示/隐藏搜索面板
+        mobileSearch.classList.toggle('hidden');
+        
+        // 如果菜单是开着的，关闭它
+        closeMobileMenu();
+      });
+    }
+    
+    // 为主题切换容器添加点击事件
+    const themeToggleContainer = document.getElementById('theme-toggle-container');
+    if (themeToggleContainer) {
+      addListener(themeToggleContainer, 'click', (e) => {
+        // 阻止事件冒泡，防止多次触发
+        e.stopPropagation();
+        
+        // 获取容器内的主题切换按钮
+        const themeToggleButton = themeToggleContainer.querySelector('#theme-toggle-button');
+        
+        // 如果找到按钮，通过创建自定义事件来传递坐标
+        if (themeToggleButton) {
+          // 创建自定义点击事件并携带原始事件的坐标信息
+          const clickEvent = new MouseEvent('click', {
+            bubbles: true,
+            cancelable: true,
+            view: window,
+            clientX: e.clientX,
+            clientY: e.clientY
+          });
+          
+          // 使用自定义事件触发按钮点击
+          themeToggleButton.dispatchEvent(clickEvent);
+        }
+      });
+    }
+    
+    // 为Astro View Transitions添加事件处理
+    addListener(document, 'astro:page-load', () => {
+      setupMobileSubmenuToggles();
+      updateMobileMenuHighlight();
+      closeMobileMenu();
+      closeMobileSearch();
+    });
+    
+    // 监听地址栏变化
+    addListener(window, 'popstate', () => {
+      setTimeout(() => {
+        updateMobileMenuHighlight();
+        closeMobileMenu();
+        closeMobileSearch();
+      }, 50);
+    });
+    
+    // 为移动端菜单链接添加点击事件，点击后关闭菜单
+    function setupMobileMenuLinks() {
+      const mobileMenuLinks = document.querySelectorAll('#mobile-menu a');
+      mobileMenuLinks.forEach(link => {
+        // 避免重复添加事件监听器
+        addListener(link, 'click', (e) => {
+          // 如果是站内链接且不是控制键或Meta键点击（新窗口打开）
+          if (link.host === window.location.host && !e.ctrlKey && !e.metaKey) {
+            // 延迟关闭导航栏，确保页面跳转感知和点击体验更流畅
+            setTimeout(() => {
+              closeMobileMenu();
+            }, 50);
+          }
+        });
+      });
+    }
+    
+    // 初始调用一次设置子菜单切换按钮和更新高亮状态
+    setupMobileSubmenuToggles();
+    updateMobileMenuHighlight();
+    setupMobileMenuLinks(); // 添加对移动端链接的点击监听
+    
+    // 当菜单显示状态变化时重新绑定链接点击事件
+    addListener(mobileMenuButton, 'click', () => {
+      // 确保每次打开菜单时重新设置链接点击事件
+      setTimeout(() => {
+        setupMobileMenuLinks();
+      }, 50);
+    });
+    
+    // 添加点击空白区域关闭菜单和搜索面板的事件监听
+    addListener(document, 'click', (e) => {
+      // 获取事件目标
+      const target = e.target;
+      
+      // 处理移动端菜单内的链接点击
+      const menuLink = target.closest('#mobile-menu a');
+      if (menuLink && !e.ctrlKey && !e.metaKey) {
+        // 延迟关闭导航栏
+        setTimeout(() => {
+          closeMobileMenu();
+        }, 50);
+        return; // 如果是菜单链接点击，处理完成后返回
+      }
+      
+      // 检查移动端菜单是否打开，点击空白区域关闭
+      if (mobileMenu && !mobileMenu.classList.contains('hidden')) {
+        // 检查点击是否在菜单区域外
+        // 菜单按钮和菜单内容都应该排除
+        if (!mobileMenu.contains(target) && 
+            mobileMenuButton && !mobileMenuButton.contains(target)) {
+          closeMobileMenu();
+        }
+      }
+      
+      // 检查移动端搜索面板是否打开，点击空白区域关闭
+      if (mobileSearch && !mobileSearch.classList.contains('hidden')) {
+        // 检查点击是否在搜索面板区域外
+        // 搜索按钮和搜索面板内容都应该排除
+        if (!mobileSearch.contains(target) && 
+            mobileSearchButton && !mobileSearchButton.contains(target)) {
+          closeMobileSearch();
+        }
+      }
+    });
+  }
+  
+  // 开始初始化
+  initNavigation();
+})();
+</script>
+

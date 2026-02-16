@@ -1,0 +1,48 @@
+# ==================== 核心依赖文件夹（重点） ====================
+# Node.js 依赖（最常用）
+node_modules/
+# Python 虚拟环境/依赖
+venv/
+env/
+*.egg-info/
+__pycache__/
+# PHP 依赖
+vendor/
+# Java/Maven/Gradle 依赖
+target/
+build/
+.gradle/
+# Ruby 依赖
+vendor/bundle/
+# Go 依赖
+vendor/
+# Rust 依赖
+target/
+
+# ==================== 通用忽略项（非依赖但常用） ====================
+# 操作系统文件
+.DS_Store
+Thumbs.db
+# 编辑器配置/缓存
+.idea/
+.vscode/
+*.swp
+*.swo
+# 日志/临时文件
+logs/
+*.log
+tmp/
+temp/
+# 环境变量/敏感配置
+.env
+.env.local
+.env.*.local
+# 构建产物/压缩包
+dist/
+build/
+*.zip
+*.tar.gz
+.wrangler/
+apps/web/public/admin/
+worker-configuration.d.ts
+.dev.vars

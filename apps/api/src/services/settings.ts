@@ -1,0 +1,153 @@
+import type { Db } from "@bitlog/db";
+import { sql } from "@bitlog/db/sql";
+
+export interface SiteConfig {
+  title: string | null;
+  description: string | null;
+  baseUrl: string | null;
+  timezone: string | null;
+  embedAllowlistHosts: Set<string>;
+  cacheTtlSeconds: number;
+  cacheVersion: number;
+  shortcutsJson: string | null;
+}
+
+const KEY_TITLE = "site.title";
+const KEY_DESCRIPTION = "site.description";
+const KEY_BASE_URL = "site.base_url";
+const KEY_TIMEZONE = "site.timezone";
+const KEY_EMBED_ALLOWLIST = "site.embed_allowlist";
+const KEY_CACHE_TTL = "site.cache_public_ttl_seconds";
+const KEY_CACHE_VERSION = "site.cache_version";
+const KEY_SHORTCUTS = "site.shortcuts_json";
+
+export async function getSiteConfig(db: Db): Promise<SiteConfig> {
+  const rows = await db.query<{ key: string; value: string }>(
+    sql`SELECT key, value FROM settings WHERE key IN (${KEY_TITLE}, ${KEY_DESCRIPTION}, ${KEY_BASE_URL}, ${KEY_TIMEZONE}, ${KEY_EMBED_ALLOWLIST}, ${KEY_CACHE_TTL}, ${KEY_CACHE_VERSION}, ${KEY_SHORTCUTS})`
+  );
+  const map = new Map(rows.map((r) => [r.key, r.value]));
+
+  const baseUrl = normalizeBaseUrl(map.get(KEY_BASE_URL) ?? null);
+  const ttl = parseInt(map.get(KEY_CACHE_TTL) ?? "60", 10);
+  const cacheTtlSeconds = Number.isFinite(ttl) && ttl > 0 && ttl <= 3600 ? ttl : 60;
+
+  const version = parseInt(map.get(KEY_CACHE_VERSION) ?? "1", 10);
+  const cacheVersion = Number.isFinite(version) && version > 0 ? version : 1;
+
+  const embedAllowlistHosts = parseEmbedAllowlist(map.get(KEY_EMBED_ALLOWLIST) ?? null);
+
+  const timezone = map.get(KEY_TIMEZONE) ?? null;
+  const title = map.get(KEY_TITLE) ?? null;
+  const description = map.get(KEY_DESCRIPTION) ?? null;
+  const shortcutsJson = map.get(KEY_SHORTCUTS) ?? null;
+
+  return {
+    title,
+    description,
+    baseUrl,
+    timezone,
+    embedAllowlistHosts,
+    cacheTtlSeconds,
+    cacheVersion,
+    shortcutsJson
+  };
+}
+
+export async function setSettings(db: Db, patch: Record<string, unknown>): Promise<void> {
+  const now = Date.now();
+  for (const [key, raw] of Object.entries(patch)) {
+    const value = normalizeSettingValue(key, raw);
+    await db.execute(
+      sql`INSERT INTO settings (key, value, updated_at)
+          VALUES (${key}, ${value}, ${now})
+          ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`
+    );
+  }
+}
+
+export async function bumpCacheVersion(db: Db): Promise<void> {
+  const now = Date.now();
+  const rows = await db.query<{ value: string }>(
+    sql`SELECT value FROM settings WHERE key = ${KEY_CACHE_VERSION} LIMIT 1`
+  );
+  const current = rows[0]?.value ? parseInt(rows[0].value, 10) : 1;
+  const next = Number.isFinite(current) && current > 0 ? current + 1 : 2;
+  await db.execute(
+    sql`INSERT INTO settings (key, value, updated_at)
+        VALUES (${KEY_CACHE_VERSION}, ${String(next)}, ${now})
+        ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`
+  );
+}
+
+function normalizeSettingValue(key: string, value: unknown): string {
+  if (key === KEY_BASE_URL) {
+    const normalized = normalizeBaseUrl(String(value ?? ""));
+    if (!normalized) throw new Error("Invalid site.base_url");
+    return normalized;
+  }
+  if (key === KEY_TIMEZONE) {
+    const tz = String(value ?? "").trim();
+    if (!tz) throw new Error("Invalid site.timezone");
+    // Validate via Intl try/catch.
+    // eslint-disable-next-line no-new
+    new Intl.DateTimeFormat("en-US", { timeZone: tz }).format(0);
+    return tz;
+  }
+  if (key === KEY_EMBED_ALLOWLIST) {
+    const hosts = parseEmbedAllowlist(
+      typeof value === "string" ? value : JSON.stringify(value)
+    );
+    return JSON.stringify(Array.from(hosts.values()));
+  }
+  if (key === KEY_CACHE_TTL) {
+    const ttl = Number(value);
+    if (!Number.isFinite(ttl) || ttl <= 0 || ttl > 3600) throw new Error("Invalid cache ttl");
+    return String(Math.floor(ttl));
+  }
+  if (key === KEY_SHORTCUTS) {
+    if (typeof value === "string") return value;
+    return JSON.stringify(value ?? {});
+  }
+
+  if (typeof value === "string") return value;
+  return JSON.stringify(value ?? null);
+}
+
+function normalizeBaseUrl(input: string | null): string | null {
+  const s = String(input ?? "").trim();
+  if (!s) return null;
+  try {
+    const url = new URL(s);
+    if (url.hash || url.search) return null;
+    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+    url.pathname = url.pathname.replace(/\/+$/, "");
+    const out = url.toString().replace(/\/$/, "");
+    return out;
+  } catch {
+    return null;
+  }
+}
+
+function parseEmbedAllowlist(jsonText: string | null): Set<string> {
+  if (!jsonText) {
+    return new Set([
+      "github.com",
+      "www.youtube.com",
+      "www.youtube-nocookie.com",
+      "player.bilibili.com"
+    ]);
+  }
+  try {
+    const parsed = JSON.parse(jsonText);
+    if (!Array.isArray(parsed)) return new Set();
+    const hosts = parsed
+      .map((h) => String(h).trim().toLowerCase())
+      .filter(Boolean)
+      .map((h) => h.replace(/^https?:\/\//, "").split("/")[0]!)
+      .filter((h) => h && !h.includes(":") && !h.includes("?") && !h.includes("#"));
+    return new Set(hosts);
+  } catch {
+    return new Set();
+  }
+}
+

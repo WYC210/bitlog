@@ -1,0 +1,17 @@
+---
+import Layout from "@/components/Layout.astro";
+import DoubanCollection from "@/components/DoubanCollection";
+---
+
+<Layout
+  title={`电影`}
+  description={`我看过的一些电影`}
+>
+  <h1 class="text-3xl font-bold mb-6">我看过的电影</h1>
+
+  <DoubanCollection
+    type="movie"
+    doubanId="lsy22"
+    client:load
+  />
+</Layout>

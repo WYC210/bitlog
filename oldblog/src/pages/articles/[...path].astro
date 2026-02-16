@@ -1,0 +1,62 @@
+---
+import ArticlesPage from './index.astro';
+import { getCollection, type CollectionEntry } from 'astro:content';
+
+// 获取目录结构
+export async function getStaticPaths() {
+  const articles = await getCollection('articles');
+  
+  // 从文章ID中提取所有目录路径
+  const directories = new Set<string>();
+  
+  articles.forEach((article: CollectionEntry<'articles'>) => {
+    if (article.id.includes('/')) {
+      // 获取所有层级的目录
+      const parts = article.id.split('/');
+      let currentPath = '';
+      
+      // 逐级构建目录路径
+      for (let i = 0; i < parts.length - 1; i++) {
+        currentPath = currentPath ? `${currentPath}/${parts[i]}` : parts[i];
+        directories.add(currentPath);
+      }
+    }
+  });
+  
+  // 准备路径数组
+  const paths = [];
+  
+  // 为每个目录创建一个路由
+  for (const path of directories) {
+    paths.push({
+      params: { 
+        // 对于 [...path] 参数，Astro 需要接收单个字符串
+        path: path
+      },
+      props: { 
+        path,
+        pageType: 'grid'
+      }
+    });
+  }
+  
+  // 添加根路径 (即 /articles/)
+  paths.push({
+    params: { 
+      path: undefined 
+    },
+    props: {
+      path: '',
+      pageType: 'grid'
+    }
+  });
+  
+  return paths;
+}
+
+// 使用主页面组件
+const { path, pageType = 'grid' } = Astro.props;
+
+---
+
+<ArticlesPage pageType={pageType} path={path} /> 

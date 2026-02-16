@@ -1,0 +1,101 @@
+/* 表格样式 - 与全局主题配色协调 */
+.table-container {
+  container-type: inline-size;
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 0.5rem;
+}
+
+table {
+  display: table;
+  width: 100%;
+}
+
+thead {
+  background-color: var(--color-primary-700);
+  color: white;
+}
+
+thead th {
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  text-align: left;
+  border-bottom: 2px solid var(--color-primary-800);
+  border-right: 1px solid var(--color-primary-600);
+}
+
+thead th:last-child {
+  border-right: none;
+}
+
+tbody tr {
+  background-color: white;
+  transition: background-color 0.2s ease;
+}
+
+tbody tr:nth-child(odd) {
+  background-color: var(--color-gray-50);
+}
+
+tbody tr:hover {
+  background-color: var(--color-primary-50);
+}
+
+tbody td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-gray-200);
+  border-right: 1px solid var(--color-gray-200);
+  vertical-align: top;
+  white-space: nowrap;
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+tbody td:last-child {
+  border-right: none;
+}
+
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+
+[data-theme='dark'] thead {
+  background-color: var(--color-primary-900);
+}
+
+[data-theme='dark'] thead th {
+  border-bottom: 2px solid var(--color-primary-800);
+  border-right: 1px solid var(--color-primary-800);
+}
+
+[data-theme='dark'] thead th:last-child {
+  border-right: none;
+}
+
+[data-theme='dark'] tbody tr {
+  background-color: var(--color-gray-800);
+  color: var(--color-gray-100);
+}
+
+[data-theme='dark'] tbody tr:nth-child(odd) {
+  background-color: var(--color-gray-900);
+}
+
+[data-theme='dark'] tbody tr:hover {
+  background-color: var(--color-gray-700);
+}
+
+[data-theme='dark'] tbody td {
+  border-bottom: 1px solid var(--color-gray-700);
+  border-right: 1px solid var(--color-gray-700);
+}
+
+[data-theme='dark'] tbody td:last-child {
+  border-right: none;
+}
+
+[data-theme='dark'] td:empty::before {
+  color: var(--color-gray-600);
+}

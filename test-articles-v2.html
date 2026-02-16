@@ -1,0 +1,1020 @@
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Articles - Marginal Index (v2)</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --surface: rgba(255, 255, 255, 0.06);
+      --text: rgba(255, 255, 255, 0.92);
+      --muted: rgba(255, 255, 255, 0.62);
+      --border: rgba(255, 255, 255, 0.12);
+      --accent: #4b6bff;
+      --radius: 14px;
+      --shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+
+      --row-bg: rgba(255, 255, 255, 0.03);
+      --row-bg-hover: rgba(75, 107, 255, 0.08);
+      --row-border: rgba(255, 255, 255, 0.10);
+      --header-offset: 72px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: radial-gradient(1200px 700px at 20% -10%, rgba(75, 107, 255, .25), transparent 55%), var(--bg);
+      color: var(--text);
+      font: 16px/1.75 system-ui, -apple-system, Segoe UI, Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+      scroll-behavior: smooth;
+    }
+
+    a {
+      color: inherit;
+      text-decoration-color: rgba(75, 107, 255, .55);
+      text-underline-offset: 3px;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      background: rgba(11, 16, 32, .62);
+    }
+
+    .nav {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      font-weight: 780;
+      letter-spacing: .2px;
+      flex: 0 0 auto;
+    }
+
+    .nav-search {
+      flex: 1 1 520px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding: 0 10px;
+      min-width: 220px;
+      min-height: 42px;
+      order: 2;
+    }
+
+    .nav-search .search {
+      width: min(620px, 100%);
+    }
+
+    .nav-search .search input {
+      padding: 9px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .nav-search .search input:focus {
+      border-color: rgba(75, 107, 255, 0.45);
+    }
+
+    .search {
+      position: relative;
+    }
+
+    .pill {
+      display: inline-flex;
+      gap: 10px;
+      align-items: center;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--muted);
+      font-size: 13px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 66vw;
+      flex: 0 0 auto;
+      order: 3;
+    }
+
+    .pill strong {
+      color: var(--text);
+      font-weight: 650;
+    }
+
+    .pill .sep {
+      opacity: 0.6;
+    }
+
+    .wrap {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 28px 18px 70px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(12px, 1fr) minmax(0, 760px) minmax(260px, 320px) minmax(12px, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    main {
+      grid-column: 2;
+    }
+
+    aside {
+      grid-column: 3;
+      position: sticky;
+      top: 78px;
+    }
+
+    .card {
+      border: 1px solid var(--border);
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow: var(--shadow);
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    h1 {
+      font-size: 30px;
+      line-height: 1.18;
+      margin: 0 0 12px;
+      letter-spacing: -0.4px;
+    }
+
+    .section-title {
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.24px;
+      text-transform: uppercase;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 13px;
+      line-height: 1;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .chip:hover {
+      color: var(--text);
+      border-color: rgba(75, 107, 255, 0.35);
+      background: rgba(75, 107, 255, 0.12);
+    }
+
+    .chip--cat {
+      color: rgba(255, 255, 255, 0.86);
+      border-color: rgba(75, 107, 255, 0.28);
+      background: rgba(75, 107, 255, 0.14);
+    }
+
+    .chip--active {
+      color: rgba(255, 255, 255, 0.92);
+      border-color: rgba(75, 107, 255, 0.55);
+      background: rgba(75, 107, 255, 0.22);
+    }
+
+    .mini {
+      padding: 5px 9px;
+      font-size: 12px;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      border-radius: calc(var(--radius) - 2px);
+      background: rgba(255, 255, 255, 0.03);
+      margin: 14px 0 14px;
+    }
+
+    .tool-left {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      min-width: 240px;
+      flex: 1 1 360px;
+    }
+
+    .search {
+      flex: 1 1 320px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      min-width: 240px;
+    }
+
+    .search input {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(0, 0, 0, 0.15);
+      color: var(--text);
+      outline: none;
+    }
+
+    .search input::placeholder {
+      color: rgba(255, 255, 255, 0.45);
+    }
+
+    .sort {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 13px;
+      flex: 0 0 auto;
+    }
+
+    .sort button {
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.03);
+      color: rgba(255, 255, 255, 0.82);
+      padding: 8px 10px;
+      border-radius: 12px;
+      cursor: pointer;
+    }
+
+    .sort button:hover {
+      border-color: rgba(75, 107, 255, 0.35);
+      background: rgba(75, 107, 255, 0.10);
+    }
+
+    .sort button[aria-pressed="true"] {
+      border-color: rgba(75, 107, 255, 0.55);
+      background: rgba(75, 107, 255, 0.18);
+      color: rgba(255, 255, 255, 0.92);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.03);
+      color: rgba(255, 255, 255, 0.84);
+      cursor: pointer;
+      text-decoration: none;
+      flex: 0 0 auto;
+    }
+
+    .btn:hover {
+      border-color: rgba(75, 107, 255, 0.35);
+      background: rgba(75, 107, 255, 0.10);
+    }
+
+    .btn--ghost {
+      color: var(--muted);
+    }
+
+    .rows {
+      display: grid;
+      gap: 10px;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 96px 1fr;
+      gap: 12px;
+      padding: 12px 12px;
+      border: 1px solid var(--row-border);
+      border-radius: calc(var(--radius) - 2px);
+      background: var(--row-bg);
+      transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+    }
+
+    .row:hover {
+      transform: translateY(-2px);
+      border-color: rgba(75, 107, 255, 0.28);
+      background: var(--row-bg-hover);
+    }
+
+    .date {
+      color: rgba(255, 255, 255, 0.70);
+      font-size: 12px;
+      line-height: 1.45;
+      padding-top: 2px;
+    }
+
+    .date .d {
+      font-size: 18px;
+      font-weight: 820;
+      letter-spacing: -0.2px;
+      color: rgba(255, 255, 255, 0.92);
+    }
+
+    .row h2 {
+      margin: 0 0 6px;
+      font-size: 18px;
+      line-height: 1.35;
+      letter-spacing: -0.2px;
+    }
+
+    .row p {
+      margin: 0 0 10px;
+      color: rgba(255, 255, 255, 0.78);
+    }
+
+    .row-foot {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 10px;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .row-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .pager {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(255, 255, 255, 0.10);
+    }
+
+    .aside-block {
+      display: grid;
+      gap: 10px;
+    }
+
+    .aside-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 12px 0;
+    }
+
+    .aside-section {
+      border: 1px solid var(--border);
+      border-radius: calc(var(--radius) - 2px);
+      background: rgba(255, 255, 255, 0.03);
+      overflow: hidden;
+    }
+
+    .aside-section summary {
+      list-style: none;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .aside-section summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .aside-summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 12px;
+    }
+
+    .aside-summary-right {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      min-width: 0;
+    }
+
+    .aside-summary-right .truncate {
+      max-width: 160px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .aside-content {
+      border-top: 1px solid var(--border);
+      padding: 10px 10px 12px;
+    }
+
+    .aside-chevron {
+      width: 18px;
+      height: 18px;
+      opacity: 0.8;
+      flex: 0 0 auto;
+      transform: rotate(0deg);
+      transition: transform 0.15s ease;
+    }
+
+    details[open] .aside-chevron {
+      transform: rotate(180deg);
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    @media (max-width: 980px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      main,
+      aside {
+        grid-column: 1;
+        position: static;
+      }
+
+      :root {
+        --header-offset: 64px;
+      }
+
+      .nav-search {
+        order: 4;
+        flex: 1 1 100%;
+        padding: 0;
+        justify-content: stretch;
+      }
+
+      .row {
+        grid-template-columns: 78px 1fr;
+      }
+
+      .aside-summary-right .truncate {
+        max-width: 110px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header id="site-header">
+    <div class="nav">
+      <div class="brand">bitlog</div>
+      <div class="nav-search" aria-label="站内搜索">
+        <div class="search">
+          <input id="q" placeholder="搜索：SQL / 教学 / TypeScript（关键词包含匹配）" />
+        </div>
+      </div>
+      <div class="pill">
+        <strong>分类</strong>
+        <span class="sep">·</span>
+        <span id="pill-cat">全部</span>
+        <span class="sep">·</span>
+        <strong>标签</strong>
+        <span class="sep">·</span>
+        <span id="pill-tag">全部</span>
+        <span class="sep">·</span>
+        <span id="pill-count">12 篇</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="grid">
+      <main class="card">
+        <div class="meta">文章索引 · 更“目录化”的列表（v2）</div>
+        <h1>文章</h1>
+
+        <div class="toolbar">
+          <div class="tool-left">
+            <div class="sort" aria-label="排序">
+              <span>排序</span>
+              <button type="button" data-sort="new" aria-pressed="true">最新</button>
+              <button type="button" data-sort="rel" aria-pressed="false">相关</button>
+            </div>
+          </div>
+          <button class="btn btn--ghost" type="button" id="clear">清除筛选</button>
+        </div>
+
+        <div class="rows" id="rows">
+          <article class="row" data-date="2026-02-15" data-category="教学" data-tags="编程,教程,SQL,Edge">
+            <div class="date">
+              <div class="d">15</div>
+              <div>2026-02</div>
+              <div class="meta" style="margin-top:6px;">
+                <span class="chip chip--cat mini">教学</span>
+              </div>
+            </div>
+            <div>
+              <h2><a href="./test.html">D1 + R2 图片上传：从 0 到 1 的教学版实现思路</a></h2>
+              <p>单库 MVP 先把链路跑通：写入时预渲染 HTML + XSS 清洗；搜索用 LIKE 加权相关度；图片优先走 R2，未绑定则禁用上传。</p>
+              <div class="row-foot">
+                <div class="row-tags">
+                  <span class="chip mini">编程</span>
+                  <span class="chip mini">SQL</span>
+                  <span class="chip mini">Edge</span>
+                </div>
+                <a class="btn" href="./test.html">阅读全文</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="row" data-date="2026-02-12" data-category="编程" data-tags="TypeScript,教程,API">
+            <div class="date">
+              <div class="d">12</div>
+              <div>2026-02</div>
+              <div class="meta" style="margin-top:6px;">
+                <span class="chip chip--cat mini">编程</span>
+              </div>
+            </div>
+            <div>
+              <h2><a href="#">Hono 的路由与中间件：写一个干净的博客 API</a></h2>
+              <p>把平台相关限制在入口层：路由、中间件、错误码、鉴权、限速；业务逻辑与 SQL 访问保持干净边界。</p>
+              <div class="row-foot">
+                <div class="row-tags">
+                  <span class="chip mini">TypeScript</span>
+                  <span class="chip mini">教程</span>
+                  <span class="chip mini">API</span>
+                </div>
+                <a class="btn" href="#">阅读全文</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="row" data-date="2026-02-10" data-category="教学" data-tags="教程,Markdown,XSS">
+            <div class="date">
+              <div class="d">10</div>
+              <div>2026-02</div>
+              <div class="meta" style="margin-top:6px;">
+                <span class="chip chip--cat mini">教学</span>
+              </div>
+            </div>
+            <div>
+              <h2><a href="#">写入时渲染：Markdown → HTML → sanitize 的可执行规范</a></h2>
+              <p>允许原始 HTML 不等于直接输出。用白名单保留语义标签，限制属性与协议；发布/保存时固化渲染结果。</p>
+              <div class="row-foot">
+                <div class="row-tags">
+                  <span class="chip mini">Markdown</span>
+                  <span class="chip mini">XSS</span>
+                  <span class="chip mini">教程</span>
+                </div>
+                <a class="btn" href="#">阅读全文</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="row" data-date="2026-02-08" data-category="随笔" data-tags="设计,排版,边缘化">
+            <div class="date">
+              <div class="d">08</div>
+              <div>2026-02</div>
+              <div class="meta" style="margin-top:6px;">
+                <span class="chip chip--cat mini">随笔</span>
+              </div>
+            </div>
+            <div>
+              <h2><a href="#">主文偏左的感觉：为什么不是居中？</a></h2>
+              <p>偏边布局让结构信息“在场但不吵”。目录、标签、元信息放到页边，正文就能维持稳定节奏。</p>
+              <div class="row-foot">
+                <div class="row-tags">
+                  <span class="chip mini">排版</span>
+                  <span class="chip mini">边缘化</span>
+                </div>
+                <a class="btn" href="#">阅读全文</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="row" data-date="2026-02-06" data-category="项目" data-tags="SQL,迁移,D1">
+            <div class="date">
+              <div class="d">06</div>
+              <div>2026-02</div>
+              <div class="meta" style="margin-top:6px;">
+                <span class="chip chip--cat mini">项目</span>
+              </div>
+            </div>
+            <div>
+              <h2><a href="#">D1 表结构与迁移：posts/tags/assets/settings 怎么建</a></h2>
+              <p>把字段拆成可执行规范：slug 唯一、分类单选、tags 多对多、assets 只做图片。迁移文件可被反复回放。</p>
+              <div class="row-foot">
+                <div class="row-tags">
+                  <span class="chip mini">SQL</span>
+                  <span class="chip mini">D1</span>
+                  <span class="chip mini">迁移</span>
+                </div>
+                <a class="btn" href="#">阅读全文</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="row" data-date="2026-02-04" data-category="编程" data-tags="教程,SQL,排序">
+            <div class="date">
+              <div class="d">04</div>
+              <div>2026-02</div>
+              <div class="meta" style="margin-top:6px;">
+                <span class="chip chip--cat mini">编程</span>
+              </div>
+            </div>
+            <div>
+              <h2><a href="#">LIKE 搜索 + 字段加权相关度：不用 FTS 也能先跑起来</a></h2>
+              <p>title/tags/summary/content_text 按权重打分，再按时间排序，覆盖 80% 使用场景；后续再上 FTS。</p>
+              <div class="row-foot">
+                <div class="row-tags">
+                  <span class="chip mini">SQL</span>
+                  <span class="chip mini">教程</span>
+                  <span class="chip mini">排序</span>
+                </div>
+                <a class="btn" href="#">阅读全文</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="row" data-date="2026-02-02" data-category="教学" data-tags="教程,R2,缓存">
+            <div class="date">
+              <div class="d">02</div>
+              <div>2026-02</div>
+              <div class="meta" style="margin-top:6px;">
+                <span class="chip chip--cat mini">教学</span>
+              </div>
+            </div>
+            <div>
+              <h2><a href="#">同源 /assets 分发：R2 存文件，Worker 负责强缓存</a></h2>
+              <p>统一走 /assets/&lt;key&gt;，返回 immutable 缓存头；key 用 sha256，天然内容寻址。</p>
+              <div class="row-foot">
+                <div class="row-tags">
+                  <span class="chip mini">R2</span>
+                  <span class="chip mini">教程</span>
+                  <span class="chip mini">缓存</span>
+                </div>
+                <a class="btn" href="#">阅读全文</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="row" data-date="2026-01-30" data-category="随笔" data-tags="编程,写作">
+            <div class="date">
+              <div class="d">30</div>
+              <div>2026-01</div>
+              <div class="meta" style="margin-top:6px;">
+                <span class="chip chip--cat mini">随笔</span>
+              </div>
+            </div>
+            <div>
+              <h2><a href="#">教程写作的节奏：把“步骤”当成目录结构</a></h2>
+              <p>当读者能在 5 秒内看懂文章结构，长文就不会吓人。目录自动展开当前章节的二级标题，降低噪声。</p>
+              <div class="row-foot">
+                <div class="row-tags">
+                  <span class="chip mini">写作</span>
+                  <span class="chip mini">编程</span>
+                </div>
+                <a class="btn" href="#">阅读全文</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="row" data-date="2026-01-25" data-category="编程" data-tags="TypeScript,工程化">
+            <div class="date">
+              <div class="d">25</div>
+              <div>2026-01</div>
+              <div class="meta" style="margin-top:6px;">
+                <span class="chip chip--cat mini">编程</span>
+              </div>
+            </div>
+            <div>
+              <h2><a href="#">把设计写成规范：tokens、布局规则与实现的一致性</a></h2>
+              <p>先把规则写清楚，代码才不会随时间漂移：断点、行宽、sticky 区域、chips 选中态、目录展开逻辑。</p>
+              <div class="row-foot">
+                <div class="row-tags">
+                  <span class="chip mini">TypeScript</span>
+                  <span class="chip mini">工程化</span>
+                </div>
+                <a class="btn" href="#">阅读全文</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="row" data-date="2026-01-20" data-category="项目" data-tags="Edge,部署">
+            <div class="date">
+              <div class="d">20</div>
+              <div>2026-01</div>
+              <div class="meta" style="margin-top:6px;">
+                <span class="chip chip--cat mini">项目</span>
+              </div>
+            </div>
+            <div>
+              <h2><a href="#">边缘部署的限制与取舍：先跑通主线</a></h2>
+              <p>写入时做重活（渲染/清洗/摘要），读取端尽量轻，分页与缓存优先。先上线，再优化。</p>
+              <div class="row-foot">
+                <div class="row-tags">
+                  <span class="chip mini">Edge</span>
+                  <span class="chip mini">部署</span>
+                </div>
+                <a class="btn" href="#">阅读全文</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="row" data-date="2026-01-12" data-category="教学" data-tags="教程,分类,标签">
+            <div class="date">
+              <div class="d">12</div>
+              <div>2026-01</div>
+              <div class="meta" style="margin-top:6px;">
+                <span class="chip chip--cat mini">教学</span>
+              </div>
+            </div>
+            <div>
+              <h2><a href="#">分类单选 + 标签多选：UI 与数据模型如何对齐</a></h2>
+              <p>分类更像“书架”，标签更像“贴纸”。列表页保持正文稳定，筛选/状态放到右侧边缘区。</p>
+              <div class="row-foot">
+                <div class="row-tags">
+                  <span class="chip mini">分类</span>
+                  <span class="chip mini">标签</span>
+                  <span class="chip mini">教程</span>
+                </div>
+                <a class="btn" href="#">阅读全文</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="row" data-date="2026-01-05" data-category="随笔" data-tags="SQL,笔记">
+            <div class="date">
+              <div class="d">05</div>
+              <div>2026-01</div>
+              <div class="meta" style="margin-top:6px;">
+                <span class="chip chip--cat mini">随笔</span>
+              </div>
+            </div>
+            <div>
+              <h2><a href="#">SQL 笔记：把查询写成可复用的片段</a></h2>
+              <p>“可组合的查询片段”比“字符串拼接”可靠太多。即便是 D1，参数化也是底线。</p>
+              <div class="row-foot">
+                <div class="row-tags">
+                  <span class="chip mini">SQL</span>
+                  <span class="chip mini">笔记</span>
+                </div>
+                <a class="btn" href="#">阅读全文</a>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <div class="pager">
+          <a class="btn" href="#" aria-disabled="true">上一页</a>
+          <span class="meta">第 1 / 3 页 · 共 <span id="count2">12</span> 篇</span>
+          <a class="btn" href="#">下一页</a>
+        </div>
+      </main>
+
+      <aside class="card">
+        <div class="aside-block">
+          <div class="section-title">筛选</div>
+
+          <details class="aside-section aside-filter" open>
+            <summary class="aside-summary">
+              <span class="section-title">分类</span>
+              <span class="aside-summary-right">
+                <span class="truncate" id="cat-summary">全部</span>
+                <svg class="aside-chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M7 10l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round" />
+                </svg>
+              </span>
+            </summary>
+            <div class="aside-content">
+              <div class="chips" id="cats">
+                <button class="chip chip--cat chip--active" type="button" data-cat="全部">全部</button>
+                <button class="chip chip--cat" type="button" data-cat="教学">教学</button>
+                <button class="chip chip--cat" type="button" data-cat="编程">编程</button>
+                <button class="chip chip--cat" type="button" data-cat="随笔">随笔</button>
+                <button class="chip chip--cat" type="button" data-cat="项目">项目</button>
+              </div>
+            </div>
+          </details>
+
+          <details class="aside-section aside-filter" open>
+            <summary class="aside-summary">
+              <span class="section-title">标签（可多选）</span>
+              <span class="aside-summary-right">
+                <span class="truncate" id="tag-summary">全部</span>
+                <svg class="aside-chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M7 10l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round" />
+                </svg>
+              </span>
+            </summary>
+            <div class="aside-content">
+              <div class="chips" id="tags">
+                <button class="chip chip--active" type="button" data-tag="编程">编程</button>
+                <button class="chip" type="button" data-tag="教程">教程</button>
+                <button class="chip" type="button" data-tag="SQL">SQL</button>
+                <button class="chip" type="button" data-tag="Edge">Edge</button>
+                <button class="chip" type="button" data-tag="TypeScript">TypeScript</button>
+                <button class="chip" type="button" data-tag="Markdown">Markdown</button>
+                <button class="chip" type="button" data-tag="XSS">XSS</button>
+              </div>
+            </div>
+          </details>
+
+          <div class="aside-divider"></div>
+
+          <div class="meta">
+            说明：这是静态原型。真实实现时，分类单选、标签多选、搜索 LIKE+加权相关度。
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const isNarrow = () => window.matchMedia("(max-width: 980px)").matches;
+      const filters = Array.from(document.querySelectorAll("details.aside-filter"));
+      const rowsContainer = document.getElementById("rows");
+      const rows = Array.from(document.querySelectorAll(".row"));
+
+      const pillCat = document.getElementById("pill-cat");
+      const pillTag = document.getElementById("pill-tag");
+      const pillCount = document.getElementById("pill-count");
+      const count2 = document.getElementById("count2");
+      const catSummary = document.getElementById("cat-summary");
+      const tagSummary = document.getElementById("tag-summary");
+      const q = document.getElementById("q");
+      const clear = document.getElementById("clear");
+      const sortButtons = Array.from(document.querySelectorAll("button[data-sort]"));
+
+      let selectedCat = "全部";
+      let selectedTags = new Set();
+      let sortMode = "new";
+
+      function syncAsideCollapse() {
+        if (isNarrow()) {
+          for (const d of filters) d.open = false;
+        } else {
+          for (const d of filters) d.open = true;
+        }
+      }
+
+      function tokenize(value) {
+        return String(value ?? "").toLowerCase().trim();
+      }
+
+      function scoreRow(row, query) {
+        if (!query) return 0;
+        const title = tokenize(row.querySelector("h2")?.textContent);
+        const summary = tokenize(row.querySelector("p")?.textContent);
+        const tags = (row.getAttribute("data-tags") ?? "").toLowerCase();
+        const cat = (row.getAttribute("data-category") ?? "").toLowerCase();
+
+        let score = 0;
+        if (title.includes(query)) score += 10;
+        if (tags.includes(query)) score += 6;
+        if (cat.includes(query)) score += 4;
+        if (summary.includes(query)) score += 3;
+        if (tokenize(row.textContent).includes(query)) score += 1;
+        return score;
+      }
+
+      function apply() {
+        const query = tokenize(q.value);
+        let visible = 0;
+        const tagged = selectedTags.size > 0;
+
+        for (const row of rows) {
+          const cat = row.getAttribute("data-category") ?? "";
+          const tags = (row.getAttribute("data-tags") ?? "").split(",").map(t => t.trim()).filter(Boolean);
+          const text = tokenize(row.textContent);
+
+          const matchCat = selectedCat === "全部" || cat === selectedCat;
+          const matchTags = !tagged || Array.from(selectedTags).every(t => tags.includes(t));
+          const matchQ = !query || text.includes(query);
+
+          const show = matchCat && matchTags && matchQ;
+          row.classList.toggle("hidden", !show);
+          if (show) visible += 1;
+        }
+
+        const tagSummaryText = selectedTags.size === 0 ? "全部" : Array.from(selectedTags).join(" · ");
+        pillCat.textContent = selectedCat;
+        pillTag.textContent = tagSummaryText;
+        pillCount.textContent = `${visible} 篇`;
+        count2.textContent = String(visible);
+        catSummary.textContent = selectedCat;
+        tagSummary.textContent = tagSummaryText;
+
+        // Sort visible rows
+        if (!rowsContainer) return;
+        const visibleRows = rows.filter(r => !r.classList.contains("hidden"));
+        const hiddenRows = rows.filter(r => r.classList.contains("hidden"));
+
+        const sorted = visibleRows
+          .map(r => ({ r, date: r.getAttribute("data-date") ?? "", score: scoreRow(r, query) }))
+          .sort((a, b) => {
+            if (sortMode === "rel") {
+              if (b.score !== a.score) return b.score - a.score;
+            }
+            // newest fallback
+            return b.date.localeCompare(a.date);
+          })
+          .map(x => x.r);
+
+        for (const r of sorted) rowsContainer.appendChild(r);
+        for (const r of hiddenRows) rowsContainer.appendChild(r);
+      }
+
+      function markActive(containerId, selector, activeClass, predicate) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        const items = Array.from(container.querySelectorAll(selector));
+        for (const el of items) {
+          if (predicate(el)) el.classList.add(activeClass);
+          else el.classList.remove(activeClass);
+        }
+      }
+
+      document.getElementById("cats")?.addEventListener("click", (e) => {
+        const btn = e.target instanceof Element ? e.target.closest("button[data-cat]") : null;
+        if (!btn) return;
+        selectedCat = btn.getAttribute("data-cat") ?? "全部";
+        markActive("cats", "button[data-cat]", "chip--active", (el) => el.getAttribute("data-cat") === selectedCat);
+        apply();
+      });
+
+      document.getElementById("tags")?.addEventListener("click", (e) => {
+        const btn = e.target instanceof Element ? e.target.closest("button[data-tag]") : null;
+        if (!btn) return;
+        const tag = btn.getAttribute("data-tag");
+        if (!tag) return;
+        if (selectedTags.has(tag)) selectedTags.delete(tag);
+        else selectedTags.add(tag);
+        markActive("tags", "button[data-tag]", "chip--active", (el) => selectedTags.has(el.getAttribute("data-tag")));
+        apply();
+      });
+
+      clear?.addEventListener("click", () => {
+        selectedCat = "全部";
+        selectedTags = new Set();
+        q.value = "";
+        sortMode = "new";
+        for (const b of sortButtons) b.setAttribute("aria-pressed", b.getAttribute("data-sort") === "new" ? "true" : "false");
+        markActive("cats", "button[data-cat]", "chip--active", (el) => el.getAttribute("data-cat") === "全部");
+        markActive("tags", "button[data-tag]", "chip--active", () => false);
+        apply();
+      });
+
+      for (const b of sortButtons) {
+        b.addEventListener("click", () => {
+          sortMode = b.getAttribute("data-sort") ?? "new";
+          for (const x of sortButtons) x.setAttribute("aria-pressed", x === b ? "true" : "false");
+          apply();
+        });
+      }
+
+      q?.addEventListener("input", () => apply());
+      window.addEventListener("resize", () => {
+        syncAsideCollapse();
+      }, { passive: true });
+      syncAsideCollapse();
+      apply();
+    })();
+  </script>
+</body>
+
+</html>

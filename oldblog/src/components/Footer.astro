@@ -1,0 +1,54 @@
+---
+interface Props {}
+
+const {} = Astro.props;
+
+const currentYear = new Date().getFullYear();
+---
+
+<footer
+  class="w-full py-6 px-4 bg-gray-50 dark:bg-dark-bg border-t border-gray-200 dark:border-gray-800 mt-auto"
+>
+  <div
+    class="max-w-7xl mx-auto flex flex-col items-center justify-center space-y-4"
+  >
+    <div
+      class="text-sm text-gray-500 dark:text-gray-500 font-light flex flex-wrap items-center justify-center gap-2"
+    >
+      <a
+        href="https://blog.lsy22.com"
+        class="hover:text-primary-600 dark:hover:text-primary-400"
+      >
+        © {currentYear} New Echoes. All rights reserved.
+      </a>
+      <span
+        aria-hidden="true"
+        class="hidden sm:inline"
+        >·</span
+      >
+      <a
+        href="/sitemap.xml"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="hover:text-primary-600 dark:hover:text-primary-400"
+        aria-label="网站地图"
+      >
+        Sitemap
+      </a>
+      <span
+        aria-hidden="true"
+        class="hidden sm:inline"
+        >·</span
+      >
+      <a
+        href="/rss.xml"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="hover:text-primary-600 dark:hover:text-primary-400"
+        aria-label="RSS订阅"
+      >
+        RSS
+      </a>
+    </div>
+  </div>
+</footer>
