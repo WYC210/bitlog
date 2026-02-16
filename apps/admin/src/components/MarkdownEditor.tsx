@@ -1,5 +1,4 @@
 import React, { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
-import { basicSetup } from "@codemirror/basic-setup";
 import { indentWithTab } from "@codemirror/commands";
 import { markdown } from "@codemirror/lang-markdown";
 import { EditorState } from "@codemirror/state";
@@ -60,7 +59,6 @@ export const MarkdownEditor = forwardRef<
     const state = EditorState.create({
       doc: props.value ?? "",
       extensions: [
-        basicSetup,
         markdown(),
         EditorView.lineWrapping,
         keymap.of([
@@ -119,4 +117,3 @@ export const MarkdownEditor = forwardRef<
 
   return <div ref={hostRef} className="cm-host" />;
 });
-

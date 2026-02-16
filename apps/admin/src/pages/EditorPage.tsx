@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+﻿import React, { useEffect, useRef, useState } from "react";
 import type { AdminPostDetail, AdminPrefs, ApiError, SiteConfig } from "../api";
 import { createAdminPost, getAdminPost, renderAdminMarkdown, updateAdminPost, updateAdminPrefs, uploadAdminImage } from "../api";
 import { utcMsToZonedInput, zonedInputToUtcMs } from "../tz";
@@ -57,6 +57,20 @@ export function EditorPage(props: {
       props.onError(err.message || "保存布局失败");
     }
   }
+
+  const layoutButtons = (
+    <>
+      <button className={`chip ${layout === "write" ? "chip-primary" : ""}`} onClick={() => void setLayoutAndPersist("write")}>
+        Write
+      </button>
+      <button className={`chip ${layout === "preview" ? "chip-primary" : ""}`} onClick={() => void setLayoutAndPersist("preview")}>
+        Preview
+      </button>
+      <button className={`chip ${layout === "split" ? "chip-primary" : ""}`} onClick={() => void setLayoutAndPersist("split")}>
+        Split
+      </button>
+    </>
+  );
 
   useEffect(() => {
     if (isNew) return;
@@ -270,15 +284,7 @@ export function EditorPage(props: {
           <button className="chip chip-primary" onClick={() => void save()} disabled={saving}>
             {saving ? "保存中..." : "保存"}
           </button>
-          <button className={`chip ${layout === "write" ? "chip-primary" : ""}`} onClick={() => void setLayoutAndPersist("write")}>
-            Write
-          </button>
-          <button className={`chip ${layout === "preview" ? "chip-primary" : ""}`} onClick={() => void setLayoutAndPersist("preview")}>
-            Preview
-          </button>
-          <button className={`chip ${layout === "split" ? "chip-primary" : ""}`} onClick={() => void setLayoutAndPersist("split")}>
-            Split
-          </button>
+          {layoutButtons}
         </div>
         <div style={{ height: 10 }} />
         <div className="row">
@@ -332,17 +338,12 @@ export function EditorPage(props: {
             onChange={async (e) => {
               const file = e.target.files?.[0];
               if (!file) return;
-              props.onError("");
-              setUploading(true);
-              setUploadedUrl(null);
               try {
                 const url = await uploadImage(file);
                 editorRef.current?.insertText(`\n\n![](${url})\n`);
-              } catch (err) {
-                const apiErr = err as ApiError;
-                props.onError(apiErr.message || "上传失败");
+              } catch {
+                // error handled by uploadImage
               } finally {
-                setUploading(false);
                 e.target.value = "";
               }
             }}
@@ -368,18 +369,7 @@ export function EditorPage(props: {
           Markdown
           <MarkdownEditor ref={editorRef} value={content} onChange={setContent} onSave={() => void save()} onUploadImage={uploadImage} />
         </label>
-        <div className="muted">
-          支持：表格/脚注/代码高亮(Refractor)/文字模糊(||text||)/嵌入短代码(@[provider](value))；允许原始 HTML（会做 XSS 清洗）。
-            <button className={`chip ${layout === "write" ? "chip-primary" : ""}`} onClick={() => void setLayoutAndPersist("write")}>
-              Write
-            </button>
-            <button className={`chip ${layout === "preview" ? "chip-primary" : ""}`} onClick={() => void setLayoutAndPersist("preview")}>
-              Preview
-            </button>
-            <button className={`chip ${layout === "split" ? "chip-primary" : ""}`} onClick={() => void setLayoutAndPersist("split")}>
-              Split
-            </button>
-          </div>
+        <div className="muted">支持：表格/脚注/代码高亮(Refractor)/文字模糊(||text||)/嵌入短代码(@[provider](value))；允许原始 HTML（会做 XSS 清洗）。</div>
         </div>
       ) : null}
       {layout !== "write" ? (
@@ -400,6 +390,7 @@ export function EditorPage(props: {
             >
               {previewing ? "渲染中..." : "刷新预览"}
             </button>
+            {layoutButtons}
           </div>
           <span className="muted">{previewError ? previewError : previewing ? "渲染中..." : ""}</span>
         </div>

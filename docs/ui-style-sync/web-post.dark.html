@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bitlog · 文章详情（夜间）</title>
+    <link rel="stylesheet" href="./base.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand" href="#">Bitlog</a>
+        <div class="search">
+          <input placeholder="搜索文章（Ctrl/Cmd+F 聚焦）" />
+        </div>
+        <div class="nav">
+          <a class="active" href="#">Articles</a>
+          <a href="#">Admin</a>
+          <button class="btn ghost" id="themeToggle">主题</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="container page-wrap">
+      <div class="layout">
+        <section>
+          <article class="card">
+            <div class="card-body">
+              <div class="meta">
+                2026-02-01 · <span class="chip primary">技术</span>
+                <span style="margin-left:8px" class="chip is-active">Hono</span>
+                <span class="chip">Cloudflare</span>
+              </div>
+              <h1 style="margin:10px 0 6px; font-size:28px;">
+                用 Worker + Hono 构建轻量博客
+              </h1>
+              <p class="meta">从 0 到 1 搭建一个可维护、可缓存、可预览的写作系统。</p>
+
+              <div class="prose" style="margin-top:14px;">
+                <h2>1. 架构选择</h2>
+                <p>
+                  前端采用模板渲染输出 HTML，后台使用 API 驱动数据变化，保证访问速度与维护成本。
+                </p>
+                <h2>2. 缓存策略</h2>
+                <p>
+                  通过版本号控制缓存刷新，兼顾性能与内容更新及时性。
+                </p>
+                <div class="code-block" style="margin:12px 0 0;">
+                  <div class="code-block-header">
+                    <span class="code-block-label">js</span>
+                    <button class="code-block-copy" data-copy>复制</button>
+                  </div>
+                  <pre><code class="code-content"><span class="code-line"><span class="line-number">1</span><span class="code-text"><span class="token variable">cacheKey</span> <span class="token operator">=</span> <span class="token string">`web:post:${slug}:${version}`</span><span class="token punctuation">;</span></span></span></code></pre>
+                </div>
+                <h2>3. 内容结构</h2>
+                <p>
+                  使用分类 + 标签 + 搜索三层结构组织文章，让读者能更快找到内容。
+                </p>
+              </div>
+            </div>
+          </article>
+
+          <div style="height:16px"></div>
+
+          <section class="related-section">
+            <div class="meta">相关阅读</div>
+            <div class="related-grid">
+              <article class="article-card related-item">
+                <div class="meta">2026-01-10</div>
+                <h3 class="article-title">统一模板与缓存的最佳实践</h3>
+              </article>
+              <article class="article-card related-item">
+                <div class="meta">2025-12-22</div>
+                <h3 class="article-title">内容系统的可预览发布方案</h3>
+              </article>
+            </div>
+          </section>
+        </section>
+
+        <aside>
+          <div class="card aside-block toc">
+            <h3 class="aside-title">目录</h3>
+            <div style="display:grid; gap:6px;">
+              <a href="#">1. 架构选择</a>
+              <a href="#">2. 缓存策略</a>
+              <a href="#">3. 内容结构</a>
+            </div>
+          </div>
+
+          <div style="height:14px"></div>
+
+          <div class="card aside-block">
+            <h3 class="aside-title">标签</h3>
+            <div class="tag-list">
+              <span class="chip">Hono</span>
+              <span class="chip">Cloudflare</span>
+              <span class="chip">缓存</span>
+              <span class="chip">架构</span>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </main>
+
+    <script src="./theme-toggle.js"></script>
+    <script>
+      document.querySelectorAll("[data-copy]").forEach((button) => {
+        button.addEventListener("click", async () => {
+          const code = button.closest(".code-block")?.querySelector("code");
+          if (!code) return;
+          const lines = Array.from(code.querySelectorAll(".code-line"));
+          const text = lines.length
+            ? lines
+                .map((line) =>
+                  line.querySelector(".code-text")?.textContent?.trimEnd() ?? "",
+                )
+                .join("\n")
+            : code.textContent || "";
+          try {
+            await navigator.clipboard.writeText(text);
+            button.classList.add("copied");
+            button.textContent = "已复制";
+            window.setTimeout(() => {
+              button.classList.remove("copied");
+              button.textContent = "复制";
+            }, 1400);
+          } catch (error) {
+            button.textContent = "复制失败";
+            window.setTimeout(() => {
+              button.textContent = "复制";
+            }, 1400);
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

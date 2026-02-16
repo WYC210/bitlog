@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bitlog Admin · 文章（夜间）</title>
+    <link rel="stylesheet" href="./base.css" />
+  </head>
+  <body>
+    <header class="admin-topbar">
+      <div class="container">
+        <div class="nav">
+          <span class="brand">Bitlog Admin</span>
+          <a class="active" href="#">文章</a>
+          <a href="#">账号</a>
+          <a href="#">设置</a>
+        </div>
+        <div class="nav">
+          <span class="muted">@admin</span>
+          <button class="btn ghost">退出</button>
+          <button class="btn ghost" id="themeToggle">主题</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="admin-shell">
+      <div class="card">
+        <div class="card-body">
+          <div class="form-grid">
+            <label class="field">
+              搜索（title）
+              <input placeholder="输入关键词" />
+            </label>
+            <label class="field">
+              状态
+              <select>
+                <option>全部</option>
+                <option>草稿</option>
+                <option>已发布</option>
+                <option>定时</option>
+              </select>
+            </label>
+          </div>
+          <div style="height:12px"></div>
+          <div class="toolbar">
+            <button class="btn primary">新建（Ctrl/Cmd+N）</button>
+            <button class="btn">刷新</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="height:16px"></div>
+
+      <div class="card">
+        <div class="card-body">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>标题</th>
+                <th>状态</th>
+                <th>发布时间</th>
+                <th>更新</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="is-active">
+                <td>
+                  <div style="font-weight:700;">用 Worker + Hono 构建轻量博客</div>
+                  <div class="muted">/build-light-blog</div>
+                </td>
+                <td><span class="chip success">published</span></td>
+                <td>2026-02-01</td>
+                <td class="muted">2026-02-02</td>
+                <td>
+                  <div class="toolbar">
+                    <button class="btn">编辑</button>
+                    <button class="btn">删除</button>
+                    <button class="btn ghost">预览</button>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <div style="font-weight:700;">写作流的最小闭环</div>
+                  <div class="muted">/writing-loop</div>
+                </td>
+                <td><span class="chip">draft</span></td>
+                <td>—</td>
+                <td class="muted">2026-01-18</td>
+                <td>
+                  <div class="toolbar">
+                    <button class="btn">编辑</button>
+                    <button class="btn">删除</button>
+                    <button class="btn ghost">预览</button>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <div style="font-weight:700;">用信息架构组织知识库</div>
+                  <div class="muted">/info-structure</div>
+                </td>
+                <td><span class="chip primary">scheduled</span></td>
+                <td>2026-02-20</td>
+                <td class="muted">2026-01-30</td>
+                <td>
+                  <div class="toolbar">
+                    <button class="btn">编辑</button>
+                    <button class="btn">删除</button>
+                    <button class="btn ghost">预览</button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+
+    <script src="./theme-toggle.js"></script>
+  </body>
+</html>

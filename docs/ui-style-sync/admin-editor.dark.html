@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bitlog Admin · 编辑器（夜间）</title>
+    <link rel="stylesheet" href="./base.css" />
+  </head>
+  <body>
+    <header class="admin-topbar">
+      <div class="container">
+        <div class="nav">
+          <span class="brand">Bitlog Admin</span>
+          <a class="active" href="#">文章</a>
+          <a href="#">账号</a>
+          <a href="#">设置</a>
+        </div>
+        <div class="nav">
+          <span class="muted">@admin</span>
+          <button class="btn ghost">退出</button>
+          <button class="btn ghost" id="themeToggle">主题</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="admin-shell">
+      <div class="editor-grid">
+        <div class="card editor-panel">
+          <div class="card-body">
+            <div class="toolbar">
+              <button class="btn">返回列表</button>
+              <button class="btn">预览</button>
+              <button class="btn primary">保存</button>
+              <button class="btn">Write</button>
+              <button class="btn">Preview</button>
+              <button class="btn">Split</button>
+            </div>
+            <div style="height:12px"></div>
+            <div class="form-grid">
+              <label class="field">
+                标题
+                <input value="用 Worker + Hono 构建轻量博客" />
+              </label>
+              <label class="field">
+                Summary
+                <input value="从 0 到 1 搭建可维护博客系统" />
+              </label>
+            </div>
+            <div style="height:12px"></div>
+            <div class="form-grid">
+              <label class="field">
+                分类（仅 1 个）
+                <input value="技术" />
+              </label>
+              <label class="field">
+                标签（逗号分隔）
+                <input value="Hono, Cloudflare, Worker" />
+              </label>
+            </div>
+            <div style="height:12px"></div>
+            <div class="form-grid">
+              <label class="field">
+                状态
+                <select>
+                  <option>草稿</option>
+                  <option selected>发布</option>
+                  <option>定时</option>
+                </select>
+              </label>
+              <label class="field">
+                发布时间（Asia/Shanghai）
+                <input type="datetime-local" value="2026-02-01T10:00" />
+              </label>
+            </div>
+            <div style="height:12px"></div>
+            <label class="field">
+              Markdown
+              <textarea rows="12"># 标题
+
+正文...
+
+## 小节
+内容内容内容</textarea>
+            </label>
+            <div class="editor-status">支持：表格/代码高亮/嵌入短代码/图片上传</div>
+          </div>
+        </div>
+
+        <div class="card editor-panel">
+          <div class="card-body">
+            <div class="toolbar">
+              <strong>预览</strong>
+              <button class="btn">自动刷新：开</button>
+              <button class="btn">刷新预览</button>
+            </div>
+            <div style="height:12px"></div>
+            <div class="preview-pane">
+              <h2 style="margin-top:0;">用 Worker + Hono 构建轻量博客</h2>
+              <p class="muted">从 0 到 1 搭建可维护博客系统</p>
+              <p>这是预览区域，占位展示文章渲染效果与排版。</p>
+              <ul>
+                <li>标题与段落层级清晰</li>
+                <li>代码块、图片等可视化</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <script src="./theme-toggle.js"></script>
+  </body>
+</html>
