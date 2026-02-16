@@ -265,8 +265,8 @@
         const specs = {
           focusSearch: getSpec("focusSearch", "ctrl+f"),
           goHome: getSpec("goHome", "ctrl+h"),
-          back: getSpec("back", "g b"),
-          forward: getSpec("forward", "g n")
+          back: getSpec("goBack", getSpec("back", "g b")),
+          forward: getSpec("goForward", getSpec("forward", "g n"))
         };
 
         function matchChord(e, combo){
@@ -274,13 +274,15 @@
           if (!s || s.includes(" ")) return false;
           const parts = s.split('+').map(x=>x.trim()).filter(Boolean);
           const key = (e.key || '').toLowerCase();
-          const wantCtrl = parts.includes('ctrl') || parts.includes('cmd');
-          const wantMeta = parts.includes('meta') || parts.includes('cmd');
+          const wantCtrl = parts.includes('ctrl');
+          const wantMeta = parts.includes('meta');
+          const wantMod = parts.includes('cmd') || parts.includes('mod');
           const wantAlt = parts.includes('alt');
           const wantShift = parts.includes('shift');
-          const wantKey = parts.find(p=>!['ctrl','cmd','meta','alt','shift'].includes(p));
-          if (wantCtrl && !(e.ctrlKey || e.metaKey)) return false;
+          const wantKey = parts.find(p=>!['ctrl','cmd','mod','meta','alt','shift'].includes(p));
+          if (wantCtrl && !e.ctrlKey) return false;
           if (wantMeta && !e.metaKey) return false;
+          if (wantMod && !(e.ctrlKey || e.metaKey)) return false;
           if (wantAlt && !e.altKey) return false;
           if (wantShift && !e.shiftKey) return false;
           if (wantKey && wantKey !== key) return false;

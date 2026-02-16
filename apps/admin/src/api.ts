@@ -30,6 +30,11 @@ export type SiteConfig = {
   shortcutsJson: string | null;
 };
 
+export type AdminPrefs = {
+  shortcutsJson: string | null;
+  editorLayout: "split" | "write" | "preview";
+};
+
 export async function getConfig(): Promise<SiteConfig> {
   const r = await apiJson<{ ok: true; config: SiteConfig }>("/api/config");
   return r.config;
@@ -49,6 +54,23 @@ export async function adminLogin(username: string, password: string, remember: b
 
 export async function adminLogout() {
   await apiJson("/api/admin/logout", { method: "POST", body: JSON.stringify({}) });
+}
+
+export async function getAdminPrefs(): Promise<AdminPrefs> {
+  const r = await apiJson<{ ok: true; prefs: AdminPrefs }>("/api/admin/prefs");
+  return r.prefs;
+}
+
+export async function updateAdminPrefs(patch: Partial<AdminPrefs>) {
+  await apiJson("/api/admin/prefs", { method: "PUT", body: JSON.stringify(patch) });
+}
+
+export async function changeAdminPassword(oldPassword: string, newPassword: string): Promise<{ relogin: boolean }> {
+  const r = await apiJson<{ ok: true; relogin?: boolean }>("/api/admin/password", {
+    method: "PUT",
+    body: JSON.stringify({ oldPassword, newPassword })
+  });
+  return { relogin: !!r.relogin };
 }
 
 export type AdminPostListItem = {

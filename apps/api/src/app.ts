@@ -12,6 +12,7 @@ import { rateLimitAdminLogin, rateLimitSearch } from "./services/rate-limit.js";
 import { embedFromShortcode } from "./lib/embeds.js";
 import { getCachedResponse, putCachedResponse } from "./services/cache.js";
 import { uploadImageToR2, getR2ObjectByKey } from "./services/assets.js";
+import { getAdminPrefs, setAdminPrefs } from "./services/admin-prefs.js";
 
 export interface ApiBindings {
   db: Db;
@@ -719,6 +720,48 @@ export function createApiApp(bindings: ApiBindings) {
     return c.json({ ok: true, user: session });
   });
 
+  app.get("/api/admin/prefs", async (c) => {
+    if (!isSameOriginRequest(c.req.raw)) return c.json(jsonError("Forbidden", 403), 403);
+    const session = await requireAdmin(bindings, c.req.raw);
+    if (!session) return c.json(jsonError("Unauthorized", 401), 401);
+    const prefs = await getAdminPrefs(bindings.db, session.adminId);
+    return c.json({ ok: true, prefs });
+  });
+
+  app.put("/api/admin/prefs", async (c) => {
+    if (!isSameOriginRequest(c.req.raw)) return c.json(jsonError("Forbidden", 403), 403);
+    const session = await requireAdmin(bindings, c.req.raw);
+    if (!session) return c.json(jsonError("Unauthorized", 401), 401);
+    const body = (await c.req.json().catch(() => null)) as
+      | { shortcutsJson?: string | null; editorLayout?: "split" | "write" | "preview" }
+      | null;
+    if (!body) return c.json(jsonError("Invalid JSON", 400), 400);
+
+    const shortcutsJson = body.shortcutsJson;
+    if (shortcutsJson !== undefined && shortcutsJson !== null && typeof shortcutsJson !== "string") {
+      return c.json(jsonError("Invalid shortcutsJson", 400), 400);
+    }
+    if (typeof shortcutsJson === "string" && shortcutsJson.trim()) {
+      try {
+        const parsed = JSON.parse(shortcutsJson);
+        if (!parsed || typeof parsed !== "object") throw new Error("bad");
+      } catch {
+        return c.json(jsonError("Invalid shortcutsJson", 400), 400);
+      }
+    }
+
+    const editorLayout = body.editorLayout;
+    if (editorLayout !== undefined && !["split", "write", "preview"].includes(String(editorLayout))) {
+      return c.json(jsonError("Invalid editorLayout", 400), 400);
+    }
+
+    await setAdminPrefs(bindings.db, session.adminId, {
+      ...(shortcutsJson !== undefined ? { shortcutsJson } : {}),
+      ...(editorLayout !== undefined ? { editorLayout } : {})
+    });
+    return c.json({ ok: true });
+  });
+
   app.put("/api/admin/password", async (c) => {
     if (!isSameOriginRequest(c.req.raw)) return c.json(jsonError("Forbidden", 403), 403);
     const session = await requireAdmin(bindings, c.req.raw);
@@ -757,7 +800,10 @@ export function createApiApp(bindings: ApiBindings) {
               updated_at = ${nowMs()}
           WHERE id = ${session.adminId}`
     );
-    return c.json({ ok: true });
+    await bindings.db.execute(sql`DELETE FROM admin_sessions WHERE admin_user_id = ${session.adminId}`);
+    deleteCookie(c, COOKIE_SESSION_ID, { path: "/" });
+    deleteCookie(c, COOKIE_REFRESH_TOKEN, { path: "/" });
+    return c.json({ ok: true, relogin: true });
   });
 
   app.put("/api/admin/settings", async (c) => {

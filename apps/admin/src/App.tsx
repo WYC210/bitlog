@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
-import type { ApiError, SiteConfig } from "./api";
-import { adminLogout, adminMe, getConfig } from "./api";
+import type { AdminPrefs, ApiError, SiteConfig } from "./api";
+import { adminLogout, adminMe, getAdminPrefs, getConfig } from "./api";
 import type { Route } from "./routes";
 import { parseRoute } from "./routes";
 import { LoginPage } from "./pages/LoginPage";
 import { PostsPage } from "./pages/PostsPage";
 import { EditorPage } from "./pages/EditorPage";
 import { SettingsPage } from "./pages/SettingsPage";
+import { AccountPage } from "./pages/AccountPage";
 
 function useRoute() {
   const [route, setRoute] = useState<Route>(() => parseRoute(window.location.hash));
@@ -29,13 +30,15 @@ function matchChord(e: KeyboardEvent, combo: string | undefined): boolean {
   if (!s || s.includes(" ")) return false;
   const parts = s.split("+").map((x) => x.trim()).filter(Boolean);
   const key = String(e.key ?? "").toLowerCase();
-  const wantCtrl = parts.includes("ctrl") || parts.includes("cmd");
-  const wantMeta = parts.includes("meta") || parts.includes("cmd");
+  const wantCtrl = parts.includes("ctrl");
+  const wantMeta = parts.includes("meta");
+  const wantMod = parts.includes("cmd") || parts.includes("mod");
   const wantAlt = parts.includes("alt");
   const wantShift = parts.includes("shift");
-  const wantKey = parts.find((p) => !["ctrl", "cmd", "meta", "alt", "shift"].includes(p));
-  if (wantCtrl && !(e.ctrlKey || e.metaKey)) return false;
+  const wantKey = parts.find((p) => !["ctrl", "cmd", "mod", "meta", "alt", "shift"].includes(p));
+  if (wantCtrl && !e.ctrlKey) return false;
   if (wantMeta && !e.metaKey) return false;
+  if (wantMod && !(e.ctrlKey || e.metaKey)) return false;
   if (wantAlt && !e.altKey) return false;
   if (wantShift && !e.shiftKey) return false;
   if (wantKey && wantKey !== key) return false;
@@ -53,6 +56,7 @@ export function App() {
   const route = useRoute();
   const [cfg, setCfg] = useState<SiteConfig | null>(null);
   const [user, setUser] = useState<{ adminId: string; username: string } | null>(null);
+  const [prefs, setPrefs] = useState<AdminPrefs | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -66,27 +70,68 @@ export function App() {
       try {
         const me = await adminMe();
         setUser(me);
+        try {
+          const p = await getAdminPrefs();
+          setPrefs(p);
+        } catch {
+          setPrefs(null);
+        }
       } catch {
         setUser(null);
+        setPrefs(null);
       }
     })();
   }, []);
 
-  const shortcutSpecs = useMemo(() => {
-    let sc: any = {};
+  function parseShortcutsJson(text: string | null | undefined): any {
     try {
-      sc = cfg?.shortcutsJson ? JSON.parse(cfg.shortcutsJson) : {};
+      const v = text ? JSON.parse(text) : {};
+      return v && typeof v === "object" ? v : {};
     } catch {
-      sc = {};
+      return {};
     }
-    const global = sc?.global ?? {};
-    return {
-      newPost: String(global.newPost ?? "ctrl+n"),
-      goHome: String(global.goHome ?? "ctrl+h"),
-      back: String(global.back ?? "g b"),
-      forward: String(global.forward ?? "g n")
+  }
+
+  function mergeShortcuts(a: any, b: any): any {
+    const out: any = {};
+    const ag = a?.global && typeof a.global === "object" ? a.global : {};
+    const bg = b?.global && typeof b.global === "object" ? b.global : {};
+    out.global = { ...ag, ...bg };
+    const ac = a?.contexts && typeof a.contexts === "object" ? a.contexts : {};
+    const bc = b?.contexts && typeof b.contexts === "object" ? b.contexts : {};
+    const keys = new Set<string>([...Object.keys(ac), ...Object.keys(bc)]);
+    const contexts: any = {};
+    keys.forEach((k) => {
+      const av = ac[k] && typeof ac[k] === "object" ? ac[k] : {};
+      const bv = bc[k] && typeof bc[k] === "object" ? bc[k] : {};
+      contexts[k] = { ...av, ...bv };
+    });
+    out.contexts = contexts;
+    return out;
+  }
+
+  const shortcutSpecs = useMemo(() => {
+    const merged = mergeShortcuts(parseShortcutsJson(cfg?.shortcutsJson), parseShortcutsJson(prefs?.shortcutsJson));
+    const pageKey = `admin.${route.page}`;
+    const effective = {
+      ...(merged?.global ?? {}),
+      ...(merged?.contexts?.["admin.global"] ?? {}),
+      ...(merged?.contexts?.[pageKey] ?? {})
     };
-  }, [cfg?.shortcutsJson]);
+    const getSpec = (keys: string[], fallback: string) => {
+      for (const k of keys) {
+        const v = (effective as any)?.[k];
+        if (v) return String(v);
+      }
+      return fallback;
+    };
+    return {
+      newPost: getSpec(["newPost"], "mod+n"),
+      goHome: getSpec(["goHome"], "alt+h"),
+      back: getSpec(["goBack", "back"], "g b"),
+      forward: getSpec(["goForward", "forward"], "g n")
+    };
+  }, [cfg?.shortcutsJson, prefs?.shortcutsJson, route.page]);
 
   useEffect(() => {
     let seq: string[] = [];
@@ -158,6 +203,9 @@ export function App() {
             <a className={`chip ${route.page === "posts" || route.page === "edit" ? "chip-primary" : ""}`} href="#/posts">
               文章
             </a>
+            <a className={`chip ${route.page === "account" ? "chip-primary" : ""}`} href="#/account">
+              账号
+            </a>
             <a className={`chip ${route.page === "settings" ? "chip-primary" : ""}`} href="#/settings">
               设置
             </a>
@@ -172,6 +220,7 @@ export function App() {
                     await adminLogout();
                   } finally {
                     setUser(null);
+                    setPrefs(null);
                     window.location.hash = "#/login";
                   }
                 }}
@@ -203,6 +252,12 @@ export function App() {
               try {
                 const me = await adminMe();
                 setUser(me);
+                try {
+                  const p = await getAdminPrefs();
+                  setPrefs(p);
+                } catch {
+                  setPrefs(null);
+                }
                 window.location.hash = "#/posts";
               } catch (e) {
                 const err = e as ApiError;
@@ -211,10 +266,21 @@ export function App() {
             }}
             onError={(m) => setError(m || null)}
           />
+        ) : route.page === "account" ? (
+          <AccountPage
+            prefs={prefs}
+            onPrefs={setPrefs}
+            onError={(m) => setError(m || null)}
+            onForceRelogin={() => {
+              setUser(null);
+              setPrefs(null);
+              window.location.hash = "#/login";
+            }}
+          />
         ) : route.page === "settings" ? (
           <SettingsPage cfg={cfg} onCfg={setCfg} onError={(m) => setError(m || null)} />
         ) : route.page === "edit" ? (
-          <EditorPage id={route.id} cfg={cfg} onError={(m) => setError(m || null)} />
+          <EditorPage id={route.id} cfg={cfg} prefs={prefs} onPrefs={setPrefs} onError={(m) => setError(m || null)} />
         ) : (
           <PostsPage cfg={cfg} onError={(m) => setError(m || null)} />
         )}

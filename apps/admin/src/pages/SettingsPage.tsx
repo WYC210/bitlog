@@ -12,7 +12,7 @@ export function SettingsPage(props: {
   const [cacheTtl, setCacheTtl] = useState(String(props.cfg?.cacheTtlSeconds ?? 60));
   const [embedAllowlist, setEmbedAllowlist] = useState((props.cfg?.embedAllowlistHosts ?? []).join("\n"));
   const [shortcuts, setShortcuts] = useState(props.cfg?.shortcutsJson ?? "");
-  const [pwOld, setPwOld] = useState("123456");
+  const [pwOld, setPwOld] = useState("");
   const [pwNew, setPwNew] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -60,11 +60,13 @@ export function SettingsPage(props: {
     }
     setSaving(true);
     try {
-      await apiJson("/api/admin/password", {
+      const r = await apiJson<{ ok: true; relogin?: boolean }>("/api/admin/password", {
         method: "PUT",
         body: JSON.stringify({ oldPassword: pwOld, newPassword: pwNew })
       });
       setPwNew("");
+      setPwOld("");
+      if (r.relogin) window.location.reload();
       alert("密码已更新");
     } catch (e) {
       const err = e as ApiError;

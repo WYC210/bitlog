@@ -1,9 +1,17 @@
 import React, { useEffect, useRef, useState } from "react";
-import type { AdminPostDetail, ApiError, SiteConfig } from "../api";
-import { createAdminPost, getAdminPost, renderAdminMarkdown, updateAdminPost, uploadAdminImage } from "../api";
+import type { AdminPostDetail, AdminPrefs, ApiError, SiteConfig } from "../api";
+import { createAdminPost, getAdminPost, renderAdminMarkdown, updateAdminPost, updateAdminPrefs, uploadAdminImage } from "../api";
 import { utcMsToZonedInput, zonedInputToUtcMs } from "../tz";
+import type { MarkdownEditorHandle } from "../components/MarkdownEditor";
+import { MarkdownEditor } from "../components/MarkdownEditor";
 
-export function EditorPage(props: { id: string | "new"; cfg: SiteConfig | null; onError: (m: string) => void }) {
+export function EditorPage(props: {
+  id: string | "new";
+  cfg: SiteConfig | null;
+  prefs: AdminPrefs | null;
+  onPrefs: (p: AdminPrefs | null) => void;
+  onError: (m: string) => void;
+}) {
   const isNew = props.id === "new";
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
@@ -20,6 +28,9 @@ export function EditorPage(props: { id: string | "new"; cfg: SiteConfig | null; 
   const [publishAtLocal, setPublishAtLocal] = useState<string>("");
   const [uploading, setUploading] = useState(false);
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
+  const editorRef = useRef<MarkdownEditorHandle | null>(null);
+
+  const [layout, setLayout] = useState<AdminPrefs["editorLayout"]>(props.prefs?.editorLayout ?? "split");
 
   const [previewHtml, setPreviewHtml] = useState<string>("");
   const [previewing, setPreviewing] = useState(false);
@@ -29,6 +40,23 @@ export function EditorPage(props: { id: string | "new"; cfg: SiteConfig | null; 
   const previewSeq = useRef(0);
 
   const tz = props.cfg?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  useEffect(() => {
+    if (!props.prefs?.editorLayout) return;
+    setLayout(props.prefs.editorLayout);
+  }, [props.prefs?.editorLayout]);
+
+  async function setLayoutAndPersist(next: AdminPrefs["editorLayout"]) {
+    setLayout(next);
+    if (props.prefs?.editorLayout === next) return;
+    try {
+      await updateAdminPrefs({ editorLayout: next });
+      if (props.prefs) props.onPrefs({ ...props.prefs, editorLayout: next });
+    } catch (e) {
+      const err = e as ApiError;
+      props.onError(err.message || "保存布局失败");
+    }
+  }
 
   useEffect(() => {
     if (isNew) return;
@@ -156,6 +184,23 @@ export function EditorPage(props: { id: string | "new"; cfg: SiteConfig | null; 
     });
   }, [previewHtml]);
 
+  async function uploadImage(file: File): Promise<string> {
+    props.onError("");
+    setUploading(true);
+    setUploadedUrl(null);
+    try {
+      const asset = await uploadAdminImage(file);
+      setUploadedUrl(asset.url);
+      return asset.url;
+    } catch (err) {
+      const apiErr = err as ApiError;
+      props.onError(apiErr.message || "上传失败");
+      throw err;
+    } finally {
+      setUploading(false);
+    }
+  }
+
   async function save() {
     props.onError("");
     if (!title.trim() || !content.trim()) {
@@ -210,8 +255,9 @@ export function EditorPage(props: { id: string | "new"; cfg: SiteConfig | null; 
   if (loading) return <div className="card">加载中...</div>;
 
   return (
-    <div className="grid grid--editor">
-      <div className="card">
+    <div className={`grid grid--editor layout--${layout}`}>
+      {layout !== "preview" ? (
+        <div className="card">
         <div className="nav">
           <a className="chip" href="#/posts">
             返回列表
@@ -223,6 +269,15 @@ export function EditorPage(props: { id: string | "new"; cfg: SiteConfig | null; 
           ) : null}
           <button className="chip chip-primary" onClick={() => void save()} disabled={saving}>
             {saving ? "保存中..." : "保存"}
+          </button>
+          <button className={`chip ${layout === "write" ? "chip-primary" : ""}`} onClick={() => void setLayoutAndPersist("write")}>
+            Write
+          </button>
+          <button className={`chip ${layout === "preview" ? "chip-primary" : ""}`} onClick={() => void setLayoutAndPersist("preview")}>
+            Preview
+          </button>
+          <button className={`chip ${layout === "split" ? "chip-primary" : ""}`} onClick={() => void setLayoutAndPersist("split")}>
+            Split
           </button>
         </div>
         <div style={{ height: 10 }} />
@@ -281,8 +336,8 @@ export function EditorPage(props: { id: string | "new"; cfg: SiteConfig | null; 
               setUploading(true);
               setUploadedUrl(null);
               try {
-                const asset = await uploadAdminImage(file);
-                setUploadedUrl(asset.url);
+                const url = await uploadImage(file);
+                editorRef.current?.insertText(`\n\n![](${url})\n`);
               } catch (err) {
                 const apiErr = err as ApiError;
                 props.onError(apiErr.message || "上传失败");
@@ -299,7 +354,7 @@ export function EditorPage(props: { id: string | "new"; cfg: SiteConfig | null; 
             <button
               className="chip"
               onClick={() => {
-                setContent((prev) => `${prev.trimEnd()}\n\n![](${uploadedUrl})\n`);
+                editorRef.current?.insertText(`\n\n![](${uploadedUrl})\n`);
               }}
             >
               插入 Markdown
@@ -311,13 +366,24 @@ export function EditorPage(props: { id: string | "new"; cfg: SiteConfig | null; 
         <div style={{ height: 10 }} />
         <label>
           Markdown
-          <textarea value={content} onChange={(e) => setContent(e.target.value)} />
+          <MarkdownEditor ref={editorRef} value={content} onChange={setContent} onSave={() => void save()} onUploadImage={uploadImage} />
         </label>
         <div className="muted">
           支持：表格/脚注/代码高亮(Refractor)/文字模糊(||text||)/嵌入短代码(@[provider](value))；允许原始 HTML（会做 XSS 清洗）。
+            <button className={`chip ${layout === "write" ? "chip-primary" : ""}`} onClick={() => void setLayoutAndPersist("write")}>
+              Write
+            </button>
+            <button className={`chip ${layout === "preview" ? "chip-primary" : ""}`} onClick={() => void setLayoutAndPersist("preview")}>
+              Preview
+            </button>
+            <button className={`chip ${layout === "split" ? "chip-primary" : ""}`} onClick={() => void setLayoutAndPersist("split")}>
+              Split
+            </button>
+          </div>
         </div>
-      </div>
-      <div className="card">
+      ) : null}
+      {layout !== "write" ? (
+        <div className="card">
         <div className="md-preview-toolbar">
           <div className="left">
             <span style={{ fontWeight: 750 }}>预览</span>
@@ -345,7 +411,8 @@ export function EditorPage(props: { id: string | "new"; cfg: SiteConfig | null; 
             暂无预览
           </div>
         )}
-      </div>
+        </div>
+      ) : null}
     </div>
   );
 }
