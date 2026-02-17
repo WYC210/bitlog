@@ -46,3 +46,4 @@ build/
 apps/web/public/admin/
 worker-configuration.d.ts
 .dev.vars
+.codex

@@ -5,7 +5,7 @@
   --surface: #ffffff;
   --surface-2: #f8fafc;
   --text: #0f172a;
-  --muted: #64748b;
+  --muted: #475569;
   --border: #e2e8f0;
   --primary: #4b6bff;
   --primary-700: #2541b7;
@@ -50,6 +50,14 @@
   box-sizing: border-box;
 }
 
+html {
+  color-scheme: light;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+}
+
 body {
   margin: 0;
   font-family: var(--font);
@@ -60,6 +68,9 @@ body {
     radial-gradient(820px 520px at 92% -8%, var(--bg-glow-2), transparent 60%),
     radial-gradient(900px 520px at 50% 110%, var(--bg-glow-3), transparent 65%);
   background-attachment: fixed;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body::after {
@@ -71,6 +82,10 @@ body::after {
   border: 2px solid rgba(75, 155, 255, 0.6);
   box-shadow: inset 0 0 40px rgba(75, 155, 255, 0.3);
   animation: global-glow-pulse 3s infinite ease-in-out;
+}
+
+::selection {
+  background: rgba(75, 107, 255, 0.22);
 }
 
 [data-theme="dark"] body {
@@ -164,15 +179,23 @@ html.theme-transition-active {
   justify-self: end;
 }
 
-.nav a {
+.nav a:not(.btn) {
   padding: 8px 12px;
   border-radius: 999px;
+  border: 1px solid transparent;
   font-size: 13px;
   color: var(--muted);
-  transition: color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+  transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
-.nav a.active {
+.nav a:not(.btn):hover {
+  color: var(--text);
+  background: var(--surface-2);
+  border-color: var(--border);
+}
+
+.nav a:not(.btn).active {
   color: var(--text);
   background: var(--primary-100);
   border: 1px solid color-mix(in srgb, var(--primary) 40%, transparent);
@@ -214,6 +237,10 @@ html.theme-transition-active {
   font-size: 14px;
 }
 
+.search input::placeholder {
+  color: color-mix(in srgb, var(--muted) 85%, transparent);
+}
+
 .btn {
   display: inline-flex;
   align-items: center;
@@ -225,6 +252,25 @@ html.theme-transition-active {
   color: var(--muted);
   font-size: 13px;
   cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease,
+    box-shadow 0.2s ease, transform 0.08s ease;
+}
+
+.btn:hover {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--text) 14%, var(--border));
+  box-shadow: var(--shadow-soft);
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn:disabled,
+.btn[aria-disabled="true"] {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 .btn.primary {
@@ -234,8 +280,17 @@ html.theme-transition-active {
   box-shadow: 0 10px 18px rgba(75, 107, 255, 0.25);
 }
 
+.btn.primary:hover {
+  box-shadow: 0 14px 22px rgba(75, 107, 255, 0.32);
+}
+
 .btn.ghost {
   background: transparent;
+}
+
+.btn.ghost:hover {
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
+  border-color: var(--border);
 }
 
 @keyframes ripple-effect {
@@ -351,6 +406,7 @@ html.theme-transition-active {
 }
 
 .card {
+  display: block;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface);
@@ -364,7 +420,7 @@ html.theme-transition-active {
 }
 
 .card:hover {
-  transform: translateY(-4px);
+  transform: translateY(-2px);
   box-shadow: 0 18px 28px rgba(15, 23, 42, 0.12);
 }
 
@@ -523,6 +579,7 @@ html.theme-transition-active {
 }
 
 .related-item {
+  display: block;
   padding: 16px;
   border-radius: var(--radius);
   border: 1px solid var(--border);
@@ -773,6 +830,14 @@ html.theme-transition-active {
   text-align: left;
 }
 
+.table th {
+  font-weight: 700;
+}
+
+.table tbody tr:hover td {
+  background: color-mix(in srgb, var(--surface-2) 70%, transparent);
+}
+
 .table tr.is-active td {
   background: var(--primary-100);
 }
@@ -830,6 +895,10 @@ html.theme-transition-active {
   .related-grid {
     grid-template-columns: 1fr;
   }
+
+  body {
+    background-attachment: scroll;
+  }
 }
 
 textarea:focus-visible,
@@ -850,4 +919,28 @@ input:focus,
 textarea:focus,
 select:focus {
   outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --theme-transition: 0ms;
+    --theme-toggle-ripple-duration: 0ms;
+  }
+
+  body::after {
+    animation: none;
+  }
+
+  .card,
+  .btn,
+  .nav a,
+  .theme-ripple {
+    transition: none !important;
+    animation: none !important;
+  }
+
+  .card:hover,
+  .btn:active {
+    transform: none;
+  }
 }

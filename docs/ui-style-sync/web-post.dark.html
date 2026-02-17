@@ -9,13 +9,13 @@
   <body>
     <header class="site-header">
       <div class="container header-inner">
-        <a class="brand" href="#">Bitlog</a>
+        <a class="brand" href="./web-home.dark.html">Bitlog</a>
         <div class="search">
-          <input placeholder="搜索文章（Ctrl/Cmd+F 聚焦）" />
+          <input aria-label="搜索文章" placeholder="搜索文章（Ctrl/Cmd+F 聚焦）" />
         </div>
         <div class="nav">
-          <a class="active" href="#">Articles</a>
-          <a href="#">Admin</a>
+          <a class="active" href="./web-articles.dark.html">Articles</a>
+          <a href="./admin-login.dark.html">Admin</a>
           <button class="btn ghost" id="themeToggle">主题</button>
         </div>
       </div>
@@ -26,6 +26,10 @@
         <section>
           <article class="card">
             <div class="card-body">
+              <div class="toolbar" style="justify-content:space-between; margin-bottom:10px;">
+                <a class="btn ghost" href="./web-articles.dark.html">← 返回列表</a>
+                <a class="btn ghost" href="./web-home.dark.html">首页</a>
+              </div>
               <div class="meta">
                 2026-02-01 · <span class="chip primary">技术</span>
                 <span style="margin-left:8px" class="chip is-active">Hono</span>
@@ -65,14 +69,14 @@
           <section class="related-section">
             <div class="meta">相关阅读</div>
             <div class="related-grid">
-              <article class="article-card related-item">
+              <a class="article-card related-item" href="./web-post.dark.html">
                 <div class="meta">2026-01-10</div>
                 <h3 class="article-title">统一模板与缓存的最佳实践</h3>
-              </article>
-              <article class="article-card related-item">
+              </a>
+              <a class="article-card related-item" href="./web-post.dark.html">
                 <div class="meta">2025-12-22</div>
                 <h3 class="article-title">内容系统的可预览发布方案</h3>
-              </article>
+              </a>
             </div>
           </section>
         </section>

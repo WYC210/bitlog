@@ -9,13 +9,13 @@
   <body>
     <header class="site-header">
       <div class="container header-inner">
-        <a class="brand" href="#">Bitlog</a>
+        <a class="brand" href="./web-home.dark.html">Bitlog</a>
         <div class="search">
-          <input placeholder="搜索文章（Ctrl/Cmd+F 聚焦）" />
+          <input aria-label="搜索文章" placeholder="搜索文章（Ctrl/Cmd+F 聚焦）" />
         </div>
         <div class="nav">
-          <a class="active" href="#">Articles</a>
-          <a href="#">Admin</a>
+          <a class="active" href="./web-articles.dark.html">Articles</a>
+          <a href="./admin-login.dark.html">Admin</a>
           <button class="btn ghost" id="themeToggle">主题</button>
         </div>
       </div>
@@ -30,29 +30,29 @@
       <div class="layout">
         <section>
           <div class="article-list">
-            <article class="card article-card">
+            <a class="card article-card" href="./web-post.dark.html">
               <div class="meta">2026-02-01 · <span class="chip primary">技术</span></div>
               <h2 class="article-title">用 Worker + Hono 构建轻量博客</h2>
               <p class="article-summary">
                 记录从零搭建 Bitlog 的过程：接口设计、缓存策略、模板渲染与发布流程。
               </p>
-            </article>
+            </a>
 
-            <article class="card article-card is-active">
+            <a class="card article-card is-active" href="./web-post.dark.html">
               <div class="meta">2026-01-18 · <span class="chip primary">随笔</span></div>
               <h2 class="article-title">写作流的最小闭环</h2>
               <p class="article-summary">
                 从选题、摘要、正文到发布与迭代，如何让写作不被流程拖累。
               </p>
-            </article>
+            </a>
 
-            <article class="card article-card">
+            <a class="card article-card" href="./web-post.dark.html">
               <div class="meta">2025-12-30 · <span class="chip primary">产品</span></div>
               <h2 class="article-title">用信息架构组织你的知识库</h2>
               <p class="article-summary">
                 建立目录—标签—搜索的三层结构，让知识沉淀和检索都更高效。
               </p>
-            </article>
+            </a>
           </div>
 
           <div class="footer">
