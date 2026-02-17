@@ -12,6 +12,9 @@ export function EditorPage(props: {
   onPrefs: (p: AdminPrefs | null) => void;
   onError: (m: string) => void;
 }) {
+  type ToolboxDock = "left" | "top";
+  const TOOLBOX_DOCK_KEY = "bitlog_admin_editor_toolbox_dock";
+
   const isNew = props.id === "new";
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
@@ -29,8 +32,24 @@ export function EditorPage(props: {
   const [uploading, setUploading] = useState(false);
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
   const editorRef = useRef<MarkdownEditorHandle | null>(null);
+  const editorCardRef = useRef<HTMLDivElement | null>(null);
 
   const [layout, setLayout] = useState<AdminPrefs["editorLayout"]>(props.prefs?.editorLayout ?? "split");
+  const [markdownFocused, setMarkdownFocused] = useState(false);
+
+  const [toolboxDock, setToolboxDock] = useState<ToolboxDock>(() => {
+    if (typeof window === "undefined") return "left";
+    const v = window.localStorage.getItem(TOOLBOX_DOCK_KEY);
+    return v === "top" ? "top" : "left";
+  });
+  const [toolboxDragging, setToolboxDragging] = useState(false);
+  const [toolboxDragTarget, setToolboxDragTarget] = useState<ToolboxDock>(() => {
+    if (typeof window === "undefined") return "left";
+    const v = window.localStorage.getItem(TOOLBOX_DOCK_KEY);
+    return v === "top" ? "top" : "left";
+  });
+  const toolboxDragTargetRef = useRef<ToolboxDock>(toolboxDragTarget);
+  const toolboxPointerIdRef = useRef<number | null>(null);
 
   const [previewHtml, setPreviewHtml] = useState<string>("");
   const [previewing, setPreviewing] = useState(false);
@@ -45,6 +64,142 @@ export function EditorPage(props: {
     if (!props.prefs?.editorLayout) return;
     setLayout(props.prefs.editorLayout);
   }, [props.prefs?.editorLayout]);
+
+  useEffect(() => {
+    if (layout === "preview" && markdownFocused) setMarkdownFocused(false);
+  }, [layout, markdownFocused]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(TOOLBOX_DOCK_KEY, toolboxDock);
+  }, [toolboxDock]);
+
+  useEffect(() => {
+    if (!toolboxDragging) return;
+
+    const onMove = (e: PointerEvent) => {
+      if (toolboxPointerIdRef.current !== null && e.pointerId !== toolboxPointerIdRef.current) return;
+      const card = editorCardRef.current?.getBoundingClientRect() ?? null;
+      const nearTop = card ? e.clientY - card.top < 120 : e.clientY < 140;
+      const next: ToolboxDock = nearTop ? "top" : "left";
+      if (toolboxDragTargetRef.current === next) return;
+      toolboxDragTargetRef.current = next;
+      setToolboxDragTarget(next);
+    };
+
+    const onUp = (e: PointerEvent) => {
+      if (toolboxPointerIdRef.current !== null && e.pointerId !== toolboxPointerIdRef.current) return;
+      setToolboxDock(toolboxDragTargetRef.current);
+      setToolboxDragging(false);
+      toolboxPointerIdRef.current = null;
+    };
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+    };
+  }, [toolboxDragging]);
+
+  function onToolboxDragStart(e: React.PointerEvent<HTMLDivElement>) {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    e.preventDefault();
+    toolboxDragTargetRef.current = toolboxDock;
+    setToolboxDragTarget(toolboxDock);
+    toolboxPointerIdRef.current = e.pointerId;
+    setToolboxDragging(true);
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      // ignore
+    }
+  }
+
+  function applySnippet(kind: "blur" | "inlineCode" | "codeBlock" | "link" | "image" | "embed") {
+    const editor = editorRef.current;
+    if (!editor) return;
+    const selected = editor.getSelectionText();
+
+    if (kind === "blur") {
+      const inner = selected || "text";
+      const rep = `||${inner}||`;
+      editor.replaceSelection(rep, 2, 2 + inner.length);
+      return;
+    }
+    if (kind === "inlineCode") {
+      const inner = selected || "code";
+      const rep = `\`${inner}\``;
+      editor.replaceSelection(rep, 1, 1 + inner.length);
+      return;
+    }
+    if (kind === "codeBlock") {
+      const inner = selected || "code";
+      const rep = `\n\n\`\`\`ts\n${inner}\n\`\`\`\n\n`;
+      const start = "\n\n```ts\n".length;
+      editor.replaceSelection(rep, start, start + inner.length);
+      return;
+    }
+    if (kind === "link") {
+      const text = selected || "text";
+      const rep = `[${text}](url)`;
+      const urlStart = 1 + text.length + 2;
+      editor.replaceSelection(rep, urlStart, urlStart + 3);
+      return;
+    }
+    if (kind === "image") {
+      const url = selected && /^https?:\/\//i.test(selected.trim()) ? selected.trim() : "url";
+      const rep = `![](${url})`;
+      const urlStart = 4;
+      editor.replaceSelection(rep, urlStart, urlStart + url.length);
+      return;
+    }
+    if (kind === "embed") {
+      const provider = "provider";
+      const value = "value";
+      const rep = `@[${provider}](${value})`;
+      editor.replaceSelection(rep, 2, 2 + provider.length);
+    }
+  }
+
+  function renderToolboxActions() {
+    return (
+      <div className="toolbox-actions">
+        <button className="toolbox-btn" onClick={() => applySnippet("blur")} title="文字模糊：||text||">
+          模糊
+        </button>
+        <button className="toolbox-btn" onClick={() => applySnippet("inlineCode")} title="行内代码：`code`">
+          行内代码
+        </button>
+        <button className="toolbox-btn" onClick={() => applySnippet("codeBlock")} title="代码块：```ts">
+          代码块
+        </button>
+        <button className="toolbox-btn" onClick={() => applySnippet("link")} title="链接：[text](url)">
+          链接
+        </button>
+        <button className="toolbox-btn" onClick={() => applySnippet("image")} title="图片：![](url)">
+          图片
+        </button>
+        <button className="toolbox-btn" onClick={() => applySnippet("embed")} title="嵌入：@[provider](value)">
+          嵌入
+        </button>
+      </div>
+    );
+  }
+
+  function renderToolboxHandle() {
+    return (
+      <div
+        className={`toolbox-handle${toolboxDragging ? " is-dragging" : ""}`}
+        title="拖动到顶部：停靠为工具条"
+        onPointerDown={onToolboxDragStart}
+      >
+        ⋮⋮
+      </div>
+    );
+  }
 
   async function setLayoutAndPersist(next: AdminPrefs["editorLayout"]) {
     setLayout(next);
@@ -268,108 +423,150 @@ export function EditorPage(props: {
 
   if (loading) return <div className="card">加载中...</div>;
 
+  const railPreview = toolboxDragging && toolboxDragTarget === "left" && toolboxDock !== "left";
+  const topPreview = toolboxDragging && toolboxDragTarget === "top" && toolboxDock !== "top";
+  const railOpen = toolboxDock === "left" || railPreview;
+  const topOpen = toolboxDock === "top" || topPreview;
+
   return (
-    <div className={`grid grid--editor layout--${layout}`}>
+    <div
+      className={`grid grid--editor layout--${layout}${markdownFocused ? " focus-md" : ""}${
+        railOpen ? " toolbox-left" : ""
+      }`}
+    >
       {layout !== "preview" ? (
-        <div className="card">
-        <div className="nav">
-          <a className="chip" href="#/posts">
-            返回列表
-          </a>
-          {slug ? (
-            <a className="chip" href={`/articles/${encodeURIComponent(slug)}?preview=1`} target="_blank" rel="noreferrer">
-              预览
+        <div className="card editor-card" ref={editorCardRef}>
+          <aside
+            className={`toolbox toolbox-rail${toolboxDock === "left" ? " is-active" : ""}${railPreview ? " is-preview" : ""}`}
+            aria-label="编辑工具栏（侧边）"
+            aria-hidden={!railOpen}
+          >
+            {renderToolboxHandle()}
+            <div className="toolbox-rail-scroll">{renderToolboxActions()}</div>
+          </aside>
+
+          <div className="nav">
+            <a className="chip" href="#/posts">
+              返回列表
             </a>
-          ) : null}
-          <button className="chip chip-primary" onClick={() => void save()} disabled={saving}>
-            {saving ? "保存中..." : "保存"}
-          </button>
-          {layoutButtons}
-        </div>
-        <div style={{ height: 10 }} />
-        <div className="row">
-          <label>
-            标题
-            <input value={title} onChange={(e) => setTitle(e.target.value)} />
-          </label>
-          <label>
-            Summary
-            <input value={summary} onChange={(e) => setSummary(e.target.value)} />
-          </label>
-        </div>
-        <div style={{ height: 10 }} />
-        <div className="row">
-          <label>
-            分类（只允许 1 个）
-            <input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="例如：教学 / 编程" />
-          </label>
-          <label>
-            标签（逗号分隔）
-            <input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="例如：教程, SQL, Edge" />
-          </label>
-        </div>
-        <div style={{ height: 10 }} />
-        <div className="row">
-          <label>
-            状态
-            <select value={status} onChange={(e) => setStatus(e.target.value as any)}>
-              <option value="draft">草稿</option>
-              <option value="published">发布</option>
-              <option value="scheduled">定时</option>
-            </select>
-          </label>
-          <label>
-            发布时间（{tz}）
-            <input
-              type="datetime-local"
-              value={publishAtLocal}
-              onChange={(e) => setPublishAtLocal(e.target.value)}
-              disabled={status === "draft"}
+            {slug ? (
+              <a className="chip" href={`/articles/${encodeURIComponent(slug)}?preview=1`} target="_blank" rel="noreferrer">
+                预览
+              </a>
+            ) : null}
+            <button className="chip chip-primary" onClick={() => void save()} disabled={saving}>
+              {saving ? "保存中..." : "保存"}
+            </button>
+            {layoutButtons}
+          </div>
+
+          <div className={`toolbox-top-slot${topOpen ? " is-open" : ""}${topPreview ? " is-preview" : ""}`}>
+            <div
+              className={`toolbox toolbox-top${toolboxDock === "top" ? " is-active" : ""}${topPreview ? " is-preview" : ""}`}
+              aria-label="编辑工具栏（顶部）"
+              aria-hidden={!topOpen}
+            >
+              {renderToolboxHandle()}
+              <div className="toolbox-top-scroll">{renderToolboxActions()}</div>
+            </div>
+          </div>
+
+          <div className="editor-meta">
+            <div style={{ height: 10 }} />
+            <div className="row">
+              <label>
+                标题
+                <input value={title} onChange={(e) => setTitle(e.target.value)} />
+              </label>
+              <label>
+                Summary
+                <input value={summary} onChange={(e) => setSummary(e.target.value)} />
+              </label>
+            </div>
+            <div style={{ height: 10 }} />
+            <div className="row">
+              <label>
+                分类（只允许 1 个）
+                <input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="例如：教学 / 编程" />
+              </label>
+              <label>
+                标签（逗号分隔）
+                <input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="例如：教程, SQL, Edge" />
+              </label>
+            </div>
+            <div style={{ height: 10 }} />
+            <div className="row">
+              <label>
+                状态
+                <select value={status} onChange={(e) => setStatus(e.target.value as any)}>
+                  <option value="draft">草稿</option>
+                  <option value="published">发布</option>
+                  <option value="scheduled">定时</option>
+                </select>
+              </label>
+              <label>
+                发布时间（{tz}）
+                <input
+                  type="datetime-local"
+                  value={publishAtLocal}
+                  onChange={(e) => setPublishAtLocal(e.target.value)}
+                  disabled={status === "draft"}
+                />
+              </label>
+            </div>
+            <div style={{ height: 10 }} />
+            <label>
+              图片上传（仅当 Worker 绑定 R2 时可用）
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                disabled={uploading}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  try {
+                    const url = await uploadImage(file);
+                    editorRef.current?.insertText(`\n\n![](${url})\n`);
+                  } catch {
+                    // error handled by uploadImage
+                  } finally {
+                    e.target.value = "";
+                  }
+                }}
+              />
+            </label>
+            {uploadedUrl ? (
+              <div className="nav">
+                <span className="muted">已上传：{uploadedUrl}</span>
+                <button
+                  className="chip"
+                  onClick={() => {
+                    editorRef.current?.insertText(`\n\n![](${uploadedUrl})\n`);
+                  }}
+                >
+                  插入 Markdown
+                </button>
+              </div>
+            ) : uploading ? (
+              <div className="muted">上传中...</div>
+            ) : null}
+            <div style={{ height: 10 }} />
+          </div>
+
+          <label className="editor-md">
+            Markdown
+            <MarkdownEditor
+              ref={editorRef}
+              value={content}
+              onChange={setContent}
+              onSave={() => void save()}
+              onUploadImage={uploadImage}
+              onFocusChange={setMarkdownFocused}
             />
           </label>
-        </div>
-        <div style={{ height: 10 }} />
-        <label>
-          图片上传（仅当 Worker 绑定 R2 时可用）
-          <input
-            type="file"
-            accept="image/png,image/jpeg,image/webp,image/gif"
-            disabled={uploading}
-            onChange={async (e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-              try {
-                const url = await uploadImage(file);
-                editorRef.current?.insertText(`\n\n![](${url})\n`);
-              } catch {
-                // error handled by uploadImage
-              } finally {
-                e.target.value = "";
-              }
-            }}
-          />
-        </label>
-        {uploadedUrl ? (
-          <div className="nav">
-            <span className="muted">已上传：{uploadedUrl}</span>
-            <button
-              className="chip"
-              onClick={() => {
-                editorRef.current?.insertText(`\n\n![](${uploadedUrl})\n`);
-              }}
-            >
-              插入 Markdown
-            </button>
+          <div className="muted">
+            支持：表格/脚注/代码高亮(Refractor)/文字模糊(||text||)/嵌入短代码(@[provider](value))；允许原始 HTML（会做 XSS 清洗）。
           </div>
-        ) : uploading ? (
-          <div className="muted">上传中...</div>
-        ) : null}
-        <div style={{ height: 10 }} />
-        <label>
-          Markdown
-          <MarkdownEditor ref={editorRef} value={content} onChange={setContent} onSave={() => void save()} onUploadImage={uploadImage} />
-        </label>
-        <div className="muted">支持：表格/脚注/代码高亮(Refractor)/文字模糊(||text||)/嵌入短代码(@[provider](value))；允许原始 HTML（会做 XSS 清洗）。</div>
         </div>
       ) : null}
       {layout !== "write" ? (
@@ -385,6 +582,7 @@ export function EditorPage(props: {
               onClick={() => {
                 const seq = ++previewSeq.current;
                 void renderPreview(seq);
+                editorRef.current?.scrollToSelection();
               }}
               disabled={previewing}
             >
@@ -396,7 +594,24 @@ export function EditorPage(props: {
         </div>
 
         {previewHtml ? (
-          <div ref={previewRef} className="md-prose" dangerouslySetInnerHTML={{ __html: previewHtml }} />
+          <div
+            ref={previewRef}
+            className="md-prose"
+            onClick={(e) => {
+              const target = e.target as HTMLElement | null;
+              if (!target) return;
+              const anchor = target.closest("a[href]") as HTMLAnchorElement | null;
+              const href = anchor?.getAttribute("href") ?? "";
+              if (anchor && href && !href.startsWith("#")) return;
+
+              const lineEl = target.closest("[data-line]") as HTMLElement | null;
+              const lineAttr = lineEl?.getAttribute("data-line") ?? "";
+              const line = Number(lineAttr);
+              if (Number.isFinite(line) && line > 0) editorRef.current?.scrollToLine(line);
+              else editorRef.current?.scrollToSelection();
+            }}
+            dangerouslySetInnerHTML={{ __html: previewHtml }}
+          />
         ) : (
           <div className="muted" style={{ marginTop: 10 }}>
             暂无预览

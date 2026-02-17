@@ -35,6 +35,7 @@
               <button class="btn">Preview</button>
               <button class="btn">Split</button>
             </div>
+            <div class="editor-meta">
             <div style="height:12px"></div>
             <div class="form-grid">
               <label class="field">
@@ -73,9 +74,10 @@
               </label>
             </div>
             <div style="height:12px"></div>
-            <label class="field">
+            </div>
+            <label class="field markdown-editor">
               Markdown
-              <textarea rows="12"># 标题
+              <textarea id="markdownTextarea" rows="12"># 标题
 
 正文...
 
@@ -91,10 +93,10 @@
             <div class="toolbar">
               <strong>预览</strong>
               <button class="btn">自动刷新：开</button>
-              <button class="btn">刷新预览</button>
+              <button class="btn" data-action="refresh-preview">刷新预览</button>
             </div>
             <div style="height:12px"></div>
-            <div class="preview-pane">
+            <div class="preview-pane" id="previewPane">
               <h2 style="margin-top:0;">用 Worker + Hono 构建轻量博客</h2>
               <p class="muted">从 0 到 1 搭建可维护博客系统</p>
               <p>这是预览区域，占位展示文章渲染效果与排版。</p>
@@ -109,5 +111,6 @@
     </main>
 
     <script src="./theme-toggle.js"></script>
+    <script src="./editor-enhance.js"></script>
   </body>
 </html>

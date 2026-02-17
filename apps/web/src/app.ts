@@ -46,19 +46,23 @@ type PostDetail = {
   tags: Array<{ slug: string; name: string }>;
 };
 
-let templatesPromise: Promise<{ post: string; articles: string }> | null = null;
+let templatesPromise: Promise<{ home: string; post: string; articles: string }> | null = null;
 
 async function loadTemplates(env: WebEnv, requestUrl: string) {
   if (templatesPromise) return templatesPromise;
   templatesPromise = (async () => {
     const base = new URL(requestUrl);
+    base.pathname = "/_templates/home.html";
+    base.search = "";
+    const homeHtml = await env.ASSETS.fetch(base.toString()).then((r) => r.text());
+
     base.pathname = "/_templates/post.html";
     base.search = "";
     const postHtml = await env.ASSETS.fetch(base.toString()).then((r) => r.text());
 
     base.pathname = "/_templates/articles.html";
     const articlesHtml = await env.ASSETS.fetch(base.toString()).then((r) => r.text());
-    return { post: postHtml, articles: articlesHtml };
+    return { home: homeHtml, post: postHtml, articles: articlesHtml };
   })();
   return templatesPromise;
 }
@@ -190,22 +194,28 @@ function renderChips(items: Array<{ name: string; slug: string }>, baseHref: str
     .join("");
 }
 
+function renderChipsWithActive(
+  items: Array<{ name: string; slug: string }>,
+  baseHref: string,
+  activeSlug: string | null
+): string {
+  return items
+    .map((it) => {
+      const href = `${baseHref}${encodeURIComponent(it.slug)}`;
+      const cls = `chip${activeSlug && it.slug === activeSlug ? " is-active" : ""}`;
+      return `<a class="${cls}" href="${href}">${escapeHtml(it.name)}</a>`;
+    })
+    .join("");
+}
+
 function buildTocFromHtml(contentHtml: string): { tocHtml: string; tocInlineLinks: string } {
   const headings = extractHeadings(contentHtml);
   if (headings.length === 0) return { tocHtml: "", tocInlineLinks: "" };
 
-  const groups = groupByH2(headings);
-  const tocHtml = groups
-    .map((g) => {
-      const children = g.children
-        .map((h3) => {
-          return `<li><a href="#${escapeHtml(h3.id)}">${escapeHtml(h3.text)}</a></li>`;
-        })
-        .join("");
-      const ul = children ? `<ul>${children}</ul>` : "";
-      return `<details data-toc-group open data-target="${escapeHtml(g.h2.id)}"><summary>${escapeHtml(
-        g.h2.text
-      )}</summary>${ul}</details>`;
+  const tocHtml = headings
+    .map((h) => {
+      const level = h.level === 3 ? "3" : "2";
+      return `<a data-level="${level}" href="#${escapeHtml(h.id)}">${escapeHtml(h.text)}</a>`;
     })
     .join("");
 
@@ -264,7 +274,42 @@ export function createWebApp() {
   app.get("/rss.xml", (c) => apiForward(c.env, c.req.raw));
   app.get("/sitemap.xml", (c) => apiForward(c.env, c.req.raw));
 
-  app.get("/", (c) => c.redirect("/articles", 302));
+  app.get("/", async (c) => {
+    const cfg = await getConfig(c.env);
+    return maybeCachePage(c.req.raw, cfg, "web:home", async () => {
+      const list = await apiJson<ApiOk<{ posts: PostListItem[] }>>(c.env, `/api/posts?page=1&pageSize=6`);
+      const posts = list.posts ?? [];
+
+      const cards = posts
+        .map((p) => {
+          const dateText = isoDate(Number(p.publish_at ?? p.updated_at), cfg.timezone);
+          const cat = p.category_name ?? p.category_slug ?? "";
+          const catChip = cat ? `<span class="chip primary">${escapeHtml(cat)}</span>` : "";
+          return `<a class="card article-card" href="/articles/${encodeURIComponent(p.slug)}">
+  <div class="meta">${escapeHtml(dateText)}${catChip ? ` · ${catChip}` : ""}</div>
+  <h2 class="article-title">${escapeHtml(p.title)}</h2>
+  <p class="article-summary">${escapeHtml(p.summary ?? "")}</p>
+</a>`;
+        })
+        .join("\n");
+
+      const year = String(new Date().getFullYear());
+      const html = replaceAll((await loadTemplates(c.env, c.req.url)).home, {
+        "{{PAGE_TITLE}}": escapeHtml(cfg.title ?? "Bitlog"),
+        "{{SITE_TITLE}}": escapeHtml(cfg.title ?? "Bitlog"),
+        "{{SITE_DESC}}": escapeHtml(
+          cfg.description ??
+            "在 AI 时代重定义思考与写作：更清晰的结构，更轻量的表达，更可复用的知识沉淀。"
+        ),
+        "{{RECENT_CARDS}}": cards || `<div class="meta">暂无文章</div>`,
+        "{{YEAR}}": escapeHtml(year),
+        "{{CACHE_VERSION}}": escapeHtml(String(cfg.cacheVersion)),
+        "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? "")
+      });
+
+      return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
+    });
+  });
   app.get("/admin", (c) => c.redirect("/admin/", 302));
 
   app.all("/admin/*", async (c) => {
@@ -321,32 +366,28 @@ export function createWebApp() {
       const cards = posts
         .map((p) => {
           const dateText = isoDate(Number(p.publish_at ?? p.updated_at), cfg.timezone);
-          const cat = p.category_slug
-            ? `<a class="chip chip--cat" href="/articles?category=${encodeURIComponent(
-                p.category_slug
-              )}">${escapeHtml(p.category_name ?? p.category_slug)}</a>`
-            : "";
-          return `<article class="card article-card">
-  <div class="article-meta">
-    <span class="meta">${escapeHtml(dateText)}</span>
-    <span class="meta">${cat}</span>
-  </div>
-  <h2 class="article-title"><a href="/articles/${encodeURIComponent(p.slug)}">${escapeHtml(
-    p.title
-  )}</a></h2>
+          const cat = p.category_name ?? p.category_slug ?? "";
+          const catChip = cat ? `<span class="chip primary">${escapeHtml(cat)}</span>` : "";
+          return `<a class="card article-card" href="/articles/${encodeURIComponent(p.slug)}">
+  <div class="meta">${escapeHtml(dateText)}${catChip ? ` · ${catChip}` : ""}</div>
+  <h2 class="article-title">${escapeHtml(p.title)}</h2>
   <p class="article-summary">${escapeHtml(p.summary ?? "")}</p>
-</article>`;
+</a>`;
         })
         .join("\n");
+
+      const resultMeta = q ? `搜索结果 · ${posts.length} 条` : `最近更新`;
 
       const html = replaceAll((await loadTemplates(c.env, c.req.url)).articles, {
         "{{PAGE_TITLE}}": escapeHtml(cfg.title ?? "Articles"),
         "{{SITE_TITLE}}": escapeHtml(cfg.title ?? "Bitlog"),
         "{{FILTER_PILL}}": filterPill,
+        "{{RESULT_META}}": escapeHtml(resultMeta),
         "{{SEARCH_VALUE}}": escapeHtml(q),
         "{{POST_CARDS}}": cards || `<div class="meta">暂无文章</div>`,
-        "{{CATEGORIES}}": renderChips(categories, "/articles?category="),
-        "{{TAGS}}": renderChips(tags as any, "/articles?tag="),
+        "{{CATEGORIES}}": renderChipsWithActive(categories, "/articles?category=", category),
+        "{{TAGS}}": renderChipsWithActive(tags as any, "/articles?tag=", tag),
+        "{{CACHE_VERSION}}": escapeHtml(String(cfg.cacheVersion)),
         "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? "")
       });
 
@@ -387,10 +428,10 @@ export function createWebApp() {
 
       const dateText = isoDate(Number(post.publish_at ?? post.updated_at), cfg.timezone);
       const catChip = post.category_slug
-        ? `<a class="chip chip--cat" href="/articles?category=${encodeURIComponent(
+        ? `<a class="chip primary" href="/articles?category=${encodeURIComponent(
             post.category_slug
           )}">${escapeHtml(post.category_name ?? post.category_slug)}</a>`
-        : `<span class="chip chip--cat">未分类</span>`;
+        : `<span class="chip">未分类</span>`;
       const tagChips = (post.tags ?? [])
         .map((t) => {
           return `<a class="chip" href="/articles?tag=${encodeURIComponent(t.slug)}">${escapeHtml(
@@ -411,6 +452,7 @@ export function createWebApp() {
         "{{TAG_CHIPS}}": tagChips || `<span class="meta">无标签</span>`,
         "{{TOC_GROUPS}}": toc.tocHtml || `<div class="meta">无目录</div>`,
         "{{POST_CONTENT}}": post.content_html ?? "",
+        "{{CACHE_VERSION}}": escapeHtml(String(cfg.cacheVersion)),
         "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? "")
       });
 

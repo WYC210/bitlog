@@ -6,6 +6,10 @@ import { EditorView, keymap } from "@codemirror/view";
 
 export type MarkdownEditorHandle = {
   focus: () => void;
+  getSelectionText: () => string;
+  replaceSelection: (text: string, selectFromOffset?: number, selectToOffset?: number) => void;
+  scrollToSelection: () => void;
+  scrollToLine: (line1Based: number) => void;
   insertText: (text: string) => void;
 };
 
@@ -20,6 +24,7 @@ export const MarkdownEditor = forwardRef<
     onChange: (value: string) => void;
     onSave: () => void;
     onUploadImage?: (file: File) => Promise<string>;
+    onFocusChange?: (focused: boolean) => void;
   }
 >(function MarkdownEditor(props, ref) {
   const hostRef = useRef<HTMLDivElement | null>(null);
@@ -27,6 +32,47 @@ export const MarkdownEditor = forwardRef<
 
   useImperativeHandle(ref, () => ({
     focus: () => viewRef.current?.focus(),
+    getSelectionText: () => {
+      const view = viewRef.current;
+      if (!view) return "";
+      const { from, to } = view.state.selection.main;
+      if (from === to) return "";
+      return view.state.sliceDoc(from, to);
+    },
+    replaceSelection: (text: string, selectFromOffset?: number, selectToOffset?: number) => {
+      const view = viewRef.current;
+      if (!view) return;
+      const { from, to } = view.state.selection.main;
+      const insert = text ?? "";
+      const selectionFrom = typeof selectFromOffset === "number" ? from + Math.max(0, Math.trunc(selectFromOffset)) : from + insert.length;
+      const selectionTo =
+        typeof selectToOffset === "number"
+          ? from + Math.max(0, Math.trunc(selectToOffset))
+          : selectionFrom;
+      view.dispatch({
+        changes: { from, to, insert },
+        selection: { anchor: selectionFrom, head: selectionTo }
+      });
+      view.focus();
+    },
+    scrollToSelection: () => {
+      const view = viewRef.current;
+      if (!view) return;
+      const head = view.state.selection.main.head;
+      view.dispatch({ effects: EditorView.scrollIntoView(head, { y: "center" }) });
+      view.focus();
+    },
+    scrollToLine: (line1Based: number) => {
+      const view = viewRef.current;
+      if (!view) return;
+      const want = Math.max(1, Math.min(Math.trunc(line1Based), view.state.doc.lines));
+      const line = view.state.doc.line(want);
+      view.dispatch({
+        selection: { anchor: line.from },
+        effects: EditorView.scrollIntoView(line.from, { y: "center" })
+      });
+      view.focus();
+    },
     insertText: (text: string) => {
       const view = viewRef.current;
       if (!view) return;
@@ -99,6 +145,20 @@ export const MarkdownEditor = forwardRef<
 
     const view = new EditorView({ state, parent: host });
     viewRef.current = view;
+
+    const onFocusChange = props.onFocusChange;
+    if (onFocusChange) {
+      const onFocusIn = () => onFocusChange(true);
+      const onFocusOut = () => onFocusChange(false);
+      view.dom.addEventListener("focusin", onFocusIn);
+      view.dom.addEventListener("focusout", onFocusOut);
+      return () => {
+        view.dom.removeEventListener("focusin", onFocusIn);
+        view.dom.removeEventListener("focusout", onFocusOut);
+        viewRef.current?.destroy();
+        viewRef.current = null;
+      };
+    }
     return () => {
       viewRef.current?.destroy();
       viewRef.current = null;

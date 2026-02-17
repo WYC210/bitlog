@@ -586,7 +586,8 @@ export function createApiApp(bindings: ApiBindings) {
     const config = await getSiteConfig(bindings.db);
     const rendered = await renderPostContent(contentMd, {
       embedAllowlist: config.embedAllowlistHosts,
-      embed: embedFromShortcode
+      embed: embedFromShortcode,
+      includeSourceMap: true
     });
 
     return c.json({ ok: true, rendered });

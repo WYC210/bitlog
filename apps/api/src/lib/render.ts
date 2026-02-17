@@ -21,6 +21,7 @@ import type { EmbedOptions } from "./embeds.js";
 export interface RenderOptions {
   embedAllowlist: Set<string>;
   embed: (provider: string, value: string, opts: EmbedOptions) => string;
+  includeSourceMap?: boolean;
 }
 
 export interface RenderedContent {
@@ -54,7 +55,11 @@ export async function renderPostContent(
     .use(remarkGfm)
     .use(remarkBitlogShortcodes, options)
     .use(remarkRehype, { allowDangerousHtml: true })
-    .use(rehypeRaw)
+    .use(rehypeRaw);
+
+  if (options.includeSourceMap) processor.use(rehypeBitlogSourceMap);
+
+  processor
     .use(rehypeBitlogHeadingIds)
     .use(rehypeBitlogHighlight)
     .use(rehypeBitlogSanitize, { embedAllowlist: options.embedAllowlist })
@@ -64,6 +69,19 @@ export async function renderPostContent(
   const html = String(await processor.stringify(hast));
   const text = toText(hast).toLowerCase();
   return { html, text };
+}
+
+function rehypeBitlogSourceMap() {
+  return function transformer(tree: HastRoot) {
+    visit(tree, "element", (node: Element) => {
+      const pos = (node as any).position;
+      const line = pos?.start?.line;
+      if (typeof line !== "number" || !Number.isFinite(line) || line <= 0) return;
+      const props = (node.properties ??= {});
+      if ((props as any)["data-line"] || (props as any).dataLine) return;
+      (props as any)["data-line"] = Math.trunc(line);
+    });
+  };
 }
 
 function rehypeBitlogHeadingIds() {

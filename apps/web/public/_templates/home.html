@@ -14,7 +14,7 @@
     </script>
     <link rel="stylesheet" href="/ui/base.css?__cv={{CACHE_VERSION}}" />
   </head>
-  <body data-page="post">
+  <body data-page="home">
     <header class="site-header">
       <div class="container header-inner">
         <a class="brand" href="/">Bitlog</a>
@@ -28,7 +28,7 @@
           />
         </form>
         <div class="nav">
-          <a class="active" href="/articles">Articles</a>
+          <a href="/articles">Articles</a>
           <a href="/admin/">Admin</a>
           <button class="btn ghost" id="themeToggle" type="button">主题</button>
         </div>
@@ -36,36 +36,43 @@
     </header>
 
     <main class="container page-wrap">
-      <div class="layout">
-        <section>
-          <article class="card">
-            <div class="card-body">
-              <div class="meta">
-                {{POST_DATE}} · {{CATEGORY_CHIP}}
-                <span style="margin-left: 8px"></span>
-              </div>
-              <h1 style="margin: 10px 0 6px; font-size: 28px">{{POST_TITLE}}</h1>
-              <p class="meta">{{POST_SUMMARY}}</p>
-              <div class="prose" style="margin-top: 14px">{{POST_CONTENT}}</div>
-            </div>
-          </article>
-        </section>
+      <section class="hero">
+        <h1 class="hero-title">{{SITE_TITLE}}</h1>
+        <p class="hero-subtitle">{{SITE_DESC}}</p>
+        <div class="hero-actions">
+          <a class="btn primary" href="/articles">开始阅读</a>
+          <a class="btn" href="/rss.xml">订阅 RSS</a>
+        </div>
+      </section>
 
-        <aside>
-          <div class="card aside-block toc">
-            <h3 class="aside-title">目录</h3>
-            <div style="display: grid; gap: 6px">{{TOC_GROUPS}}</div>
-          </div>
+      <section style="margin-top: 20px">
+        <h2 class="section-title">精选主题</h2>
+        <div class="feature-grid">
+          <a class="card feature-card" href="/articles">
+            <div class="chip primary">技术</div>
+            <h3 class="feature-title">工程化与架构</h3>
+            <p class="feature-desc">围绕性能、缓存、工程实践的系统化记录。</p>
+          </a>
+          <a class="card feature-card" href="/articles">
+            <div class="chip primary">产品</div>
+            <h3 class="feature-title">方法与策略</h3>
+            <p class="feature-desc">从问题定义到方案落地的完整链路。</p>
+          </a>
+          <a class="card feature-card" href="/articles">
+            <div class="chip primary">写作</div>
+            <h3 class="feature-title">知识沉淀</h3>
+            <p class="feature-desc">让输出成为系统能力，而不是偶然灵感。</p>
+          </a>
+        </div>
+      </section>
 
-          <div style="height: 14px"></div>
-
-          <div class="card aside-block">
-            <h3 class="aside-title">标签</h3>
-            <div class="tag-list">{{TAG_CHIPS}}</div>
-          </div>
-        </aside>
-      </div>
+      <section style="margin-top: 28px">
+        <h2 class="section-title">最近更新</h2>
+        <div class="article-list">{{RECENT_CARDS}}</div>
+      </section>
     </main>
+
+    <div class="footer">© {{YEAR}} {{SITE_TITLE}} · All rights reserved.</div>
 
     <script src="/ui/theme-toggle.js?__cv={{CACHE_VERSION}}"></script>
     <script>
@@ -187,79 +194,6 @@
             history.forward();
             return;
           }
-        });
-      })();
-    </script>
-    <script>
-      (function () {
-        const cards = document.querySelectorAll("a.embed-card--github[data-repo]");
-        if (!cards || cards.length === 0) return;
-
-        const storeKey = (repo) => `bitlog_gh_repo_${repo}`;
-        const now = () => Date.now();
-        const TTL = 12 * 60 * 60 * 1000;
-
-        function formatNumber(n) {
-          const x = Number(n);
-          if (!Number.isFinite(x)) return "—";
-          if (x >= 1e6) return (x / 1e6).toFixed(1).replace(/\\.0$/, "") + "m";
-          if (x >= 1e3) return (x / 1e3).toFixed(1).replace(/\\.0$/, "") + "k";
-          return String(Math.floor(x));
-        }
-
-        async function fetchRepo(repo) {
-          const cache = (() => {
-            try {
-              return localStorage.getItem(storeKey(repo));
-            } catch {
-              return null;
-            }
-          })();
-          if (cache) {
-            try {
-              const parsed = JSON.parse(cache);
-              if (parsed && typeof parsed.ts === "number" && now() - parsed.ts < TTL && parsed.data) return parsed.data;
-            } catch {}
-          }
-          const url = `https://api.github.com/repos/${repo}`;
-          const res = await fetch(url, { headers: { accept: "application/vnd.github+json" } });
-          if (!res.ok) throw new Error("github_api_failed");
-          const data = await res.json();
-          try {
-            localStorage.setItem(storeKey(repo), JSON.stringify({ ts: now(), data }));
-          } catch {}
-          return data;
-        }
-
-        function setText(el, s) {
-          if (el) el.textContent = String(s ?? "");
-        }
-
-        cards.forEach((a) => {
-          const repo = a.getAttribute("data-repo");
-          if (!repo) return;
-          fetchRepo(repo)
-            .then((data) => {
-              a.removeAttribute("data-loading");
-              if (data && data.html_url) a.setAttribute("href", String(data.html_url));
-
-              const avatar = a.querySelector(".embed-card__avatar");
-              if (avatar && data?.owner?.avatar_url) {
-                avatar.setAttribute("src", String(data.owner.avatar_url));
-                avatar.setAttribute("alt", String(data.owner.login ?? ""));
-              }
-
-              setText(a.querySelector(".embed-card__title"), data?.full_name ?? repo);
-              setText(a.querySelector(".embed-card__desc"), data?.description ?? "");
-              setText(a.querySelector("[data-field='stars']"), formatNumber(data?.stargazers_count));
-              setText(a.querySelector("[data-field='forks']"), formatNumber(data?.forks_count));
-              setText(a.querySelector("[data-field='lang']"), data?.language ?? "—");
-            })
-            .catch(() => {
-              a.removeAttribute("data-loading");
-              const desc = a.querySelector(".embed-card__desc");
-              if (desc && desc.textContent === "Loading…") desc.textContent = "";
-            });
         });
       })();
     </script>
