@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useRef, useState } from "react";
+﻿import React, { useCallback, useEffect, useRef, useState } from "react";
 import type { AdminPostDetail, AdminPrefs, ApiError, SiteConfig } from "../api";
 import { createAdminPost, getAdminPost, renderAdminMarkdown, updateAdminPost, updateAdminPrefs, uploadAdminImage } from "../api";
 import { utcMsToZonedInput, zonedInputToUtcMs } from "../tz";
@@ -31,6 +31,14 @@ export function EditorPage(props: {
   const [publishAtLocal, setPublishAtLocal] = useState<string>("");
   const [uploading, setUploading] = useState(false);
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showToast = useCallback((msg: string, type: "success" | "error" = "success") => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setToast({ msg, type });
+    toastTimerRef.current = setTimeout(() => setToast(null), 3000);
+  }, []);
   const editorRef = useRef<MarkdownEditorHandle | null>(null);
   const editorCardRef = useRef<HTMLDivElement | null>(null);
 
@@ -170,19 +178,19 @@ export function EditorPage(props: {
         <div className="toolbox-group" aria-label="格式">
           <button className="toolbox-btn" onClick={() => applySnippet("blur")} title="文字模糊：||text||">
             <span className="toolbox-icon" aria-hidden="true">
-              模
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
             </span>
             <span className="toolbox-label">模糊</span>
           </button>
           <button className="toolbox-btn" onClick={() => applySnippet("inlineCode")} title="行内代码：`code`">
             <span className="toolbox-icon" aria-hidden="true">
-              `
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
             </span>
             <span className="toolbox-label">行内代码</span>
           </button>
           <button className="toolbox-btn" onClick={() => applySnippet("codeBlock")} title="代码块：```ts">
             <span className="toolbox-icon" aria-hidden="true">
-              {"{}"}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="10" x2="14" y1="13" y2="13"/><line x1="8" x2="16" y1="17" y2="17"/><line x1="8" x2="10" y1="9" y2="9"/></svg>
             </span>
             <span className="toolbox-label">代码块</span>
           </button>
@@ -191,19 +199,19 @@ export function EditorPage(props: {
         <div className="toolbox-group" aria-label="插入">
           <button className="toolbox-btn" onClick={() => applySnippet("link")} title="链接：[text](url)">
             <span className="toolbox-icon" aria-hidden="true">
-              链
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
             </span>
             <span className="toolbox-label">链接</span>
           </button>
           <button className="toolbox-btn" onClick={() => applySnippet("image")} title="图片：![](url)">
             <span className="toolbox-icon" aria-hidden="true">
-              图
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
             </span>
             <span className="toolbox-label">图片</span>
           </button>
           <button className="toolbox-btn" onClick={() => applySnippet("embed")} title="嵌入：@[provider](value)">
             <span className="toolbox-icon" aria-hidden="true">
-              嵌
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></svg>
             </span>
             <span className="toolbox-label">嵌入</span>
           </button>
@@ -237,17 +245,11 @@ export function EditorPage(props: {
   }
 
   const layoutButtons = (
-    <>
-      <button className={`chip ${layout === "write" ? "chip-primary" : ""}`} onClick={() => void setLayoutAndPersist("write")}>
-        写作
-      </button>
-      <button className={`chip ${layout === "preview" ? "chip-primary" : ""}`} onClick={() => void setLayoutAndPersist("preview")}>
-        预览
-      </button>
-      <button className={`chip ${layout === "split" ? "chip-primary" : ""}`} onClick={() => void setLayoutAndPersist("split")}>
-        分屏
-      </button>
-    </>
+    <div className="layout-switcher">
+      <button className={`btn${layout === "write" ? " active" : ""}`} onClick={() => void setLayoutAndPersist("write")}>写作</button>
+      <button className={`btn${layout === "preview" ? " active" : ""}`} onClick={() => void setLayoutAndPersist("preview")}>预览</button>
+      <button className={`btn${layout === "split" ? " active" : ""}`} onClick={() => void setLayoutAndPersist("split")}>分屏</button>
+    </div>
   );
 
   useEffect(() => {
@@ -435,9 +437,10 @@ export function EditorPage(props: {
           publish_at: publishAt ?? null
         });
       }
-      alert("已保存");
+      showToast("已保存", "success");
     } catch (e) {
       const err = e as ApiError;
+      showToast(err.message || "保存失败", "error");
       props.onError(err.message || "保存失败");
     } finally {
       setSaving(false);
@@ -457,27 +460,34 @@ export function EditorPage(props: {
         railOpen ? " toolbox-left" : ""
       }`}
     >
+      {toast && (
+        <div className={`toast toast-${toast.type}`}>{toast.msg}</div>
+      )}
       {layout !== "preview" ? (
+        <>
+          {railOpen && (
+            <aside
+              className={`toolbox toolbox-rail${toolboxDock === "left" ? " is-active" : ""}${railPreview ? " is-preview" : ""}`}
+              aria-label="编辑工具栏（侧边）"
+              aria-hidden={!railOpen}
+            >
+              {renderToolboxHandle()}
+              <div className="toolbox-rail-scroll">{renderToolboxActions()}</div>
+            </aside>
+          )}
         <div className="card editor-card" ref={editorCardRef}>
-          <aside
-            className={`toolbox toolbox-rail${toolboxDock === "left" ? " is-active" : ""}${railPreview ? " is-preview" : ""}`}
-            aria-label="编辑工具栏（侧边）"
-            aria-hidden={!railOpen}
-          >
-            {renderToolboxHandle()}
-            <div className="toolbox-rail-scroll">{renderToolboxActions()}</div>
-          </aside>
 
           <div className="nav">
-            <a className="chip" href="#/posts">
+            <a className="btn btn-ghost" href="#/posts">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
               返回列表
             </a>
             {slug ? (
-              <a className="chip" href={`/articles/${encodeURIComponent(slug)}?preview=1`} target="_blank" rel="noreferrer">
+              <a className="btn btn-secondary" href={`/articles/${encodeURIComponent(slug)}?preview=1`} target="_blank" rel="noreferrer">
                 预览
               </a>
             ) : null}
-            <button className="chip chip-primary" onClick={() => void save()} disabled={saving}>
+            <button className="btn btn-primary" onClick={() => void save()} disabled={saving}>
               {saving ? "保存中..." : "保存"}
             </button>
             {layoutButtons}
@@ -495,7 +505,6 @@ export function EditorPage(props: {
           </div>
 
           <div className="editor-meta">
-            <div style={{ height: 10 }} />
             <div className="row">
               <label>
                 标题
@@ -506,7 +515,6 @@ export function EditorPage(props: {
                 <input value={summary} onChange={(e) => setSummary(e.target.value)} />
               </label>
             </div>
-            <div style={{ height: 10 }} />
             <div className="row">
               <label>
                 分类（只允许 1 个）
@@ -517,7 +525,6 @@ export function EditorPage(props: {
                 <input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="例如：教程, SQL, Edge" />
               </label>
             </div>
-            <div style={{ height: 10 }} />
             <div className="row">
               <label>
                 状态
@@ -537,7 +544,6 @@ export function EditorPage(props: {
                 />
               </label>
             </div>
-            <div style={{ height: 10 }} />
             <label>
               图片上传（仅当 Worker 绑定 R2 时可用）
               <input
@@ -562,7 +568,7 @@ export function EditorPage(props: {
               <div className="nav">
                 <span className="muted">已上传：{uploadedUrl}</span>
                 <button
-                  className="chip"
+                  className="btn btn-ghost"
                   onClick={() => {
                     editorRef.current?.insertText(`\n\n![](${uploadedUrl})\n`);
                   }}
@@ -573,7 +579,6 @@ export function EditorPage(props: {
             ) : uploading ? (
               <div className="muted">上传中...</div>
             ) : null}
-            <div style={{ height: 10 }} />
           </div>
 
           <label className="editor-md">
@@ -591,17 +596,18 @@ export function EditorPage(props: {
             支持：表格/脚注/代码高亮(Refractor)/文字模糊(||text||)/嵌入短代码(@[provider](value))；允许原始 HTML（会做 XSS 清洗）。
           </div>
         </div>
+        </>
       ) : null}
       {layout !== "write" ? (
         <div className="card">
         <div className="md-preview-toolbar">
           <div className="left">
             <span style={{ fontWeight: 750 }}>预览</span>
-            <button className="chip" onClick={() => setAutoPreview((v) => !v)}>
+            <button className="btn btn-ghost" onClick={() => setAutoPreview((v) => !v)}>
               自动刷新：{autoPreview ? "开" : "关"}
             </button>
             <button
-              className="chip"
+              className="btn btn-secondary"
               onClick={() => {
                 const seq = ++previewSeq.current;
                 void renderPreview(seq);

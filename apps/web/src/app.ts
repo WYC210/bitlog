@@ -237,10 +237,18 @@ function renderChipsWithActive(
   return items
     .map((it) => {
       const href = `${baseHref}${encodeURIComponent(it.slug)}`;
-      const cls = `chip${activeSlug && it.slug === activeSlug ? " is-active" : ""}`;
+      const color = hashColor(it.name);
+      const cls = `chip chip--${color}${activeSlug && it.slug === activeSlug ? " is-active" : ""}`;
       return `<a class="${cls}" href="${href}">${escapeHtml(it.name)}</a>`;
     })
     .join("");
+}
+
+function hashColor(str: string): string {
+  const colors = ["blue", "purple", "green", "orange", "pink", "teal"];
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+  return colors[h % colors.length];
 }
 
 function buildTocFromHtml(contentHtml: string): { tocHtml: string; tocInlineLinks: string } {
@@ -319,7 +327,7 @@ export function createWebApp() {
         .map((p) => {
           const dateText = isoDate(Number(p.publish_at ?? p.updated_at), cfg.timezone);
           const cat = p.category_name ?? p.category_slug ?? "";
-          const catChip = cat ? `<span class="chip primary">${escapeHtml(cat)}</span>` : "";
+          const catChip = cat ? `<span class="chip chip--${hashColor(cat)}">${escapeHtml(cat)}</span>` : "";
           return `<a class="card article-card" href="/articles/${encodeURIComponent(p.slug)}">
   <div class="meta">${escapeHtml(dateText)}${catChip ? ` · ${catChip}` : ""}</div>
   <h2 class="article-title">${escapeHtml(p.title)}</h2>
@@ -402,7 +410,7 @@ export function createWebApp() {
         .map((p) => {
           const dateText = isoDate(Number(p.publish_at ?? p.updated_at), cfg.timezone);
           const cat = p.category_name ?? p.category_slug ?? "";
-          const catChip = cat ? `<span class="chip primary">${escapeHtml(cat)}</span>` : "";
+          const catChip = cat ? `<span class="chip chip--${hashColor(cat)}">${escapeHtml(cat)}</span>` : "";
           return `<a class="card article-card" href="/articles/${encodeURIComponent(p.slug)}">
   <div class="meta">${escapeHtml(dateText)}${catChip ? ` · ${catChip}` : ""}</div>
   <h2 class="article-title">${escapeHtml(p.title)}</h2>
@@ -478,25 +486,36 @@ export function createWebApp() {
         .map((p) => {
           const dateText = isoDate(Number(p.updatedAt ?? 0), cfg.timezone);
           const platformLabel = p.platform === "github" ? "GitHub" : "Gitee";
-          const platformCls = p.platform === "github" ? "chip primary" : "chip";
+          const platformCls = p.platform === "github" ? "repo-platform repo-platform--github" : "repo-platform repo-platform--gitee";
+          const githubSvg = `<svg class="repo-card__avatar-icon" viewBox="0 0 24 24" fill="currentColor" width="28" height="28"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg>`;
+          const giteeSvg = `<svg class="repo-card__avatar-icon" viewBox="0 0 24 24" fill="currentColor" width="28" height="28"><path d="M11.984 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.016 0zm6.09 5.333c.328 0 .593.266.592.593v1.482a.594.594 0 0 1-.593.592H9.777c-.982 0-1.778.796-1.778 1.778v5.63c0 .327.266.592.593.592h5.63c.982 0 1.778-.796 1.778-1.778v-.296a.593.593 0 0 0-.592-.593h-4.15a.592.592 0 0 1-.592-.592v-1.482a.593.593 0 0 1 .593-.592h6.815c.327 0 .593.265.593.592v3.408a4 4 0 0 1-4 4H5.926a.593.593 0 0 1-.593-.593V9.778a4.444 4.444 0 0 1 4.445-4.444h8.296z"/></svg>`;
+          const avatarEl = p.platform === "github"
+            ? `<div class="repo-card__avatar repo-card__avatar--github">${githubSvg}</div>`
+            : `<div class="repo-card__avatar repo-card__avatar--gitee">${giteeSvg}</div>`;
           const desc = p.description ? escapeHtml(p.description) : "（无描述）";
+          const starSvg = `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`;
+          const forkSvg = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M6 9v3a3 3 0 0 0 3 3h3M18 15V9"/></svg>`;
           const metaBits = [
-            p.language ? escapeHtml(p.language) : "",
-            `★ ${escapeHtml(String(p.stars ?? 0))}`,
-            `Fork ${escapeHtml(String(p.forks ?? 0))}`,
-            dateText ? `更新 ${escapeHtml(dateText)}` : ""
+            p.language ? `<span class="pill">${escapeHtml(p.language)}</span>` : "",
+            `<span class="pill">${starSvg} ${escapeHtml(String(p.stars ?? 0))}</span>`,
+            `<span class="pill">${forkSvg} ${escapeHtml(String(p.forks ?? 0))}</span>`,
           ].filter(Boolean);
           return `<a class="card-link repo-card" href="${escapeHtml(p.url)}" target="_blank" rel="noopener noreferrer">
-  <div class="repo-head">
-    <div class="repo-title">${escapeHtml(p.name)}</div>
-    <span class="${platformCls}">${escapeHtml(platformLabel)}</span>
-  </div>
-  <div class="repo-sub meta">${escapeHtml(p.fullName)}</div>
-  <div class="repo-desc meta">${desc}</div>
-  <div class="repo-meta">
-    ${metaBits.map((m) => `<span class="pill">${m}</span>`).join("")}
-    ${p.archived ? `<span class="pill">Archived</span>` : ""}
-    ${p.fork ? `<span class="pill">Fork</span>` : ""}
+  <div class="repo-card__inner">
+    ${avatarEl}
+    <div class="repo-card__body">
+      <div class="repo-head">
+        <div class="repo-title">${escapeHtml(p.name)}</div>
+        <span class="${platformCls}">${escapeHtml(platformLabel)}</span>
+      </div>
+      <div class="repo-sub meta">${escapeHtml(p.fullName)}</div>
+      <div class="repo-desc meta">${desc}</div>
+      <div class="repo-meta">
+        ${metaBits.join("")}
+        ${p.archived ? `<span class="pill">Archived</span>` : ""}
+        ${p.fork ? `<span class="pill">Fork</span>` : ""}
+      </div>
+    </div>
   </div>
 </a>`;
         })
@@ -588,15 +607,23 @@ ${filter}
               : `href="${escapeHtml(href)}"`
             : "";
           const el = href ? "a" : "div";
-          const groupChip = `<span class="chip">${escapeHtml(t.groupKey)}</span>`;
-          const kindChip = `<span class="chip">${escapeHtml(t.kind)}</span>`;
+          const groupColors: Record<string, string> = { games: "purple", apis: "blue", utils: "green", other: "gray" };
+          const groupIcons: Record<string, string> = {
+            games: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 12h4M8 10v4M15 12h.01M18 12h.01"/></svg>`,
+            apis: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>`,
+            utils: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>`,
+            other: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>`,
+          };
+          const icon = t.icon || groupIcons[t.groupKey] || groupIcons.other;
+          const groupColor = groupColors[t.groupKey] || "gray";
+          const groupChip = `<span class="chip chip--${groupColor === "gray" ? "teal" : groupColor}">${escapeHtml(t.groupKey)}</span>`;
           return `<${el} class="card-link tool-card" ${attrs}>
+  <div class="tool-card__icon tool-card__icon--${escapeHtml(t.groupKey)}">${icon}</div>
   <div class="repo-head">
     <div class="repo-title">${escapeHtml(t.title)}</div>
-    <div class="tag-list" style="gap:6px">${groupChip}${kindChip}</div>
+    ${groupChip}
   </div>
   <div class="repo-desc meta">${escapeHtml(t.description || "（无描述）")}</div>
-  ${href ? `<div class="repo-sub meta">${escapeHtml(href)}</div>` : ""}
 </${el}>`;
         })
         .join("\n");
@@ -658,13 +685,13 @@ ${filter}
 
       const dateText = isoDate(Number(post.publish_at ?? post.updated_at), cfg.timezone);
       const catChip = post.category_slug
-        ? `<a class="chip primary" href="/articles?category=${encodeURIComponent(
+        ? `<a class="chip chip--${hashColor(post.category_name ?? post.category_slug)}" href="/articles?category=${encodeURIComponent(
             post.category_slug
           )}">${escapeHtml(post.category_name ?? post.category_slug)}</a>`
         : `<span class="chip">未分类</span>`;
       const tagChips = (post.tags ?? [])
         .map((t) => {
-          return `<a class="chip" href="/articles?tag=${encodeURIComponent(t.slug)}">${escapeHtml(
+          return `<a class="chip chip--${hashColor(t.name)}" href="/articles?tag=${encodeURIComponent(t.slug)}">${escapeHtml(
             t.name
           )}</a>`;
         })

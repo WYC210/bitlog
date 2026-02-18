@@ -726,6 +726,21 @@ mark {
   border-color: #fecaca;
 }
 
+/* ── Chip color variants (hash-assigned) ── */
+.chip--blue   { color: #1d4ed8; background: #eff6ff; border-color: #bfdbfe; }
+.chip--purple { color: #6d28d9; background: #f5f3ff; border-color: #ddd6fe; }
+.chip--green  { color: #065f46; background: #ecfdf5; border-color: #a7f3d0; }
+.chip--orange { color: #92400e; background: #fffbeb; border-color: #fde68a; }
+.chip--pink   { color: #9d174d; background: #fdf2f8; border-color: #fbcfe8; }
+.chip--teal   { color: #134e4a; background: #f0fdfa; border-color: #99f6e4; }
+
+[data-theme="dark"] .chip--blue   { color: #93c5fd; background: rgba(29, 78, 216, 0.2); border-color: rgba(147, 197, 253, 0.3); }
+[data-theme="dark"] .chip--purple { color: #c4b5fd; background: rgba(109, 40, 217, 0.2); border-color: rgba(196, 181, 253, 0.3); }
+[data-theme="dark"] .chip--green  { color: #6ee7b7; background: rgba(6, 95, 70, 0.2); border-color: rgba(110, 231, 183, 0.3); }
+[data-theme="dark"] .chip--orange { color: #fcd34d; background: rgba(146, 64, 14, 0.2); border-color: rgba(252, 211, 77, 0.3); }
+[data-theme="dark"] .chip--pink   { color: #f9a8d4; background: rgba(157, 23, 77, 0.2); border-color: rgba(249, 168, 212, 0.3); }
+[data-theme="dark"] .chip--teal   { color: #5eead4; background: rgba(19, 78, 74, 0.2); border-color: rgba(94, 234, 212, 0.3); }
+
 .article-list {
   display: grid;
   gap: 14px;
@@ -741,6 +756,16 @@ mark {
   padding: 16px;
   display: grid;
   gap: 8px;
+  border-left: 3px solid transparent;
+  transition: border-color 200ms ease;
+}
+
+.article-card:hover {
+  border-left-color: var(--primary);
+}
+
+.article-card:hover .article-title {
+  color: var(--primary);
 }
 
 .article-title {
@@ -845,6 +870,104 @@ mark {
   flex-wrap: wrap;
   gap: 8px;
 }
+
+/* ── Repo card new layout ── */
+.repo-card {
+  border-left: 3px solid transparent;
+  transition: border-color 200ms ease;
+}
+
+.repo-card:hover {
+  border-left-color: var(--primary);
+}
+
+.repo-card__inner {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.repo-card__avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-2);
+}
+
+.repo-card__avatar--github {
+  background: #24292e;
+  color: #fff;
+  border-color: #24292e;
+}
+
+.repo-card__avatar--gitee {
+  background: #c0392b;
+  color: #fff;
+  border-color: #c0392b;
+}
+
+.repo-card__avatar-icon {
+  display: block;
+}
+
+.repo-card__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.repo-platform {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  flex-shrink: 0;
+}
+
+.repo-platform--github {
+  background: #24292e;
+  color: #fff;
+}
+
+.repo-platform--gitee {
+  background: #c0392b;
+  color: #fff;
+}
+
+/* ── Tool card icon ── */
+.tool-card {
+  border-left: 3px solid transparent;
+  transition: border-color 200ms ease;
+  padding: 20px;
+}
+
+.tool-card:hover {
+  border-left-color: var(--primary);
+}
+
+.tool-card__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.tool-card__icon--games { background: linear-gradient(135deg, #7c3aed, #a78bfa); }
+.tool-card__icon--apis  { background: linear-gradient(135deg, #2563eb, #60a5fa); }
+.tool-card__icon--utils { background: linear-gradient(135deg, #059669, #34d399); }
+.tool-card__icon--other { background: linear-gradient(135deg, #475569, #94a3b8); }
 
 .tool-card .repo-desc {
   -webkit-line-clamp: 2;

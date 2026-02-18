@@ -197,24 +197,16 @@ export function App() {
         <div className="topbar-inner">
           <div className="nav">
             <span className="brand">Bitlog Admin</span>
-            <a className="chip" href="/articles">
-              站点
-            </a>
-            <a className={`chip ${route.page === "posts" || route.page === "edit" ? "chip-primary" : ""}`} href="#/posts">
-              文章
-            </a>
-            <a className={`chip ${route.page === "account" ? "chip-primary" : ""}`} href="#/account">
-              账号
-            </a>
-            <a className={`chip ${route.page === "settings" ? "chip-primary" : ""}`} href="#/settings">
-              设置
-            </a>
+            <a className="btn btn-ghost" href="/articles">站点</a>
+            <a className={`btn${route.page === "posts" || route.page === "edit" ? " btn-secondary" : " btn-ghost"}`} href="#/posts">文章</a>
+            <a className={`btn${route.page === "account" ? " btn-secondary" : " btn-ghost"}`} href="#/account">账号</a>
+            <a className={`btn${route.page === "settings" ? " btn-secondary" : " btn-ghost"}`} href="#/settings">设置</a>
           </div>
           <div className="nav">
             {user ? <span className="muted">@{user.username}</span> : <span className="muted">未登录</span>}
             {user ? (
               <button
-                className="chip"
+                className="btn btn-ghost"
                 onClick={async () => {
                   try {
                     await adminLogout();
