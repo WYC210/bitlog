@@ -13,6 +13,7 @@ export function embedFromShortcode(
 ): string {
   const p = provider.toLowerCase();
   if (p === "github") return renderGitHubCard(value);
+  if (p === "gitee") return renderGiteeCard(value);
   if (p === "youtube") return renderYouTube(value, opts.embedAllowlist);
   if (p === "bilibili") return renderBilibili(value, opts.embedAllowlist);
   if (p === "embed") return renderGenericEmbed(value, opts.embedAllowlist);
@@ -37,6 +38,40 @@ function renderGitHubCard(repo: string): string {
       </span>
     </span>
     <span class="embed-card__badge" aria-label="GitHub">GitHub</span>
+  </span>
+</a>
+`.trim();
+}
+
+function renderGiteeCard(repo: string): string {
+  const trimmed = repo
+    .trim()
+    .replace(/^https?:\/\/gitee\.com\//i, "")
+    .replace(/^\//, "")
+    .replace(/\/+$/, "");
+
+  const parts = trimmed.split("/").filter(Boolean);
+  if (parts.length < 2) return renderExternalLink(`https://gitee.com/${trimmed}`, "Gitee");
+
+  const owner = parts[0]!;
+  const name = parts[1]!;
+  const safeRepo = escapeHtml(`${owner}/${name}`);
+  const href = `https://gitee.com/${owner}/${name}`;
+
+  return `
+<a class="embed-card embed-card--gitee" href="${href}" target="_blank" rel="noopener noreferrer" data-bitlog-embed="1" data-provider="gitee" data-repo="${safeRepo}" data-loading="1">
+  <span class="embed-card__row">
+    <img class="embed-card__avatar" src="https://gitee.com/favicon.ico" alt="" loading="lazy" decoding="async" />
+    <span class="embed-card__main">
+      <span class="embed-card__title">${safeRepo}</span>
+      <span class="embed-card__desc">Loading…</span>
+      <span class="embed-card__meta">
+        <span class="embed-pill" title="Stars">★ <span data-field="stars">—</span></span>
+        <span class="embed-pill" title="Forks">⑂ <span data-field="forks">—</span></span>
+        <span class="embed-pill" title="Language"><span data-field="lang">—</span></span>
+      </span>
+    </span>
+    <span class="embed-card__badge" aria-label="Gitee">Gitee</span>
   </span>
 </a>
 `.trim();

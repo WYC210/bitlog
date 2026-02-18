@@ -14,7 +14,7 @@
     </script>
     <link rel="stylesheet" href="/ui/base.css?__cv={{CACHE_VERSION}}" />
   </head>
-  <body data-page="articles">
+  <body data-page="{{PAGE_ID}}">
     <header class="site-header">
       <div class="container header-inner">
         <div class="header-left">
@@ -35,10 +35,10 @@
 
         <div class="header-right">
           <nav class="nav nav-main" aria-label="主导航">
-            <a href="/">首页</a>
-            <a class="active" href="/articles">文章</a>
-            <a href="/projects">项目</a>
-            <a href="/tools">工具中心</a>
+            <a class="{{NAV_HOME_ACTIVE}}" href="/">首页</a>
+            <a class="{{NAV_ARTICLES_ACTIVE}}" href="/articles">文章</a>
+            <a class="{{NAV_PROJECTS_ACTIVE}}" href="/projects">项目</a>
+            <a class="{{NAV_TOOLS_ACTIVE}}" href="/tools">工具中心</a>
           </nav>
           <a class="btn ghost" href="/admin/">我的</a>
           <button class="btn ghost icon" id="themeToggle" type="button" aria-label="切换主题" title="切换主题">
@@ -66,31 +66,13 @@
     </header>
 
     <main class="container page-wrap">
-      <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 16px">
-        {{FILTER_PILL}}
-        <span class="meta">{{RESULT_META}}</span>
-      </div>
-
-      <div class="layout">
-        <section>
-          <div class="article-list">{{POST_CARDS}}</div>
-          <div class="footer">Tips：可使用分类/标签过滤，或搜索缩小范围。</div>
-        </section>
-
-        <aside>
-          <div class="card aside-block">
-            <h3 class="aside-title">分类</h3>
-            <div class="tag-list">{{CATEGORIES}}</div>
-          </div>
-
-          <div style="height: 14px"></div>
-
-          <div class="card aside-block">
-            <h3 class="aside-title">标签</h3>
-            <div class="tag-list">{{TAGS}}</div>
-          </div>
-        </aside>
-      </div>
+      <article class="card">
+        <div class="card-body">
+          <h1 style="margin: 0 0 10px; font-size: 28px">{{MAIN_TITLE}}</h1>
+          <p class="meta" style="margin: 0 0 14px">{{MAIN_DESC}}</p>
+          <div class="prose">{{MAIN_CONTENT}}</div>
+        </div>
+      </article>
     </main>
 
     <script src="/ui/theme-toggle.js?__cv={{CACHE_VERSION}}"></script>
@@ -154,7 +136,7 @@
         function parseSeq(spec) {
           const s = String(spec || "").trim().toLowerCase();
           if (!s.includes(" ")) return null;
-          return s.split(/\s+/).map((x) => x.trim()).filter(Boolean);
+          return s.split(/\\s+/).map((x) => x.trim()).filter(Boolean);
         }
 
         let seq = [];
@@ -185,13 +167,6 @@
           try {
             search.select();
           } catch {}
-        }
-
-        const url = new URL(window.location.href);
-        if (url.searchParams.get("focus") === "1") {
-          focusSearch();
-          url.searchParams.delete("focus");
-          history.replaceState(null, "", url.toString());
         }
 
         document.addEventListener("keydown", (e) => {

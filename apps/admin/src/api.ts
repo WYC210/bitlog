@@ -35,6 +35,74 @@ export type AdminPrefs = {
   editorLayout: "split" | "write" | "preview";
 };
 
+export type ProjectsConfigAdminView = {
+  github: { enabled: boolean; username: string | null; tokenSet: boolean };
+  gitee: { enabled: boolean; username: string | null; tokenSet: boolean };
+  includeForks: boolean;
+  maxItemsPerPlatform: number;
+};
+
+export async function getProjectsConfigAdmin(): Promise<ProjectsConfigAdminView> {
+  const r = await apiJson<{ ok: true; config: ProjectsConfigAdminView }>("/api/admin/projects-config");
+  return r.config;
+}
+
+export async function updateProjectsConfigAdmin(patch: any) {
+  await apiJson("/api/admin/projects-config", { method: "PUT", body: JSON.stringify(patch) });
+}
+
+export type ToolGroup = "games" | "apis" | "utils" | "other";
+export type ToolKind = "link" | "page";
+
+export type AdminToolItem = {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  groupKey: ToolGroup;
+  kind: ToolKind;
+  url: string | null;
+  icon: string | null;
+  enabled: boolean;
+  sortOrder: number;
+  createdAt: number;
+  updatedAt: number;
+};
+
+export async function listAdminTools(): Promise<AdminToolItem[]> {
+  const r = await apiJson<{ ok: true; tools: AdminToolItem[] }>("/api/admin/tools");
+  return r.tools ?? [];
+}
+
+export async function createAdminTool(payload: {
+  slug: string;
+  title: string;
+  description?: string;
+  groupKey?: ToolGroup;
+  kind?: ToolKind;
+  url?: string | null;
+  icon?: string | null;
+  enabled?: boolean;
+}): Promise<AdminToolItem> {
+  const r = await apiJson<{ ok: true; tool: AdminToolItem }>("/api/admin/tools", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+  return r.tool;
+}
+
+export async function updateAdminTool(id: string, patch: Partial<Omit<AdminToolItem, "id" | "createdAt" | "updatedAt" | "sortOrder">> & { sortOrder?: number }) {
+  await apiJson(`/api/admin/tools/${encodeURIComponent(id)}`, { method: "PUT", body: JSON.stringify(patch) });
+}
+
+export async function deleteAdminTool(id: string) {
+  await apiJson(`/api/admin/tools/${encodeURIComponent(id)}`, { method: "DELETE", body: JSON.stringify({}) });
+}
+
+export async function reorderAdminTools(ids: string[]) {
+  await apiJson("/api/admin/tools/reorder", { method: "PUT", body: JSON.stringify({ ids }) });
+}
+
 export async function getConfig(): Promise<SiteConfig> {
   const r = await apiJson<{ ok: true; config: SiteConfig }>("/api/config");
   return r.config;

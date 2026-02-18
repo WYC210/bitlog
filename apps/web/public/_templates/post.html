@@ -17,20 +17,50 @@
   <body data-page="post">
     <header class="site-header">
       <div class="container header-inner">
-        <a class="brand" href="/">Bitlog</a>
-        <form class="search" action="/articles" method="get">
-          <input
-            id="navSearch"
-            name="q"
-            value=""
-            aria-label="搜索文章"
-            placeholder="搜索文章（Ctrl/Cmd+F 聚焦）"
-          />
-        </form>
-        <div class="nav">
-          <a class="active" href="/articles">Articles</a>
-          <a href="/admin/">Admin</a>
-          <button class="btn ghost" id="themeToggle" type="button">主题</button>
+        <div class="header-left">
+          <a class="brand" href="/">Bitlog</a>
+        </div>
+
+        <div class="header-center">
+          <form class="search" action="/articles" method="get">
+            <input
+              id="navSearch"
+              name="q"
+              value=""
+              aria-label="搜索文章"
+              placeholder="搜索文章（Ctrl/Cmd+F 聚焦）"
+            />
+          </form>
+        </div>
+
+        <div class="header-right">
+          <nav class="nav nav-main" aria-label="主导航">
+            <a href="/">首页</a>
+            <a class="active" href="/articles">文章</a>
+            <a href="/projects">项目</a>
+            <a href="/tools">工具中心</a>
+          </nav>
+          <a class="btn ghost" href="/admin/">我的</a>
+          <button class="btn ghost icon" id="themeToggle" type="button" aria-label="切换主题" title="切换主题">
+            <svg class="icon-moon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            <svg class="icon-sun" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2" />
+              <path
+                d="M12 2v2m0 16v2m10-10h-2M4 12H2m15.07-7.07-1.41 1.41M8.34 15.66l-1.41 1.41m0-11.31 1.41 1.41m8.32 8.32 1.41 1.41"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+            </svg>
+          </button>
         </div>
       </div>
     </header>
@@ -68,6 +98,8 @@
     </main>
 
     <script src="/ui/theme-toggle.js?__cv={{CACHE_VERSION}}"></script>
+    <script src="/ui/search-suggest.js?__cv={{CACHE_VERSION}}"></script>
+    <script src="/ui/code-copy.js?__cv={{CACHE_VERSION}}"></script>
     <script>
       (function () {
         const shortcutsText = {{SHORTCUTS_TEXT}};
@@ -192,10 +224,6 @@
     </script>
     <script>
       (function () {
-        const cards = document.querySelectorAll("a.embed-card--github[data-repo]");
-        if (!cards || cards.length === 0) return;
-
-        const storeKey = (repo) => `bitlog_gh_repo_${repo}`;
         const now = () => Date.now();
         const TTL = 12 * 60 * 60 * 1000;
 
@@ -207,10 +235,14 @@
           return String(Math.floor(x));
         }
 
-        async function fetchRepo(repo) {
+        function setText(el, s) {
+          if (el) el.textContent = String(s ?? "");
+        }
+
+        async function fetchWithCache(storeKey, fetcher) {
           const cache = (() => {
             try {
-              return localStorage.getItem(storeKey(repo));
+              return localStorage.getItem(storeKey);
             } catch {
               return null;
             }
@@ -221,46 +253,66 @@
               if (parsed && typeof parsed.ts === "number" && now() - parsed.ts < TTL && parsed.data) return parsed.data;
             } catch {}
           }
-          const url = `https://api.github.com/repos/${repo}`;
-          const res = await fetch(url, { headers: { accept: "application/vnd.github+json" } });
-          if (!res.ok) throw new Error("github_api_failed");
-          const data = await res.json();
+          const data = await fetcher();
           try {
-            localStorage.setItem(storeKey(repo), JSON.stringify({ ts: now(), data }));
+            localStorage.setItem(storeKey, JSON.stringify({ ts: now(), data }));
           } catch {}
           return data;
         }
 
-        function setText(el, s) {
-          if (el) el.textContent = String(s ?? "");
+        function hydrateCards(cards, fetchRepoData) {
+          cards.forEach((a) => {
+            const repo = a.getAttribute("data-repo");
+            if (!repo) return;
+            fetchRepoData(repo)
+              .then((data) => {
+                a.removeAttribute("data-loading");
+                if (data && data.html_url) a.setAttribute("href", String(data.html_url));
+
+                const avatar = a.querySelector(".embed-card__avatar");
+                if (avatar && data?.owner?.avatar_url) {
+                  avatar.setAttribute("src", String(data.owner.avatar_url));
+                  avatar.setAttribute("alt", String(data.owner.login ?? ""));
+                }
+
+                setText(a.querySelector(".embed-card__title"), data?.full_name ?? repo);
+                setText(a.querySelector(".embed-card__desc"), data?.description ?? "");
+                setText(a.querySelector("[data-field='stars']"), formatNumber(data?.stargazers_count));
+                setText(a.querySelector("[data-field='forks']"), formatNumber(data?.forks_count));
+                setText(a.querySelector("[data-field='lang']"), data?.language ?? "—");
+              })
+              .catch(() => {
+                a.removeAttribute("data-loading");
+                const desc = a.querySelector(".embed-card__desc");
+                if (desc && desc.textContent === "Loading…") desc.textContent = "";
+              });
+          });
         }
 
-        cards.forEach((a) => {
-          const repo = a.getAttribute("data-repo");
-          if (!repo) return;
-          fetchRepo(repo)
-            .then((data) => {
-              a.removeAttribute("data-loading");
-              if (data && data.html_url) a.setAttribute("href", String(data.html_url));
-
-              const avatar = a.querySelector(".embed-card__avatar");
-              if (avatar && data?.owner?.avatar_url) {
-                avatar.setAttribute("src", String(data.owner.avatar_url));
-                avatar.setAttribute("alt", String(data.owner.login ?? ""));
-              }
-
-              setText(a.querySelector(".embed-card__title"), data?.full_name ?? repo);
-              setText(a.querySelector(".embed-card__desc"), data?.description ?? "");
-              setText(a.querySelector("[data-field='stars']"), formatNumber(data?.stargazers_count));
-              setText(a.querySelector("[data-field='forks']"), formatNumber(data?.forks_count));
-              setText(a.querySelector("[data-field='lang']"), data?.language ?? "—");
+        const ghCards = document.querySelectorAll("a.embed-card--github[data-repo]");
+        if (ghCards && ghCards.length > 0) {
+          hydrateCards(ghCards, (repo) =>
+            fetchWithCache(`bitlog_gh_repo_${repo}`, async () => {
+              const url = `https://api.github.com/repos/${repo}`;
+              const res = await fetch(url, { headers: { accept: "application/vnd.github+json" } });
+              if (!res.ok) throw new Error("github_api_failed");
+              return await res.json();
             })
-            .catch(() => {
-              a.removeAttribute("data-loading");
-              const desc = a.querySelector(".embed-card__desc");
-              if (desc && desc.textContent === "Loading…") desc.textContent = "";
-            });
-        });
+          );
+        }
+
+        const giteeCards = document.querySelectorAll("a.embed-card--gitee[data-repo]");
+        if (giteeCards && giteeCards.length > 0) {
+          hydrateCards(giteeCards, (repo) =>
+            fetchWithCache(`bitlog_gitee_repo_${repo}`, async () => {
+              const res = await fetch(`/api/embed/gitee?repo=${encodeURIComponent(repo)}`);
+              if (!res.ok) throw new Error("gitee_api_failed");
+              const json = await res.json();
+              if (!json || json.ok !== true || !json.repo) throw new Error("gitee_invalid_payload");
+              return json.repo;
+            })
+          );
+        }
       })();
     </script>
   </body>

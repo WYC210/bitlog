@@ -32,7 +32,7 @@ export function PostsPage(props: { cfg: SiteConfig | null; onError: (m: string) 
   }, []);
 
   return (
-    <div className="grid">
+    <div className="posts-page">
       <div className="card">
         <div className="row">
           <label>
@@ -60,7 +60,7 @@ export function PostsPage(props: { cfg: SiteConfig | null; onError: (m: string) 
         </div>
       </div>
 
-      <div className="card">
+      <div className="card posts-table">
         <table className="table">
           <thead>
             <tr>

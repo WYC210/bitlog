@@ -46,7 +46,38 @@ type PostDetail = {
   tags: Array<{ slug: string; name: string }>;
 };
 
-let templatesPromise: Promise<{ home: string; post: string; articles: string }> | null = null;
+type ProjectItem = {
+  platform: "github" | "gitee";
+  id: string;
+  name: string;
+  fullName: string;
+  url: string;
+  description: string | null;
+  language: string | null;
+  stars: number;
+  forks: number;
+  fork: boolean;
+  archived: boolean;
+  homepage: string | null;
+  updatedAt: number;
+};
+
+type ToolItem = {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  groupKey: "games" | "apis" | "utils" | "other";
+  kind: "link" | "page";
+  url: string | null;
+  icon: string | null;
+  enabled: boolean;
+  sortOrder: number;
+  createdAt: number;
+  updatedAt: number;
+};
+
+let templatesPromise: Promise<{ home: string; post: string; articles: string; page: string }> | null = null;
 
 async function loadTemplates(env: WebEnv, requestUrl: string) {
   if (templatesPromise) return templatesPromise;
@@ -62,7 +93,11 @@ async function loadTemplates(env: WebEnv, requestUrl: string) {
 
     base.pathname = "/_templates/articles.html";
     const articlesHtml = await env.ASSETS.fetch(base.toString()).then((r) => r.text());
-    return { home: homeHtml, post: postHtml, articles: articlesHtml };
+
+    base.pathname = "/_templates/page.html";
+    const pageHtml = await env.ASSETS.fetch(base.toString()).then((r) => r.text());
+
+    return { home: homeHtml, post: postHtml, articles: articlesHtml, page: pageHtml };
   })();
   return templatesPromise;
 }
@@ -391,6 +426,201 @@ export function createWebApp() {
         "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? "")
       });
 
+      return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
+    });
+  });
+
+  app.get("/projects", async (c) => {
+    const cfg = await getConfig(c.env);
+    const url = new URL(c.req.url);
+    const rawPlatform = (url.searchParams.get("platform") ?? "").trim().toLowerCase();
+    const platform =
+      rawPlatform === "github" || rawPlatform === "gitee" ? rawPlatform : rawPlatform === "all" ? "all" : "all";
+
+    return maybeCachePage(c.req.raw, cfg, `web:projects:${platform}`, async () => {
+      const year = String(new Date().getFullYear());
+
+      const data = await apiJson<
+        ApiOk<{
+          projects: ProjectItem[];
+          accounts: { github: { username: string } | null; gitee: { username: string } | null };
+          config: { includeForks: boolean; maxItemsPerPlatform: number };
+        }>
+      >(c.env, `/api/projects?platform=${encodeURIComponent(platform)}`);
+
+      const projects = data.projects ?? [];
+      const accounts = data.accounts ?? { github: null, gitee: null };
+
+      const chip = (label: string, href: string, active: boolean) =>
+        `<a class="chip${active ? " is-active" : ""}" href="${href}">${escapeHtml(label)}</a>`;
+
+      const filter = `
+<div class="section-head">
+  <div class="tag-list">
+    ${chip("全部", "/projects?platform=all", platform === "all")}
+    ${chip("GitHub", "/projects?platform=github", platform === "github")}
+    ${chip("Gitee", "/projects?platform=gitee", platform === "gitee")}
+  </div>
+  <div class="meta">
+    ${escapeHtml(
+      [
+        accounts.github?.username ? `GitHub: ${accounts.github.username}` : "",
+        accounts.gitee?.username ? `Gitee: ${accounts.gitee.username}` : ""
+      ]
+        .filter(Boolean)
+        .join(" · ") || "尚未配置账号"
+    )}
+  </div>
+</div>
+`.trim();
+
+      const cards = projects
+        .map((p) => {
+          const dateText = isoDate(Number(p.updatedAt ?? 0), cfg.timezone);
+          const platformLabel = p.platform === "github" ? "GitHub" : "Gitee";
+          const platformCls = p.platform === "github" ? "chip primary" : "chip";
+          const desc = p.description ? escapeHtml(p.description) : "（无描述）";
+          const metaBits = [
+            p.language ? escapeHtml(p.language) : "",
+            `★ ${escapeHtml(String(p.stars ?? 0))}`,
+            `Fork ${escapeHtml(String(p.forks ?? 0))}`,
+            dateText ? `更新 ${escapeHtml(dateText)}` : ""
+          ].filter(Boolean);
+          return `<a class="card-link repo-card" href="${escapeHtml(p.url)}" target="_blank" rel="noopener noreferrer">
+  <div class="repo-head">
+    <div class="repo-title">${escapeHtml(p.name)}</div>
+    <span class="${platformCls}">${escapeHtml(platformLabel)}</span>
+  </div>
+  <div class="repo-sub meta">${escapeHtml(p.fullName)}</div>
+  <div class="repo-desc meta">${desc}</div>
+  <div class="repo-meta">
+    ${metaBits.map((m) => `<span class="pill">${m}</span>`).join("")}
+    ${p.archived ? `<span class="pill">Archived</span>` : ""}
+    ${p.fork ? `<span class="pill">Fork</span>` : ""}
+  </div>
+</a>`;
+        })
+        .join("\n");
+
+      const html = replaceAll((await loadTemplates(c.env, c.req.url)).page, {
+        "{{PAGE_TITLE}}": escapeHtml(cfg.title ? `${cfg.title} · 项目` : "项目"),
+        "{{CACHE_VERSION}}": escapeHtml(String(cfg.cacheVersion)),
+        "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? ""),
+        "{{PAGE_ID}}": "projects",
+        "{{SEARCH_VALUE}}": "",
+        "{{NAV_HOME_ACTIVE}}": "",
+        "{{NAV_ARTICLES_ACTIVE}}": "",
+        "{{NAV_PROJECTS_ACTIVE}}": "active",
+        "{{NAV_TOOLS_ACTIVE}}": "",
+        "{{MAIN_TITLE}}": escapeHtml("项目"),
+        "{{MAIN_DESC}}": escapeHtml("展示 GitHub / Gitee 个人项目（可筛选）。"),
+        "{{MAIN_CONTENT}}": `
+${filter}
+<div class="cards-grid">
+  ${cards || `<div class="meta">暂无项目（请先在后台 设置 → 项目页 配置账号）</div>`}
+</div>
+<script>
+  (function () {
+    const key = "bl-projects-platform";
+    try {
+      const url = new URL(location.href);
+      const p = (url.searchParams.get("platform") || "").trim();
+      if (!p) {
+        const stored = localStorage.getItem(key);
+        if (stored && stored !== "all") {
+          url.searchParams.set("platform", stored);
+          location.replace(url.pathname + "?" + url.searchParams.toString());
+          return;
+        }
+      } else {
+        localStorage.setItem(key, p);
+      }
+    } catch {}
+  })();
+</script>
+<div class="footer">© ${escapeHtml(year)} ${escapeHtml(cfg.title ?? "Bitlog")}</div>
+`.trim(),
+      });
+      return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
+    });
+  });
+
+  app.get("/tools", async (c) => {
+    const cfg = await getConfig(c.env);
+    const url = new URL(c.req.url);
+    const rawGroup = (url.searchParams.get("group") ?? "").trim().toLowerCase();
+    const group =
+      rawGroup === "games" || rawGroup === "apis" || rawGroup === "utils" || rawGroup === "other"
+        ? rawGroup
+        : rawGroup === "all"
+          ? "all"
+          : "all";
+
+    return maybeCachePage(c.req.raw, cfg, `web:tools:${group}`, async () => {
+      const year = String(new Date().getFullYear());
+      const apiPath = group === "all" ? "/api/tools" : `/api/tools?group=${encodeURIComponent(group)}`;
+      const data = await apiJson<ApiOk<{ tools: ToolItem[] }>>(c.env, apiPath);
+      const tools = data.tools ?? [];
+
+      const chip = (label: string, href: string, active: boolean) =>
+        `<a class="chip${active ? " is-active" : ""}" href="${href}">${escapeHtml(label)}</a>`;
+
+      const filter = `
+<div class="section-head">
+  <div class="tag-list">
+    ${chip("全部", "/tools?group=all", group === "all")}
+    ${chip("games", "/tools?group=games", group === "games")}
+    ${chip("apis", "/tools?group=apis", group === "apis")}
+    ${chip("utils", "/tools?group=utils", group === "utils")}
+    ${chip("other", "/tools?group=other", group === "other")}
+  </div>
+  <div class="meta">${escapeHtml(`共 ${tools.length} 项`)}</div>
+</div>
+`.trim();
+
+      const cards = tools
+        .map((t) => {
+          const href = t.url ? String(t.url) : "";
+          const isExternal = /^https?:\/\//i.test(href);
+          const attrs = href
+            ? isExternal
+              ? `href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer"`
+              : `href="${escapeHtml(href)}"`
+            : "";
+          const el = href ? "a" : "div";
+          const groupChip = `<span class="chip">${escapeHtml(t.groupKey)}</span>`;
+          const kindChip = `<span class="chip">${escapeHtml(t.kind)}</span>`;
+          return `<${el} class="card-link tool-card" ${attrs}>
+  <div class="repo-head">
+    <div class="repo-title">${escapeHtml(t.title)}</div>
+    <div class="tag-list" style="gap:6px">${groupChip}${kindChip}</div>
+  </div>
+  <div class="repo-desc meta">${escapeHtml(t.description || "（无描述）")}</div>
+  ${href ? `<div class="repo-sub meta">${escapeHtml(href)}</div>` : ""}
+</${el}>`;
+        })
+        .join("\n");
+
+      const html = replaceAll((await loadTemplates(c.env, c.req.url)).page, {
+        "{{PAGE_TITLE}}": escapeHtml(cfg.title ? `${cfg.title} · 工具中心` : "工具中心"),
+        "{{CACHE_VERSION}}": escapeHtml(String(cfg.cacheVersion)),
+        "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? ""),
+        "{{PAGE_ID}}": "tools",
+        "{{SEARCH_VALUE}}": "",
+        "{{NAV_HOME_ACTIVE}}": "",
+        "{{NAV_ARTICLES_ACTIVE}}": "",
+        "{{NAV_PROJECTS_ACTIVE}}": "",
+        "{{NAV_TOOLS_ACTIVE}}": "active",
+        "{{MAIN_TITLE}}": escapeHtml("工具中心"),
+        "{{MAIN_DESC}}": escapeHtml("小游戏 / API 工具 / 常用入口（后台实时管理）。"),
+        "{{MAIN_CONTENT}}": `
+${filter}
+<div class="cards-grid">
+  ${cards || `<div class="meta">暂无工具（请先在后台 设置 → 工具中心 新增）</div>`}
+</div>
+<div class="footer">© ${escapeHtml(year)} ${escapeHtml(cfg.title ?? "Bitlog")}</div>
+`.trim(),
+      });
       return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
     });
   });

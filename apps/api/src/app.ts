@@ -13,6 +13,19 @@ import { embedFromShortcode } from "./lib/embeds.js";
 import { getCachedResponse, putCachedResponse } from "./services/cache.js";
 import { uploadImageToR2, getR2ObjectByKey } from "./services/assets.js";
 import { getAdminPrefs, setAdminPrefs } from "./services/admin-prefs.js";
+import {
+  getProjectsConfig,
+  getProjectsConfigAdminView,
+  patchProjectsConfig
+} from "./services/projects.js";
+import {
+  createTool,
+  deleteTool,
+  listToolsAdmin,
+  listToolsPublic,
+  reorderTools,
+  updateTool
+} from "./services/tools.js";
 
 export interface ApiBindings {
   db: Db;
@@ -20,6 +33,24 @@ export interface ApiBindings {
 }
 
 type PostStatus = "draft" | "published" | "scheduled";
+type ProjectsPlatform = "github" | "gitee";
+type ToolGroup = "games" | "apis" | "utils" | "other";
+
+type ProjectItem = {
+  platform: ProjectsPlatform;
+  id: string;
+  name: string;
+  fullName: string;
+  url: string;
+  description: string | null;
+  language: string | null;
+  stars: number;
+  forks: number;
+  fork: boolean;
+  archived: boolean;
+  homepage: string | null;
+  updatedAt: number;
+};
 
 function statusCodeName(status: number): string {
   if (status === 400) return "BAD_REQUEST";
@@ -38,6 +69,128 @@ function jsonError(message: string, status = 400, code?: string) {
 
 function nowMs() {
   return Date.now();
+}
+
+function parseProjectsPlatform(value: string | null): "all" | ProjectsPlatform | null {
+  const s = String(value ?? "all").trim().toLowerCase();
+  if (!s || s === "all") return "all";
+  if (s === "github") return "github";
+  if (s === "gitee") return "gitee";
+  return null;
+}
+
+function parseToolGroup(value: string | null): ToolGroup | null {
+  const s = String(value ?? "").trim().toLowerCase();
+  if (!s) return null;
+  if (s === "games") return "games";
+  if (s === "apis") return "apis";
+  if (s === "utils") return "utils";
+  if (s === "other") return "other";
+  return null;
+}
+
+function safeDateMs(value: unknown): number {
+  const ms = typeof value === "string" || typeof value === "number" ? Date.parse(String(value)) : NaN;
+  return Number.isFinite(ms) ? ms : 0;
+}
+
+async function fetchGithubProjects(input: {
+  username: string;
+  token: string | null;
+  includeForks: boolean;
+  maxItems: number;
+}): Promise<ProjectItem[]> {
+  const perPage = Math.min(100, Math.max(1, input.maxItems));
+  const url = new URL(`https://api.github.com/users/${encodeURIComponent(input.username)}/repos`);
+  url.searchParams.set("per_page", String(perPage));
+  url.searchParams.set("sort", "updated");
+  url.searchParams.set("direction", "desc");
+  url.searchParams.set("type", "owner");
+
+  const headers = new Headers({
+    accept: "application/vnd.github+json",
+    "user-agent": "bitlog"
+  });
+  if (input.token) headers.set("authorization", `Bearer ${input.token}`);
+
+  const res = await fetch(url.toString(), { headers });
+  if (!res.ok) return [];
+  const data = (await res.json().catch(() => null)) as any;
+  if (!Array.isArray(data)) return [];
+
+  const out: ProjectItem[] = [];
+  for (const r of data) {
+    const fork = !!r?.fork;
+    if (!input.includeForks && fork) continue;
+    const fullName = String(r?.full_name ?? "").trim();
+    const name = String(r?.name ?? "").trim();
+    const htmlUrl = String(r?.html_url ?? "").trim();
+    if (!fullName || !name || !htmlUrl) continue;
+    out.push({
+      platform: "github",
+      id: `github:${fullName}`,
+      name,
+      fullName,
+      url: htmlUrl,
+      description: r?.description ? String(r.description) : null,
+      language: r?.language ? String(r.language) : null,
+      stars: Number(r?.stargazers_count ?? 0) || 0,
+      forks: Number(r?.forks_count ?? 0) || 0,
+      fork,
+      archived: !!r?.archived,
+      homepage: r?.homepage ? String(r.homepage) : null,
+      updatedAt: safeDateMs(r?.pushed_at ?? r?.updated_at)
+    });
+  }
+  out.sort((a, b) => b.updatedAt - a.updatedAt);
+  return out.slice(0, input.maxItems);
+}
+
+async function fetchGiteeProjects(input: {
+  username: string;
+  token: string | null;
+  includeForks: boolean;
+  maxItems: number;
+}): Promise<ProjectItem[]> {
+  const perPage = Math.min(100, Math.max(1, input.maxItems));
+  const url = new URL(`https://gitee.com/api/v5/users/${encodeURIComponent(input.username)}/repos`);
+  url.searchParams.set("per_page", String(perPage));
+  url.searchParams.set("sort", "updated");
+  url.searchParams.set("direction", "desc");
+  url.searchParams.set("type", "owner");
+  if (input.token) url.searchParams.set("access_token", input.token);
+
+  const res = await fetch(url.toString(), { headers: { "user-agent": "bitlog" } });
+  if (!res.ok) return [];
+  const data = (await res.json().catch(() => null)) as any;
+  if (!Array.isArray(data)) return [];
+
+  const out: ProjectItem[] = [];
+  for (const r of data) {
+    const fork = !!r?.fork;
+    if (!input.includeForks && fork) continue;
+    const fullName = String(r?.full_name ?? r?.path_with_namespace ?? "").trim();
+    const name = String(r?.name ?? r?.path ?? "").trim();
+    const htmlUrl = String(r?.html_url ?? "").trim();
+    if (!fullName || !name || !htmlUrl) continue;
+    out.push({
+      platform: "gitee",
+      id: `gitee:${fullName}`,
+      name,
+      fullName,
+      url: htmlUrl,
+      description: r?.description ? String(r.description) : null,
+      language: r?.language ? String(r.language) : null,
+      stars: Number(r?.stargazers_count ?? 0) || 0,
+      forks: Number(r?.forks_count ?? 0) || 0,
+      fork,
+      archived: !!r?.archived,
+      homepage: r?.homepage ? String(r.homepage) : null,
+      updatedAt: safeDateMs(r?.pushed_at ?? r?.updated_at)
+    });
+  }
+  out.sort((a, b) => b.updatedAt - a.updatedAt);
+  return out.slice(0, input.maxItems);
 }
 
 function getClientIp(request: Request): string {
@@ -198,6 +351,72 @@ export function createApiApp(bindings: ApiBindings) {
     );
     const response = c.json({ ok: true, tags: rows });
     await putCachedResponse(c.req.raw, response, bindings.db, `tags`);
+    return response;
+  });
+
+  app.get("/api/projects", async (c) => {
+    const url = new URL(c.req.url);
+    const platform = parseProjectsPlatform(url.searchParams.get("platform"));
+    if (!platform) return c.json(jsonError("Invalid platform", 400), 400);
+
+    const cfg = await getProjectsConfig(bindings.db);
+    const cacheKey = `projects:${platform}:${cfg.githubEnabled ? 1 : 0}:${cfg.giteeEnabled ? 1 : 0}:${cfg.githubUsername ?? ""}:${cfg.giteeUsername ?? ""}:${cfg.includeForks ? 1 : 0}:${cfg.maxItemsPerPlatform}`;
+    const maybeCached = await getCachedResponse(c.req.raw, bindings.db, cacheKey);
+    if (maybeCached) return maybeCached;
+
+    const tasks: Array<Promise<ProjectItem[]>> = [];
+    if (platform !== "gitee" && cfg.githubEnabled && cfg.githubUsername) {
+      tasks.push(
+        fetchGithubProjects({
+          username: cfg.githubUsername,
+          token: cfg.githubToken,
+          includeForks: cfg.includeForks,
+          maxItems: cfg.maxItemsPerPlatform
+        })
+      );
+    }
+    if (platform !== "github" && cfg.giteeEnabled && cfg.giteeUsername) {
+      tasks.push(
+        fetchGiteeProjects({
+          username: cfg.giteeUsername,
+          token: cfg.giteeToken,
+          includeForks: cfg.includeForks,
+          maxItems: cfg.maxItemsPerPlatform
+        })
+      );
+    }
+
+    const lists = await Promise.all(tasks);
+    const projects = lists.flat().sort((a, b) => b.updatedAt - a.updatedAt);
+
+    const response = c.json({
+      ok: true,
+      projects,
+      accounts: {
+        github: cfg.githubEnabled && cfg.githubUsername ? { username: cfg.githubUsername } : null,
+        gitee: cfg.giteeEnabled && cfg.giteeUsername ? { username: cfg.giteeUsername } : null
+      },
+      config: { includeForks: cfg.includeForks, maxItemsPerPlatform: cfg.maxItemsPerPlatform }
+    });
+    await putCachedResponse(c.req.raw, response, bindings.db, cacheKey);
+    return response;
+  });
+
+  app.get("/api/tools", async (c) => {
+    const url = new URL(c.req.url);
+    const group = parseToolGroup(url.searchParams.get("group"));
+    if (url.searchParams.has("group") && !group) return c.json(jsonError("Invalid group", 400), 400);
+
+    const maybeCached = await getCachedResponse(
+      c.req.raw,
+      bindings.db,
+      `tools:${group ?? "all"}`
+    );
+    if (maybeCached) return maybeCached;
+
+    const tools = await listToolsPublic(bindings.db, group);
+    const response = c.json({ ok: true, tools });
+    await putCachedResponse(c.req.raw, response, bindings.db, `tools:${group ?? "all"}`);
     return response;
   });
 
@@ -406,6 +625,45 @@ export function createApiApp(bindings: ApiBindings) {
 
     const response = c.json({ ok: true, q: normalizedQ, page, pageSize, results });
     await putCachedResponse(c.req.raw, response, bindings.db, cacheKey);
+    return response;
+  });
+
+  app.get("/api/embed/gitee", async (c) => {
+    const url = new URL(c.req.url);
+    const repoRaw = String(url.searchParams.get("repo") ?? "").trim();
+    if (!repoRaw) return c.json(jsonError("Missing repo", 400, "MISSING_REPO"), 400);
+
+    const match = repoRaw.match(/^([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+)$/);
+    if (!match) return c.json(jsonError("Invalid repo", 400, "INVALID_REPO"), 400);
+    const owner = match[1]!;
+    const name = match[2]!;
+    const repo = `${owner}/${name}`;
+
+    const maybeCached = await getCachedResponse(c.req.raw, bindings.db, `embed:gitee:${repo}`);
+    if (maybeCached) return maybeCached;
+
+    const upstream = `https://gitee.com/api/v5/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}`;
+    const res = await fetch(upstream, { headers: { accept: "application/json" } });
+    if (res.status === 404) return c.json(jsonError("Not found", 404, "NOT_FOUND"), 404);
+    if (!res.ok) return c.json(jsonError("Upstream failed", 502, "UPSTREAM_FAILED"), 502);
+
+    const data = (await res.json()) as any;
+    const response = c.json({
+      ok: true,
+      repo: {
+        full_name: String(data?.full_name ?? repo),
+        html_url: String(data?.html_url ?? `https://gitee.com/${repo}`),
+        description: data?.description ? String(data.description) : "",
+        language: data?.language ? String(data.language) : "",
+        stargazers_count: Number(data?.stargazers_count ?? 0),
+        forks_count: Number(data?.forks_count ?? 0),
+        owner: {
+          login: data?.owner?.login ? String(data.owner.login) : String(owner),
+          avatar_url: data?.owner?.avatar_url ? String(data.owner.avatar_url) : ""
+        }
+      }
+    });
+    await putCachedResponse(c.req.raw, response, bindings.db, `embed:gitee:${repo}`);
     return response;
   });
 
@@ -815,6 +1073,89 @@ export function createApiApp(bindings: ApiBindings) {
     if (!body) return c.json(jsonError("Invalid JSON", 400), 400);
 
     await setSettings(bindings.db, body);
+    await bumpCacheVersion(bindings.db);
+    return c.json({ ok: true });
+  });
+
+  app.get("/api/admin/projects-config", async (c) => {
+    if (!isSameOriginRequest(c.req.raw)) return c.json(jsonError("Forbidden", 403), 403);
+    const session = await requireAdmin(bindings, c.req.raw);
+    if (!session) return c.json(jsonError("Unauthorized", 401), 401);
+    const config = await getProjectsConfigAdminView(bindings.db);
+    return c.json({ ok: true, config });
+  });
+
+  app.put("/api/admin/projects-config", async (c) => {
+    if (!isSameOriginRequest(c.req.raw)) return c.json(jsonError("Forbidden", 403), 403);
+    const session = await requireAdmin(bindings, c.req.raw);
+    if (!session) return c.json(jsonError("Unauthorized", 401), 401);
+    const body = (await c.req.json().catch(() => null)) as any;
+    if (!body || typeof body !== "object") return c.json(jsonError("Invalid JSON", 400), 400);
+
+    await patchProjectsConfig(bindings.db, body);
+    await bumpCacheVersion(bindings.db);
+    return c.json({ ok: true });
+  });
+
+  app.get("/api/admin/tools", async (c) => {
+    if (!isSameOriginRequest(c.req.raw)) return c.json(jsonError("Forbidden", 403), 403);
+    const session = await requireAdmin(bindings, c.req.raw);
+    if (!session) return c.json(jsonError("Unauthorized", 401), 401);
+    const tools = await listToolsAdmin(bindings.db);
+    return c.json({ ok: true, tools });
+  });
+
+  app.post("/api/admin/tools", async (c) => {
+    if (!isSameOriginRequest(c.req.raw)) return c.json(jsonError("Forbidden", 403), 403);
+    const session = await requireAdmin(bindings, c.req.raw);
+    if (!session) return c.json(jsonError("Unauthorized", 401), 401);
+    const body = (await c.req.json().catch(() => null)) as any;
+    if (!body || typeof body !== "object") return c.json(jsonError("Invalid JSON", 400), 400);
+    try {
+      const tool = await createTool(bindings.db, body);
+      await bumpCacheVersion(bindings.db);
+      return c.json({ ok: true, tool });
+    } catch (e) {
+      return c.json(jsonError((e as Error).message || "Bad Request", 400), 400);
+    }
+  });
+
+  app.put("/api/admin/tools/reorder", async (c) => {
+    if (!isSameOriginRequest(c.req.raw)) return c.json(jsonError("Forbidden", 403), 403);
+    const session = await requireAdmin(bindings, c.req.raw);
+    if (!session) return c.json(jsonError("Unauthorized", 401), 401);
+    const body = (await c.req.json().catch(() => null)) as any;
+    const ids = Array.isArray(body?.ids) ? body.ids : null;
+    if (!ids) return c.json(jsonError("Invalid JSON", 400), 400);
+    await reorderTools(bindings.db, ids);
+    await bumpCacheVersion(bindings.db);
+    return c.json({ ok: true });
+  });
+
+  app.put("/api/admin/tools/:id", async (c) => {
+    if (!isSameOriginRequest(c.req.raw)) return c.json(jsonError("Forbidden", 403), 403);
+    const session = await requireAdmin(bindings, c.req.raw);
+    if (!session) return c.json(jsonError("Unauthorized", 401), 401);
+    const id = c.req.param("id");
+    const body = (await c.req.json().catch(() => null)) as any;
+    if (!body || typeof body !== "object") return c.json(jsonError("Invalid JSON", 400), 400);
+    try {
+      await updateTool(bindings.db, id, body);
+      await bumpCacheVersion(bindings.db);
+      return c.json({ ok: true });
+    } catch (e) {
+      const msg = (e as Error).message || "Bad Request";
+      const status = msg === "Not found" ? 404 : 400;
+      return c.json(jsonError(msg, status), status);
+    }
+  });
+
+  app.delete("/api/admin/tools/:id", async (c) => {
+    if (!isSameOriginRequest(c.req.raw)) return c.json(jsonError("Forbidden", 403), 403);
+    const session = await requireAdmin(bindings, c.req.raw);
+    if (!session) return c.json(jsonError("Unauthorized", 401), 401);
+    const id = c.req.param("id");
+    await deleteTool(bindings.db, id);
     await bumpCacheVersion(bindings.db);
     return c.json({ ok: true });
   });

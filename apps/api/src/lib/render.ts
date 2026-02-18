@@ -5,15 +5,35 @@ import remarkRehype from "remark-rehype";
 import rehypeRaw from "rehype-raw";
 import rehypeStringify from "rehype-stringify";
 import { refractor } from "refractor/lib/core.js";
+import clike from "refractor/lang/clike.js";
 import javascript from "refractor/lang/javascript.js";
 import typescript from "refractor/lang/typescript.js";
 import tsx from "refractor/lang/tsx.js";
 import jsx from "refractor/lang/jsx.js";
 import json from "refractor/lang/json.js";
+import diff from "refractor/lang/diff.js";
 import bash from "refractor/lang/bash.js";
+import powershell from "refractor/lang/powershell.js";
 import rust from "refractor/lang/rust.js";
 import sqlLang from "refractor/lang/sql.js";
 import markdownLang from "refractor/lang/markdown.js";
+import markup from "refractor/lang/markup.js";
+import css from "refractor/lang/css.js";
+import scss from "refractor/lang/scss.js";
+import yaml from "refractor/lang/yaml.js";
+import toml from "refractor/lang/toml.js";
+import docker from "refractor/lang/docker.js";
+import graphql from "refractor/lang/graphql.js";
+import python from "refractor/lang/python.js";
+import go from "refractor/lang/go.js";
+import c from "refractor/lang/c.js";
+import cpp from "refractor/lang/cpp.js";
+import csharp from "refractor/lang/csharp.js";
+import javaLang from "refractor/lang/java.js";
+import kotlin from "refractor/lang/kotlin.js";
+import swift from "refractor/lang/swift.js";
+import ruby from "refractor/lang/ruby.js";
+import php from "refractor/lang/php.js";
 import { visit } from "unist-util-visit";
 import { toText } from "hast-util-to-text";
 import type { EmbedOptions } from "./embeds.js";
@@ -36,15 +56,35 @@ type HastRoot = any;
 type Element = any;
 type HastText = any;
 
+refractor.register(clike);
 refractor.register(javascript);
 refractor.register(typescript);
 refractor.register(tsx);
 refractor.register(jsx);
 refractor.register(json);
+refractor.register(diff);
 refractor.register(bash);
+refractor.register(powershell);
 refractor.register(rust);
 refractor.register(sqlLang);
 refractor.register(markdownLang);
+refractor.register(markup);
+refractor.register(css);
+refractor.register(scss);
+refractor.register(yaml);
+refractor.register(toml);
+refractor.register(docker);
+refractor.register(graphql);
+refractor.register(python);
+refractor.register(go);
+refractor.register(c);
+refractor.register(cpp);
+refractor.register(csharp);
+refractor.register(javaLang);
+refractor.register(kotlin);
+refractor.register(swift);
+refractor.register(ruby);
+refractor.register(php);
 
 export async function renderPostContent(
   markdown: string,
@@ -62,6 +102,7 @@ export async function renderPostContent(
   processor
     .use(rehypeBitlogHeadingIds)
     .use(rehypeBitlogHighlight)
+    .use(rehypeBitlogCodeBlocks)
     .use(rehypeBitlogSanitize, { embedAllowlist: options.embedAllowlist })
     .use(rehypeStringify, { allowDangerousHtml: false });
 
@@ -143,6 +184,73 @@ function rehypeBitlogHighlight() {
       } catch {
         // Unknown language → keep original.
       }
+    });
+  };
+}
+
+function rehypeBitlogCodeBlocks() {
+  return function transformer(tree: HastRoot) {
+    visit(tree, "element", (node: Element, index: number | undefined, parent: any) => {
+      if (!parent || typeof index !== "number") return;
+      if (String(node.tagName ?? "").toLowerCase() !== "pre") return;
+      const children = Array.isArray(node.children) ? node.children : [];
+      const code = children.find(
+        (c: any) => c?.type === "element" && String(c.tagName ?? "").toLowerCase() === "code"
+      ) as Element | undefined;
+      if (!code) return;
+
+      // Avoid double-wrapping.
+      if (String(parent?.tagName ?? "").toLowerCase() === "div") {
+        const cls = normalizeClassList(parent?.properties?.className);
+        if (cls.includes("code-block")) return;
+      }
+
+      const classList = normalizeClassList(code.properties?.className);
+      const langRaw =
+        classList.find((c) => c.startsWith("language-"))?.slice("language-".length) ??
+        classList.find((c) => c.startsWith("lang-"))?.slice("lang-".length) ??
+        "";
+      const lang = String(langRaw ?? "").trim().toLowerCase();
+      const label = lang ? lang : "code";
+
+      const nextCodeClasses = Array.from(new Set([...classList, "code-content"]));
+      code.properties = { ...(code.properties ?? {}), className: nextCodeClasses };
+
+      const wrapper: Element = {
+        type: "element",
+        tagName: "div",
+        properties: { className: ["code-block"] },
+        children: [
+          {
+            type: "element",
+            tagName: "div",
+            properties: { className: ["code-block-header"] },
+            children: [
+              {
+                type: "element",
+                tagName: "span",
+                properties: { className: ["code-block-label"] },
+                children: [{ type: "text", value: label }]
+              },
+              {
+                type: "element",
+                tagName: "button",
+                properties: {
+                  type: "button",
+                  className: ["code-block-copy"],
+                  dataCopy: "1",
+                  ariaLabel: "复制代码"
+                },
+                children: [{ type: "text", value: "复制" }]
+              }
+            ]
+          },
+          node
+        ]
+      } as any;
+
+      (parent.children as any[]).splice(index, 1, wrapper);
+      return index + 1;
     });
   };
 }
@@ -286,6 +394,7 @@ function escapeHtml(input: string): string {
 
 function rehypeBitlogSanitize(options: { embedAllowlist: Set<string> }) {
   const allowedTags = new Set([
+    "div",
     "p",
     "br",
     "hr",
@@ -297,6 +406,7 @@ function rehypeBitlogSanitize(options: { embedAllowlist: Set<string> }) {
     "h6",
     "a",
     "img",
+    "button",
     "code",
     "pre",
     "blockquote",
@@ -325,6 +435,7 @@ function rehypeBitlogSanitize(options: { embedAllowlist: Set<string> }) {
   const allowedByTag: Record<string, Set<string>> = {
     a: new Set(["href", "rel", "target", "aria-label"]),
     img: new Set(["src", "alt", "width", "height", "loading", "decoding"]),
+    button: new Set(["type", "aria-label"]),
     code: new Set(["class"]),
     pre: new Set(["class"]),
     details: new Set(["open"]),

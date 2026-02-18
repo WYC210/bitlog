@@ -167,24 +167,47 @@ export function EditorPage(props: {
   function renderToolboxActions() {
     return (
       <div className="toolbox-actions">
-        <button className="toolbox-btn" onClick={() => applySnippet("blur")} title="文字模糊：||text||">
-          模糊
-        </button>
-        <button className="toolbox-btn" onClick={() => applySnippet("inlineCode")} title="行内代码：`code`">
-          行内代码
-        </button>
-        <button className="toolbox-btn" onClick={() => applySnippet("codeBlock")} title="代码块：```ts">
-          代码块
-        </button>
-        <button className="toolbox-btn" onClick={() => applySnippet("link")} title="链接：[text](url)">
-          链接
-        </button>
-        <button className="toolbox-btn" onClick={() => applySnippet("image")} title="图片：![](url)">
-          图片
-        </button>
-        <button className="toolbox-btn" onClick={() => applySnippet("embed")} title="嵌入：@[provider](value)">
-          嵌入
-        </button>
+        <div className="toolbox-group" aria-label="格式">
+          <button className="toolbox-btn" onClick={() => applySnippet("blur")} title="文字模糊：||text||">
+            <span className="toolbox-icon" aria-hidden="true">
+              模
+            </span>
+            <span className="toolbox-label">模糊</span>
+          </button>
+          <button className="toolbox-btn" onClick={() => applySnippet("inlineCode")} title="行内代码：`code`">
+            <span className="toolbox-icon" aria-hidden="true">
+              `
+            </span>
+            <span className="toolbox-label">行内代码</span>
+          </button>
+          <button className="toolbox-btn" onClick={() => applySnippet("codeBlock")} title="代码块：```ts">
+            <span className="toolbox-icon" aria-hidden="true">
+              {"{}"}
+            </span>
+            <span className="toolbox-label">代码块</span>
+          </button>
+        </div>
+
+        <div className="toolbox-group" aria-label="插入">
+          <button className="toolbox-btn" onClick={() => applySnippet("link")} title="链接：[text](url)">
+            <span className="toolbox-icon" aria-hidden="true">
+              链
+            </span>
+            <span className="toolbox-label">链接</span>
+          </button>
+          <button className="toolbox-btn" onClick={() => applySnippet("image")} title="图片：![](url)">
+            <span className="toolbox-icon" aria-hidden="true">
+              图
+            </span>
+            <span className="toolbox-label">图片</span>
+          </button>
+          <button className="toolbox-btn" onClick={() => applySnippet("embed")} title="嵌入：@[provider](value)">
+            <span className="toolbox-icon" aria-hidden="true">
+              嵌
+            </span>
+            <span className="toolbox-label">嵌入</span>
+          </button>
+        </div>
       </div>
     );
   }
@@ -216,13 +239,13 @@ export function EditorPage(props: {
   const layoutButtons = (
     <>
       <button className={`chip ${layout === "write" ? "chip-primary" : ""}`} onClick={() => void setLayoutAndPersist("write")}>
-        Write
+        写作
       </button>
       <button className={`chip ${layout === "preview" ? "chip-primary" : ""}`} onClick={() => void setLayoutAndPersist("preview")}>
-        Preview
+        预览
       </button>
       <button className={`chip ${layout === "split" ? "chip-primary" : ""}`} onClick={() => void setLayoutAndPersist("split")}>
-        Split
+        分屏
       </button>
     </>
   );
@@ -479,7 +502,7 @@ export function EditorPage(props: {
                 <input value={title} onChange={(e) => setTitle(e.target.value)} />
               </label>
               <label>
-                Summary
+                摘要
                 <input value={summary} onChange={(e) => setSummary(e.target.value)} />
               </label>
             </div>
@@ -600,6 +623,52 @@ export function EditorPage(props: {
             onClick={(e) => {
               const target = e.target as HTMLElement | null;
               if (!target) return;
+              const copyBtn = target.closest("button[data-copy]") as HTMLButtonElement | null;
+              if (copyBtn) {
+                const code = copyBtn.closest(".code-block")?.querySelector("code");
+                if (!code) return;
+                const lines = Array.from(code.querySelectorAll(".code-line"));
+                const text = lines.length
+                  ? lines.map((line) => line.querySelector(".code-text")?.textContent?.trimEnd() ?? "").join("\n")
+                  : code.textContent ?? "";
+                if (!text) return;
+
+                const setTempText = (next: string, ok: boolean) => {
+                  const prev = copyBtn.textContent ?? "复制";
+                  if (ok) copyBtn.classList.add("copied");
+                  copyBtn.textContent = next;
+                  window.setTimeout(() => {
+                    copyBtn.classList.remove("copied");
+                    copyBtn.textContent = prev;
+                  }, 1400);
+                };
+
+                (async () => {
+                  try {
+                    await navigator.clipboard.writeText(text);
+                    setTempText("已复制", true);
+                  } catch {
+                    try {
+                      const ta = document.createElement("textarea");
+                      ta.value = text;
+                      ta.setAttribute("readonly", "true");
+                      ta.style.position = "fixed";
+                      ta.style.left = "-9999px";
+                      ta.style.top = "0";
+                      document.body.appendChild(ta);
+                      ta.select();
+                      const ok = document.execCommand("copy");
+                      ta.remove();
+                      setTempText(ok ? "已复制" : "复制失败", ok);
+                    } catch {
+                      setTempText("复制失败", false);
+                    }
+                  }
+                })();
+                e.preventDefault();
+                e.stopPropagation();
+                return;
+              }
               const anchor = target.closest("a[href]") as HTMLAnchorElement | null;
               const href = anchor?.getAttribute("href") ?? "";
               if (anchor && href && !href.startsWith("#")) return;
