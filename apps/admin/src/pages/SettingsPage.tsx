@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import type { AdminToolItem, ApiError, ProjectsConfigAdminView, SiteConfig, ToolGroup, ToolKind } from "../api";
-import { DEFAULT_TOOLS } from "../tools-migration/default-tools";
+import { CodeEditor } from "../components/CodeEditor";
 import {
   apiJson,
   createAdminTool,
@@ -42,7 +42,7 @@ export function SettingsPage(props: {
   const [tools, setTools] = useState<AdminToolItem[]>([]);
   const [toolEditId, setToolEditId] = useState<string | null>(null);
   const [toolDraft, setToolDraft] = useState<Partial<AdminToolItem> | null>(null);
-  const [seedingTools, setSeedingTools] = useState(false);
+  const [formattingClientCode, setFormattingClientCode] = useState(false);
   const [newTool, setNewTool] = useState<{
     title: string;
     slug: string;
@@ -62,6 +62,58 @@ export function SettingsPage(props: {
     clientCode: "",
     enabled: true
   });
+
+  async function formatJs(code: string): Promise<string> {
+    const prettierMod = (await import("prettier/standalone")) as any;
+    const babelMod = (await import("prettier/plugins/babel")) as any;
+    const estreeMod = (await import("prettier/plugins/estree")) as any;
+
+    const prettier = prettierMod?.default ?? prettierMod;
+    const babel = babelMod?.default ?? babelMod;
+    const estree = estreeMod?.default ?? estreeMod;
+
+    const formatted = await prettier.format(String(code ?? ""), {
+      parser: "babel",
+      plugins: [babel, estree],
+      printWidth: 100,
+      tabWidth: 2,
+      semi: true,
+      singleQuote: true,
+      trailingComma: "es5"
+    });
+    return String(formatted ?? "").trimEnd();
+  }
+
+  async function formatToolDraftClientCode() {
+    if (!toolDraft) return;
+    const code = String((toolDraft as any).clientCode ?? "");
+    if (!code.trim()) return;
+    setFormattingClientCode(true);
+    try {
+      const next = await formatJs(code);
+      setToolDraft((prev) => (prev ? ({ ...prev, clientCode: next } as any) : prev));
+    } catch (e) {
+      const msg = (e as any)?.message ? String((e as any).message) : "格式化失败";
+      props.onError(msg);
+    } finally {
+      setFormattingClientCode(false);
+    }
+  }
+
+  async function formatNewToolClientCode() {
+    const code = String(newTool.clientCode ?? "");
+    if (!code.trim()) return;
+    setFormattingClientCode(true);
+    try {
+      const next = await formatJs(code);
+      setNewTool((prev) => ({ ...prev, clientCode: next }));
+    } catch (e) {
+      const msg = (e as any)?.message ? String((e as any).message) : "格式化失败";
+      props.onError(msg);
+    } finally {
+      setFormattingClientCode(false);
+    }
+  }
 
   useEffect(() => {
     if (!props.cfg) return;
@@ -184,6 +236,26 @@ export function SettingsPage(props: {
   function startEditTool(tool: AdminToolItem) {
     setToolEditId(tool.id);
     setToolDraft({ ...tool });
+
+    const code = tool.clientCode ? String(tool.clientCode) : "";
+    if (code.trim() && !code.includes("\n")) {
+      void (async () => {
+        setFormattingClientCode(true);
+        try {
+          const next = await formatJs(code);
+          setToolDraft((prev) => {
+            if (!prev) return prev;
+            if (String((prev as any).id ?? "") !== tool.id) return prev;
+            if (String((prev as any).clientCode ?? "") !== code) return prev;
+            return { ...prev, clientCode: next } as any;
+          });
+        } catch {
+          // ignore auto-format errors
+        } finally {
+          setFormattingClientCode(false);
+        }
+      })();
+    }
   }
 
   function cancelEditTool() {
@@ -249,61 +321,6 @@ export function SettingsPage(props: {
       props.onError(err.message || "新增失败");
     } finally {
       setSaving(false);
-    }
-  }
-
-  async function seedToolsMigrationDefaults() {
-    props.onError("");
-    if (!confirm(`将导入/更新 ${DEFAULT_TOOLS.length} 个工具（仅补齐缺失 client_code；已存在的 client_code 不会被覆盖）。继续？`)) {
-      return;
-    }
-
-    setSeedingTools(true);
-    try {
-      const existing = await listAdminTools();
-      const bySlug = new Map(existing.map((t) => [t.slug, t] as const));
-
-      let created = 0;
-      let updated = 0;
-
-      for (const seed of DEFAULT_TOOLS) {
-        const ex = bySlug.get(seed.slug);
-        if (ex) {
-          const exClientCode = ex.clientCode ? String(ex.clientCode) : "";
-          const nextClientCode = exClientCode.trim() ? exClientCode : seed.clientCode;
-          await updateAdminTool(ex.id, {
-            title: seed.title,
-            slug: seed.slug,
-            groupKey: seed.groupKey,
-            kind: seed.kind,
-            url: seed.url,
-            description: seed.description,
-            clientCode: nextClientCode,
-            enabled: ex.enabled
-          });
-          updated++;
-        } else {
-          await createAdminTool({
-            title: seed.title,
-            slug: seed.slug,
-            groupKey: seed.groupKey,
-            kind: seed.kind,
-            url: seed.url,
-            description: seed.description,
-            clientCode: seed.clientCode,
-            enabled: seed.enabled
-          });
-          created++;
-        }
-      }
-
-      await refreshTools();
-      alert(`导入完成：新增 ${created} 个，更新 ${updated} 个（cache_version 已递增）。`);
-    } catch (e) {
-      const err = e as ApiError;
-      props.onError(err.message || "导入失败");
-    } finally {
-      setSeedingTools(false);
     }
   }
 
@@ -567,10 +584,25 @@ export function SettingsPage(props: {
                   {(toolDraft.kind === "page") && (
                     <label>
                       客户端代码 JS（kind=page 时生效，运行在 #tool-root 内）
-                      <textarea
+                      <div className="nav" style={{ margin: "8px 0" }}>
+                        <button className="chip" type="button" onClick={() => void formatToolDraftClientCode()} disabled={formattingClientCode}>
+                          {formattingClientCode ? "格式化中..." : "格式化 JS"}
+                        </button>
+                        <button
+                          className="chip"
+                          type="button"
+                          onClick={() => {
+                            const code = String((toolDraft as any).clientCode ?? "");
+                            if (navigator.clipboard) void navigator.clipboard.writeText(code);
+                          }}
+                        >
+                          复制
+                        </button>
+                      </div>
+                      <CodeEditor
                         value={String((toolDraft as any).clientCode ?? "")}
-                        onChange={(e) => setToolDraft({ ...toolDraft, clientCode: e.target.value } as any)}
-                        style={{ minHeight: 240, fontFamily: "monospace", fontSize: 12 }}
+                        onChange={(v) => setToolDraft({ ...toolDraft, clientCode: v } as any)}
+                        onSave={() => void saveToolDraft()}
                         placeholder={"// 在 #tool-root 元素内渲染工具\nvar root = document.getElementById('tool-root');\nroot.innerHTML = '<p>Hello</p>';"}
                       />
                     </label>
@@ -632,10 +664,24 @@ export function SettingsPage(props: {
         {newTool.kind === "page" && (
           <label>
             客户端代码 JS（kind=page 时生效，运行在 #tool-root 内）
-            <textarea
+            <div className="nav" style={{ margin: "8px 0" }}>
+              <button className="chip" type="button" onClick={() => void formatNewToolClientCode()} disabled={formattingClientCode}>
+                {formattingClientCode ? "格式化中..." : "格式化 JS"}
+              </button>
+              <button
+                className="chip"
+                type="button"
+                onClick={() => {
+                  const code = String(newTool.clientCode ?? "");
+                  if (navigator.clipboard) void navigator.clipboard.writeText(code);
+                }}
+              >
+                复制
+              </button>
+            </div>
+            <CodeEditor
               value={newTool.clientCode}
-              onChange={(e) => setNewTool({ ...newTool, clientCode: e.target.value })}
-              style={{ minHeight: 240, fontFamily: "monospace", fontSize: 12 }}
+              onChange={(v) => setNewTool({ ...newTool, clientCode: v })}
               placeholder={"// 在 #tool-root 元素内渲染工具\nvar root = document.getElementById('tool-root');\nroot.innerHTML = '<p>Hello</p>';"}
             />
           </label>
@@ -643,17 +689,6 @@ export function SettingsPage(props: {
         <div className="nav">
           <button className="chip chip-primary" onClick={() => void addTool()} disabled={saving}>
             {saving ? "新增中..." : "新增"}
-          </button>
-        </div>
-
-        <div style={{ height: 14 }} />
-        <h3 style={{ margin: "0 0 8px" }}>迁移助手</h3>
-        <div className="muted" style={{ marginBottom: 10 }}>
-          一键录入迁移计划里剩余的工具（API 工具 + 实用工具）。已存在的工具不会覆盖现有 client_code。
-        </div>
-        <div className="nav">
-          <button className="chip" onClick={() => void seedToolsMigrationDefaults()} disabled={seedingTools || saving}>
-            {seedingTools ? "导入中..." : `导入默认工具（${DEFAULT_TOOLS.length}）`}
           </button>
         </div>
       </div>

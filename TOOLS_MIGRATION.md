@@ -214,7 +214,7 @@ var s=document.createElement('script');s.src='/ui/tools/snake.js';document.head.
 - `description`：简短描述
 - `groupKey`：`games` / `apis` / `utils`
 - `kind`：`page`
-- `client_code`：对应的 JS 代码（单行，从 `devtools-client-code.md` 复制）
+- `client_code`：对应的 JS 代码（可单行/多行；可从 `devtools-client-code.md` 复制）
 
 **已完成**：
 - [x] 开发者工具 6 项（base64、timestamp、jwt-decoder、number-converter、unicode-converter、url-encoder）

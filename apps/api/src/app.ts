@@ -543,7 +543,7 @@ export function createApiApp(bindings: ApiBindings) {
     if (!tool || !tool.clientCode) {
       return new Response("// no script", { status: 404, headers: { "content-type": "application/javascript; charset=utf-8" } });
     }
-    const code = tool.clientCode.replace(/\r?\n/g, " ");
+    const code = tool.clientCode;
     return new Response(code, {
       headers: {
         "content-type": "application/javascript; charset=utf-8",
