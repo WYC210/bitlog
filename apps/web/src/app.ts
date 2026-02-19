@@ -532,6 +532,7 @@ export function createWebApp() {
         "{{NAV_ARTICLES_ACTIVE}}": "",
         "{{NAV_PROJECTS_ACTIVE}}": "active",
         "{{NAV_TOOLS_ACTIVE}}": "",
+        "{{NAV_ABOUT_ACTIVE}}": "",
         "{{MAIN_TITLE}}": escapeHtml("项目"),
         "{{MAIN_DESC}}": escapeHtml("展示 GitHub / Gitee 个人项目（可筛选）。"),
         "{{MAIN_CONTENT}}": `
@@ -542,6 +543,92 @@ ${filter}
 <div class="footer">© ${escapeHtml(year)} ${escapeHtml(cfg.title ?? "Bitlog")}</div>
 `.trim(),
         "{{TOOL_SCRIPT}}": `<script>(function(){var key="bl-projects-platform";try{var url=new URL(location.href);var p=(url.searchParams.get("platform")||"").trim();if(!p){var stored=localStorage.getItem(key);if(stored&&stored!=="all"){url.searchParams.set("platform",stored);location.replace(url.pathname+"?"+url.searchParams.toString());return;}}else{localStorage.setItem(key,p);}}catch(e){}})()</script>`,
+      });
+      return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
+    });
+  });
+
+  app.get("/about", async (c) => {
+    const cfg = await getConfig(c.env);
+    return maybeCachePage(c.req.raw, cfg, "web:about", async () => {
+      const year = String(new Date().getFullYear());
+      const html = replaceAll((await loadTemplates(c.env, c.req.url)).page, {
+        "{{PAGE_TITLE}}": escapeHtml(cfg.title ? `${cfg.title} · 关于我` : "关于我"),
+        "{{CACHE_VERSION}}": escapeHtml(String(cfg.cacheVersion)),
+        "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? ""),
+        "{{PAGE_ID}}": "about",
+        "{{SEARCH_VALUE}}": "",
+        "{{NAV_HOME_ACTIVE}}": "",
+        "{{NAV_ARTICLES_ACTIVE}}": "",
+        "{{NAV_PROJECTS_ACTIVE}}": "",
+        "{{NAV_TOOLS_ACTIVE}}": "",
+        "{{NAV_ABOUT_ACTIVE}}": "active",
+        "{{MAIN_TITLE}}": escapeHtml("关于我"),
+        "{{MAIN_DESC}}": escapeHtml("实时天气 · 今日快讯 · 技术栈 · 旅行足迹 · 我的过往"),
+        "{{MAIN_CONTENT}}": `
+<div class="grid" style="gap: 14px">
+  <section class="card" style="padding: 14px">
+    <div class="nav" style="justify-content: space-between; align-items: center">
+      <div>
+        <div style="font-weight: 800; font-size: 18px">实时天气</div>
+        <div class="meta">IP 自动定位（无需授权）</div>
+      </div>
+      <button class="chip" id="aboutWeatherRefresh" type="button">刷新</button>
+    </div>
+    <div style="height: 10px"></div>
+    <div id="about-weather"></div>
+  </section>
+
+  <section class="card" style="padding: 14px">
+    <div style="font-weight: 800; font-size: 18px">今日快讯</div>
+    <div class="meta">每日新闻图片 · 程序员历史事件</div>
+    <div style="height: 10px"></div>
+    <div class="grid" style="grid-template-columns: 1fr 1.2fr; gap: 12px">
+      <div>
+        <div class="meta" style="margin-bottom: 6px">每日新闻图片</div>
+        <img id="about-news-image" alt="每日新闻图片" style="width: 100%; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08)" />
+      </div>
+      <div>
+        <div class="nav" style="justify-content: space-between; align-items: center; margin-bottom: 6px">
+          <div class="meta">程序员历史事件</div>
+          <button class="chip" id="aboutHistoryRefresh" type="button">刷新</button>
+        </div>
+        <div id="about-history"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" style="padding: 14px">
+    <div>
+      <div style="font-weight: 800; font-size: 18px">我的技术栈</div>
+      <div class="meta">可在后台编辑</div>
+    </div>
+    <div style="height: 10px"></div>
+    <div id="about-tech"></div>
+  </section>
+
+  <section class="card" style="padding: 14px">
+    <div class="nav" style="justify-content: space-between; align-items: center">
+      <div>
+        <div style="font-weight: 800; font-size: 18px">旅行足迹</div>
+        <div class="meta">3D 世界地图（浏览器运行）</div>
+      </div>
+      <button class="chip" id="aboutHeatmapReload" type="button">重载</button>
+    </div>
+    <div style="height: 10px"></div>
+    <div id="about-heatmap" style="height: 520px; border-radius: 14px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08)"></div>
+  </section>
+
+  <section class="card" style="padding: 14px">
+    <div style="font-weight: 800; font-size: 18px">我的过往</div>
+    <div class="meta">可在后台编辑</div>
+    <div style="height: 10px"></div>
+    <div id="about-timeline"></div>
+  </section>
+</div>
+<div class="footer">© ${escapeHtml(year)} ${escapeHtml(cfg.title ?? "Bitlog")}</div>
+`.trim(),
+        "{{TOOL_SCRIPT}}": `<script type="module" src="/ui/about/about.js?__cv=${escapeHtml(String(cfg.cacheVersion))}"></script>`,
       });
       return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
     });
@@ -621,6 +708,7 @@ ${filter}
         "{{NAV_ARTICLES_ACTIVE}}": "",
         "{{NAV_PROJECTS_ACTIVE}}": "",
         "{{NAV_TOOLS_ACTIVE}}": "active",
+        "{{NAV_ABOUT_ACTIVE}}": "",
         "{{MAIN_TITLE}}": escapeHtml("工具中心"),
         "{{MAIN_DESC}}": escapeHtml("小游戏 / API 工具 / 常用入口（后台实时管理）。"),
         "{{MAIN_CONTENT}}": `
@@ -655,6 +743,7 @@ ${filter}
         "{{NAV_ARTICLES_ACTIVE}}": "",
         "{{NAV_PROJECTS_ACTIVE}}": "",
         "{{NAV_TOOLS_ACTIVE}}": "active",
+        "{{NAV_ABOUT_ACTIVE}}": "",
         "{{MAIN_TITLE}}": escapeHtml("工具未找到"),
         "{{MAIN_DESC}}": escapeHtml("该工具不存在或已被禁用。"),
         "{{MAIN_CONTENT}}": `<a class="chip" href="/tools">← 返回工具中心</a><div class="footer">© ${escapeHtml(year)} ${escapeHtml(cfg.title ?? "Bitlog")}</div>`,
@@ -683,6 +772,7 @@ ${filter}
       "{{NAV_ARTICLES_ACTIVE}}": "",
       "{{NAV_PROJECTS_ACTIVE}}": "",
       "{{NAV_TOOLS_ACTIVE}}": "active",
+      "{{NAV_ABOUT_ACTIVE}}": "",
       "{{MAIN_TITLE}}": escapeHtml(tool.title),
       "{{MAIN_DESC}}": escapeHtml(tool.description || ""),
       "{{MAIN_CONTENT}}": `

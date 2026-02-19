@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { getCookie, setCookie, deleteCookie } from "hono/cookie";
 import type { Db } from "@bitlog/db";
-import { sql } from "@bitlog/db/sql";
+import { sql, join } from "@bitlog/db/sql";
 import type { R2Bucket } from "@cloudflare/workers-types";
 import { ensureDefaultAdmin, verifyPassword, hashPassword } from "./lib/password.js";
 import { randomId, randomToken, sha256Bytes, timingSafeEqual } from "./lib/crypto.js";
@@ -36,6 +36,10 @@ export interface ApiBindings {
 type PostStatus = "draft" | "published" | "scheduled";
 type ProjectsPlatform = "github" | "gitee";
 type ToolGroup = "games" | "apis" | "utils" | "other";
+
+const ABOUT_KEY_TECH_STACK = "about.tech_stack_json";
+const ABOUT_KEY_VISITED_PLACES = "about.visited_places_json";
+const ABOUT_KEY_TIMELINE = "about.timeline_json";
 
 type ProjectItem = {
   platform: ProjectsPlatform;
@@ -245,6 +249,17 @@ function isIpAddress(value: string): boolean {
   return false;
 }
 
+function isLikelyLocalOrUnknownIp(ip: string): boolean {
+  const s = String(ip ?? "").trim().toLowerCase();
+  if (!s || s === "unknown") return true;
+  if (s === "localhost") return true;
+  if (s === "127.0.0.1" || s === "::1") return true;
+  if (s.startsWith("10.")) return true;
+  if (s.startsWith("192.168.")) return true;
+  if (/^172\.(1[6-9]|2\d|3[0-1])\./.test(s)) return true;
+  return false;
+}
+
 function normalizeDomainInput(input: string): string | null {
   const trimmed = String(input ?? "").trim();
   if (!trimmed) return null;
@@ -281,6 +296,16 @@ function normalizePhoneInput(input: string): string | null {
 
   if (!/^\d{5,20}$/.test(digits)) return null;
   return digits;
+}
+
+async function getSettingsValues(db: Db, keys: string[]): Promise<Map<string, string>> {
+  const unique = Array.from(new Set(keys.map((k) => String(k ?? "").trim()).filter(Boolean)));
+  if (unique.length === 0) return new Map();
+  const placeholders = join(unique.map((k) => sql`${k}`));
+  const rows = await db.query<{ key: string; value: string }>(
+    sql`SELECT key, value FROM settings WHERE key IN (${placeholders})`
+  );
+  return new Map(rows.map((r) => [r.key, r.value]));
 }
 
 function extractFirstIpv4(value: unknown): string | null {
@@ -436,6 +461,28 @@ export function createApiApp(bindings: ApiBindings) {
     return response;
   });
 
+  app.get("/api/about-config", async (c) => {
+    const maybeCached = await getCachedResponse(c.req.raw, bindings.db, "about-config");
+    if (maybeCached) return maybeCached;
+
+    const map = await getSettingsValues(bindings.db, [
+      ABOUT_KEY_TECH_STACK,
+      ABOUT_KEY_VISITED_PLACES,
+      ABOUT_KEY_TIMELINE
+    ]);
+
+    const response = c.json({
+      ok: true,
+      config: {
+        techStackJson: map.get(ABOUT_KEY_TECH_STACK) ?? null,
+        visitedPlacesJson: map.get(ABOUT_KEY_VISITED_PLACES) ?? null,
+        timelineJson: map.get(ABOUT_KEY_TIMELINE) ?? null
+      }
+    });
+    await putCachedResponse(c.req.raw, response, bindings.db, "about-config");
+    return response;
+  });
+
   app.get("/api/categories", async (c) => {
     const maybeCached = await getCachedResponse(
       c.req.raw,
@@ -586,6 +633,226 @@ export function createApiApp(bindings: ApiBindings) {
       source: "freegeoip",
       raw: data
     });
+  });
+
+  // Public: Weather now (IP auto locate, no browser permission).
+  app.get("/api/weather-now", async (c) => {
+    const ip = getClientIp(c.req.raw);
+    const limited = await rateLimitProxy(bindings.db, ip);
+    if (!limited.ok) return c.json(jsonError("Too many requests", 429), 429);
+
+    type WeatherLocation = {
+      ip: string;
+      country: string;
+      region: string;
+      city: string;
+      latitude: number | null;
+      longitude: number | null;
+      timezone: string | null;
+      source: "cf" | "freegeoip" | "unknown";
+    };
+
+    const errors: Array<{ source: string; message: string; status?: number }> = [];
+
+    const cf = (c.req.raw as any)?.cf as any | undefined;
+    const cfLocation: WeatherLocation | null =
+      cf && typeof cf === "object"
+        ? {
+            ip,
+            country: cf?.country ? String(cf.country) : "",
+            region: cf?.region ? String(cf.region) : "",
+            city: cf?.city ? String(cf.city) : "",
+            latitude: typeof cf?.latitude === "number" ? cf.latitude : null,
+            longitude: typeof cf?.longitude === "number" ? cf.longitude : null,
+            timezone: cf?.timezone ? String(cf.timezone) : null,
+            source: "cf"
+          }
+        : null;
+
+    let locRaw: any = null;
+    let freegeoipLocation: WeatherLocation | null = null;
+
+    const needFreegeoip =
+      !cfLocation ||
+      (!cfLocation.city && !cfLocation.region && typeof cfLocation.latitude !== "number");
+
+    if (needFreegeoip) {
+      const upstreamIp = isLikelyLocalOrUnknownIp(ip)
+        ? `https://freegeoip.app/json/`
+        : `https://freegeoip.app/json/${encodeURIComponent(ip)}`;
+
+      try {
+        const locRes = await fetchWithTimeout(
+          upstreamIp,
+          { method: "GET", headers: { accept: "application/json", "user-agent": "bitlog" } },
+          10_000
+        );
+        if (!locRes.ok) {
+          errors.push({
+            source: "freegeoip",
+            status: locRes.status,
+            message: `Upstream HTTP ${locRes.status}`
+          });
+        } else {
+          locRaw = (await locRes.json().catch(() => null)) as any;
+          if (!locRaw || typeof locRaw !== "object") {
+            errors.push({ source: "freegeoip", message: "Upstream invalid JSON" });
+          } else {
+            freegeoipLocation = {
+              ip: String(locRaw.ip ?? ip),
+              country: locRaw.country_name ? String(locRaw.country_name) : "",
+              region: locRaw.region_name ? String(locRaw.region_name) : "",
+              city: locRaw.city ? String(locRaw.city) : "",
+              latitude: typeof locRaw.latitude === "number" ? locRaw.latitude : null,
+              longitude: typeof locRaw.longitude === "number" ? locRaw.longitude : null,
+              timezone: locRaw.time_zone ? String(locRaw.time_zone) : null,
+              source: "freegeoip"
+            };
+          }
+        }
+      } catch (e) {
+        errors.push({ source: "freegeoip", message: (e as any)?.message ? String((e as any).message) : "Fetch failed" });
+      }
+    }
+
+    const location: WeatherLocation =
+      cfLocation && (cfLocation.city || typeof cfLocation.latitude === "number")
+        ? cfLocation
+        : freegeoipLocation ??
+          (cfLocation ?? {
+            ip,
+            country: "",
+            region: "",
+            city: "",
+            latitude: null,
+            longitude: null,
+            timezone: null,
+            source: "unknown"
+          });
+
+    const cityCandidates = [location.city, location.region, location.country].filter(Boolean);
+    let weatherUapis: any = null;
+    let uapisCity: string | null = null;
+
+    for (const candidate of cityCandidates) {
+      const upstreamWeather = `https://uapis.cn/api/v1/misc/weather?city=${encodeURIComponent(candidate)}`;
+      try {
+        const weatherRes = await fetchWithTimeout(
+          upstreamWeather,
+          { method: "GET", headers: { accept: "application/json", "user-agent": "bitlog" } },
+          12_000
+        );
+        if (!weatherRes.ok) {
+          errors.push({ source: "uapis-weather", status: weatherRes.status, message: `Upstream HTTP ${weatherRes.status}` });
+          continue;
+        }
+        const data = (await weatherRes.json().catch(() => null)) as any;
+        if (!data || typeof data !== "object") {
+          errors.push({ source: "uapis-weather", message: "Upstream invalid JSON" });
+          continue;
+        }
+        weatherUapis = data;
+        uapisCity = candidate;
+        break;
+      } catch (e) {
+        errors.push({ source: "uapis-weather", message: (e as any)?.message ? String((e as any).message) : "Fetch failed" });
+      }
+    }
+
+    let weatherOpenMeteo: any = null;
+    if (typeof location.latitude === "number" && typeof location.longitude === "number") {
+      const upstream =
+        `https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(String(location.latitude))}` +
+        `&longitude=${encodeURIComponent(String(location.longitude))}` +
+        `&current=temperature_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m` +
+        `&timezone=auto`;
+      try {
+        const res = await fetchWithTimeout(
+          upstream,
+          { method: "GET", headers: { accept: "application/json", "user-agent": "bitlog" } },
+          12_000
+        );
+        if (!res.ok) {
+          errors.push({ source: "open-meteo", status: res.status, message: `Upstream HTTP ${res.status}` });
+        } else {
+          const data = (await res.json().catch(() => null)) as any;
+          if (data && typeof data === "object") weatherOpenMeteo = data;
+          else errors.push({ source: "open-meteo", message: "Upstream invalid JSON" });
+        }
+      } catch (e) {
+        errors.push({ source: "open-meteo", message: (e as any)?.message ? String((e as any).message) : "Fetch failed" });
+      }
+    }
+
+    return c.json({
+      ok: true,
+      ip,
+      location,
+      weather: {
+        uapis: weatherUapis,
+        uapisCity,
+        openMeteo: weatherOpenMeteo
+      },
+      errors,
+      raw: { cf: cf ?? null, ipLocation: locRaw }
+    });
+  });
+
+  // Public: Daily news image (proxy uapis.cn).
+  app.get("/api/news-image", async (c) => {
+    const maybeCached = await getCachedResponse(c.req.raw, bindings.db, "news-image");
+    if (maybeCached) return maybeCached;
+
+    const upstream = `https://uapis.cn/api/v1/daily/news-image`;
+    const res = await fetchWithTimeout(
+      upstream,
+      { method: "GET", headers: { accept: "image/*,*/*;q=0.8", "user-agent": "bitlog" } },
+      12_000
+    );
+    if (!res.ok) return c.json(jsonError("Upstream error", 502), 502);
+
+    const headers = new Headers();
+    const ct = res.headers.get("content-type") ?? "image/jpeg";
+    if (!ct.includes("image/")) {
+      const data = (await res.json().catch(() => null)) as any;
+      const msg = data?.message ? String(data.message) : "Upstream invalid content";
+      return c.json(jsonError(msg, 502), 502);
+    }
+    headers.set("content-type", ct);
+    const len = res.headers.get("content-length");
+    if (len) headers.set("content-length", len);
+    headers.set("cache-control", "public, max-age=600");
+
+    const response = new Response(res.body, { status: 200, headers });
+    await putCachedResponse(c.req.raw, response, bindings.db, "news-image");
+    return response;
+  });
+
+  // Public: Programmer history today (proxy uapis.cn).
+  app.get("/api/programmer-history", async (c) => {
+    const maybeCached = await getCachedResponse(c.req.raw, bindings.db, "programmer-history");
+    if (maybeCached) return maybeCached;
+
+    const upstream = `https://uapis.cn/api/v1/history/programmer/today`;
+    const res = await fetchWithTimeout(
+      upstream,
+      { method: "GET", headers: { accept: "application/json", "user-agent": "bitlog" } },
+      12_000
+    );
+    if (!res.ok) return c.json(jsonError("Upstream error", 502), 502);
+
+    const data = (await res.json().catch(() => null)) as any;
+    if (!data || typeof data !== "object") return c.json(jsonError("Upstream invalid JSON", 502), 502);
+
+    const response = c.json({
+      ok: true,
+      message: data.message ? String(data.message) : "",
+      date: data.date ? String(data.date) : "",
+      events: Array.isArray(data.events) ? data.events : [],
+      raw: data
+    });
+    await putCachedResponse(c.req.raw, response, bindings.db, "programmer-history");
+    return response;
   });
 
   // Public tools: DNS query (powered by uapis.cn).
@@ -1668,6 +1935,26 @@ export function createApiApp(bindings: ApiBindings) {
     deleteCookie(c, COOKIE_SESSION_ID, { path: "/" });
     deleteCookie(c, COOKIE_REFRESH_TOKEN, { path: "/" });
     return c.json({ ok: true, relogin: true });
+  });
+
+  app.get("/api/admin/settings", async (c) => {
+    if (!isSameOriginRequest(c.req.raw)) return c.json(jsonError("Forbidden", 403), 403);
+    const session = await requireAdmin(bindings, c.req.raw);
+    if (!session) return c.json(jsonError("Unauthorized", 401), 401);
+
+    const url = new URL(c.req.url);
+    const keysParam = String(url.searchParams.get("keys") ?? "").trim();
+    const keys = keysParam
+      .split(",")
+      .map((k) => k.trim())
+      .filter(Boolean)
+      .slice(0, 50);
+    if (keys.length === 0) return c.json(jsonError("Missing keys", 400), 400);
+
+    const map = await getSettingsValues(bindings.db, keys);
+    const settings: Record<string, string | null> = {};
+    for (const k of keys) settings[k] = map.get(k) ?? null;
+    return c.json({ ok: true, settings });
   });
 
   app.put("/api/admin/settings", async (c) => {

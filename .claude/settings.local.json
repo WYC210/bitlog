@@ -3,7 +3,8 @@
     "allow": [
       "Bash(ls:*)",
       "WebSearch",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(python3:*)"
     ]
   }
 }

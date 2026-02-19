@@ -237,6 +237,17 @@ export async function updateSettings(patch: Record<string, unknown>) {
   await apiJson("/api/admin/settings", { method: "PUT", body: JSON.stringify(patch) });
 }
 
+export async function getAdminSettings(keys: string[]): Promise<Record<string, string | null>> {
+  const list = Array.from(new Set((keys ?? []).map((k) => String(k ?? "").trim()).filter(Boolean))).slice(0, 50);
+  if (list.length === 0) return {};
+  const usp = new URLSearchParams();
+  usp.set("keys", list.join(","));
+  const r = await apiJson<{ ok: true; settings: Record<string, string | null> }>(
+    `/api/admin/settings?${usp.toString()}`
+  );
+  return r.settings ?? {};
+}
+
 export async function uploadAdminImage(file: File): Promise<{
   id: string;
   url: string;

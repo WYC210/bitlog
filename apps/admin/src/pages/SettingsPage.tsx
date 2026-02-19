@@ -6,6 +6,7 @@ import {
   createAdminTool,
   deleteAdminTool,
   getConfig,
+  getAdminSettings,
   getProjectsConfigAdmin,
   listAdminTools,
   reorderAdminTools,
@@ -19,6 +20,10 @@ export function SettingsPage(props: {
   onCfg: (c: SiteConfig) => void;
   onError: (m: string) => void;
 }) {
+  const ABOUT_KEY_TECH_STACK = "about.tech_stack_json";
+  const ABOUT_KEY_VISITED_PLACES = "about.visited_places_json";
+  const ABOUT_KEY_TIMELINE = "about.timeline_json";
+
   const [baseUrl, setBaseUrl] = useState(props.cfg?.baseUrl ?? "");
   const [timezone, setTimezone] = useState(props.cfg?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone);
   const [cacheTtl, setCacheTtl] = useState(String(props.cfg?.cacheTtlSeconds ?? 60));
@@ -43,6 +48,11 @@ export function SettingsPage(props: {
   const [toolEditId, setToolEditId] = useState<string | null>(null);
   const [toolDraft, setToolDraft] = useState<Partial<AdminToolItem> | null>(null);
   const [formattingClientCode, setFormattingClientCode] = useState(false);
+
+  const [aboutTechStackJson, setAboutTechStackJson] = useState("");
+  const [aboutVisitedPlacesJson, setAboutVisitedPlacesJson] = useState("");
+  const [aboutTimelineJson, setAboutTimelineJson] = useState("");
+  const [formattingAboutJson, setFormattingAboutJson] = useState(false);
   const [newTool, setNewTool] = useState<{
     title: string;
     slug: string;
@@ -82,6 +92,27 @@ export function SettingsPage(props: {
       trailingComma: "es5"
     });
     return String(formatted ?? "").trimEnd();
+  }
+
+  function formatJsonSync(value: string): string {
+    const text = String(value ?? "").trim();
+    if (!text) return "";
+    const parsed = JSON.parse(text);
+    return JSON.stringify(parsed, null, 2);
+  }
+
+  async function formatAboutJson() {
+    setFormattingAboutJson(true);
+    try {
+      setAboutTechStackJson((v) => formatJsonSync(v));
+      setAboutVisitedPlacesJson((v) => formatJsonSync(v));
+      setAboutTimelineJson((v) => formatJsonSync(v));
+    } catch (e) {
+      const msg = (e as any)?.message ? String((e as any).message) : "JSON format failed";
+      props.onError(msg);
+    } finally {
+      setFormattingAboutJson(false);
+    }
   }
 
   async function formatToolDraftClientCode() {
@@ -144,8 +175,48 @@ export function SettingsPage(props: {
       } catch {
         // ignore
       }
+      try {
+        const settings = await getAdminSettings([
+          ABOUT_KEY_TECH_STACK,
+          ABOUT_KEY_VISITED_PLACES,
+          ABOUT_KEY_TIMELINE
+        ]);
+        setAboutTechStackJson(settings[ABOUT_KEY_TECH_STACK] ?? "");
+        setAboutVisitedPlacesJson(settings[ABOUT_KEY_VISITED_PLACES] ?? "");
+        setAboutTimelineJson(settings[ABOUT_KEY_TIMELINE] ?? "");
+      } catch {
+        // ignore
+      }
     })();
   }, []);
+
+  async function saveAbout() {
+    props.onError("");
+    setSaving(true);
+    try {
+      const techText = String(aboutTechStackJson ?? "").trim();
+      const placesText = String(aboutVisitedPlacesJson ?? "").trim();
+      const timelineText = String(aboutTimelineJson ?? "").trim();
+
+      if (techText) JSON.parse(techText);
+      if (placesText) JSON.parse(placesText);
+      if (timelineText) JSON.parse(timelineText);
+
+      await updateSettings({
+        [ABOUT_KEY_TECH_STACK]: aboutTechStackJson,
+        [ABOUT_KEY_VISITED_PLACES]: aboutVisitedPlacesJson,
+        [ABOUT_KEY_TIMELINE]: aboutTimelineJson
+      });
+      const newCfg = await getConfig();
+      props.onCfg(newCfg);
+      alert("Saved (cache_version bumped)");
+    } catch (e) {
+      const err = e as ApiError;
+      props.onError(err.message || "Save failed");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   async function saveSettings() {
     props.onError("");
@@ -350,6 +421,52 @@ export function SettingsPage(props: {
 
   return (
     <div className="grid">
+      <div className="card">
+        <h2 style={{ margin: "0 0 8px" }}>/about 配置</h2>
+        <div className="muted">存储在 settings 表中（JSON，多行）。/about 页面会读取并展示。</div>
+        <div style={{ height: 10 }} />
+        <div className="nav" style={{ marginBottom: 10 }}>
+          <button className="chip" type="button" onClick={() => void formatAboutJson()} disabled={formattingAboutJson}>
+            {formattingAboutJson ? "格式化中..." : "格式化 JSON"}
+          </button>
+          <button className="chip chip-primary" type="button" onClick={() => void saveAbout()} disabled={saving}>
+            {saving ? "保存中..." : "保存 /about"}
+          </button>
+        </div>
+
+        <label>
+          {ABOUT_KEY_TECH_STACK}
+          <CodeEditor
+            value={aboutTechStackJson}
+            onChange={(v) => setAboutTechStackJson(v)}
+            onSave={() => void saveAbout()}
+            placeholder={`[\n  { \"title\": \"Frontend\", \"items\": [\"TypeScript\", \"React\"] },\n  { \"title\": \"Backend\", \"items\": [\"Hono\", \"SQLite\"] }\n]`}
+          />
+        </label>
+
+        <div style={{ height: 10 }} />
+        <label>
+          {ABOUT_KEY_VISITED_PLACES}
+          <CodeEditor
+            value={aboutVisitedPlacesJson}
+            onChange={(v) => setAboutVisitedPlacesJson(v)}
+            onSave={() => void saveAbout()}
+            placeholder={`[\n  \"中国-北京\",\n  \"中国-广东\"\n]`}
+          />
+        </label>
+
+        <div style={{ height: 10 }} />
+        <label>
+          {ABOUT_KEY_TIMELINE}
+          <CodeEditor
+            value={aboutTimelineJson}
+            onChange={(v) => setAboutTimelineJson(v)}
+            onSave={() => void saveAbout()}
+            placeholder={`[\n  { \"year\": 2023, \"title\": \"Started\", \"description\": \"...\" }\n]`}
+          />
+        </label>
+      </div>
+
       <div className="card">
         <h2 style={{ margin: "0 0 8px" }}>站点设置</h2>
         <div className="muted">提示：保存会触发缓存软失效（cache_version 递增）。</div>
