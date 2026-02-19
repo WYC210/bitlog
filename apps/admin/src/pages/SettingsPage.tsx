@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import type { AdminToolItem, ApiError, ProjectsConfigAdminView, SiteConfig, ToolGroup, ToolKind } from "../api";
+import { DEFAULT_TOOLS } from "../tools-migration/default-tools";
 import {
   apiJson,
   createAdminTool,
@@ -41,6 +42,7 @@ export function SettingsPage(props: {
   const [tools, setTools] = useState<AdminToolItem[]>([]);
   const [toolEditId, setToolEditId] = useState<string | null>(null);
   const [toolDraft, setToolDraft] = useState<Partial<AdminToolItem> | null>(null);
+  const [seedingTools, setSeedingTools] = useState(false);
   const [newTool, setNewTool] = useState<{
     title: string;
     slug: string;
@@ -48,6 +50,7 @@ export function SettingsPage(props: {
     kind: ToolKind;
     url: string;
     description: string;
+    clientCode: string;
     enabled: boolean;
   }>({
     title: "",
@@ -56,6 +59,7 @@ export function SettingsPage(props: {
     kind: "link",
     url: "",
     description: "",
+    clientCode: "",
     enabled: true
   });
 
@@ -196,6 +200,7 @@ export function SettingsPage(props: {
       kind: toolDraft.kind as ToolKind,
       url: toolDraft.url ?? null,
       description: String(toolDraft.description ?? ""),
+      clientCode: (toolDraft as any).clientCode ?? null,
       enabled: !!toolDraft.enabled,
       icon: (toolDraft as any).icon ?? null
     });
@@ -224,6 +229,7 @@ export function SettingsPage(props: {
         kind: newTool.kind,
         url: newTool.url.trim() ? newTool.url.trim() : null,
         description: newTool.description.trim(),
+        clientCode: newTool.clientCode.trim() ? newTool.clientCode.trim() : null,
         enabled: !!newTool.enabled
       });
       setNewTool({
@@ -233,6 +239,7 @@ export function SettingsPage(props: {
         kind: "link",
         url: "",
         description: "",
+        clientCode: "",
         enabled: true
       });
       await refreshTools();
@@ -242,6 +249,61 @@ export function SettingsPage(props: {
       props.onError(err.message || "新增失败");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function seedToolsMigrationDefaults() {
+    props.onError("");
+    if (!confirm(`将导入/更新 ${DEFAULT_TOOLS.length} 个工具（仅补齐缺失 client_code；已存在的 client_code 不会被覆盖）。继续？`)) {
+      return;
+    }
+
+    setSeedingTools(true);
+    try {
+      const existing = await listAdminTools();
+      const bySlug = new Map(existing.map((t) => [t.slug, t] as const));
+
+      let created = 0;
+      let updated = 0;
+
+      for (const seed of DEFAULT_TOOLS) {
+        const ex = bySlug.get(seed.slug);
+        if (ex) {
+          const exClientCode = ex.clientCode ? String(ex.clientCode) : "";
+          const nextClientCode = exClientCode.trim() ? exClientCode : seed.clientCode;
+          await updateAdminTool(ex.id, {
+            title: seed.title,
+            slug: seed.slug,
+            groupKey: seed.groupKey,
+            kind: seed.kind,
+            url: seed.url,
+            description: seed.description,
+            clientCode: nextClientCode,
+            enabled: ex.enabled
+          });
+          updated++;
+        } else {
+          await createAdminTool({
+            title: seed.title,
+            slug: seed.slug,
+            groupKey: seed.groupKey,
+            kind: seed.kind,
+            url: seed.url,
+            description: seed.description,
+            clientCode: seed.clientCode,
+            enabled: seed.enabled
+          });
+          created++;
+        }
+      }
+
+      await refreshTools();
+      alert(`导入完成：新增 ${created} 个，更新 ${updated} 个（cache_version 已递增）。`);
+    } catch (e) {
+      const err = e as ApiError;
+      props.onError(err.message || "导入失败");
+    } finally {
+      setSeedingTools(false);
     }
   }
 
@@ -499,9 +561,20 @@ export function SettingsPage(props: {
                     <textarea
                       value={String(toolDraft.description ?? "")}
                       onChange={(e) => setToolDraft({ ...toolDraft, description: e.target.value })}
-                      style={{ minHeight: 120 }}
+                      style={{ minHeight: 80 }}
                     />
                   </label>
+                  {(toolDraft.kind === "page") && (
+                    <label>
+                      客户端代码 JS（kind=page 时生效，运行在 #tool-root 内）
+                      <textarea
+                        value={String((toolDraft as any).clientCode ?? "")}
+                        onChange={(e) => setToolDraft({ ...toolDraft, clientCode: e.target.value } as any)}
+                        style={{ minHeight: 240, fontFamily: "monospace", fontSize: 12 }}
+                        placeholder={"// 在 #tool-root 元素内渲染工具\nvar root = document.getElementById('tool-root');\nroot.innerHTML = '<p>Hello</p>';"}
+                      />
+                    </label>
+                  )}
                   <div className="nav">
                     <button className="chip chip-primary" onClick={() => void saveToolDraft()}>
                       保存
@@ -554,11 +627,33 @@ export function SettingsPage(props: {
         </label>
         <label>
           description（可空）
-          <textarea value={newTool.description} onChange={(e) => setNewTool({ ...newTool, description: e.target.value })} style={{ minHeight: 120 }} />
+          <textarea value={newTool.description} onChange={(e) => setNewTool({ ...newTool, description: e.target.value })} style={{ minHeight: 80 }} />
         </label>
+        {newTool.kind === "page" && (
+          <label>
+            客户端代码 JS（kind=page 时生效，运行在 #tool-root 内）
+            <textarea
+              value={newTool.clientCode}
+              onChange={(e) => setNewTool({ ...newTool, clientCode: e.target.value })}
+              style={{ minHeight: 240, fontFamily: "monospace", fontSize: 12 }}
+              placeholder={"// 在 #tool-root 元素内渲染工具\nvar root = document.getElementById('tool-root');\nroot.innerHTML = '<p>Hello</p>';"}
+            />
+          </label>
+        )}
         <div className="nav">
           <button className="chip chip-primary" onClick={() => void addTool()} disabled={saving}>
             {saving ? "新增中..." : "新增"}
+          </button>
+        </div>
+
+        <div style={{ height: 14 }} />
+        <h3 style={{ margin: "0 0 8px" }}>迁移助手</h3>
+        <div className="muted" style={{ marginBottom: 10 }}>
+          一键录入迁移计划里剩余的工具（API 工具 + 实用工具）。已存在的工具不会覆盖现有 client_code。
+        </div>
+        <div className="nav">
+          <button className="chip" onClick={() => void seedToolsMigrationDefaults()} disabled={seedingTools || saving}>
+            {seedingTools ? "导入中..." : `导入默认工具（${DEFAULT_TOOLS.length}）`}
           </button>
         </div>
       </div>

@@ -3,6 +3,7 @@ import { sql } from "@bitlog/db/sql";
 
 const SEARCH_LIMIT_PER_MINUTE = 60;
 const ADMIN_LOGIN_LIMIT_PER_MINUTE = 20;
+const PROXY_LIMIT_PER_MINUTE = 120;
 
 async function rateLimitFixedWindow(
   db: Db,
@@ -44,4 +45,11 @@ export async function rateLimitAdminLogin(
   ip: string
 ): Promise<{ ok: true } | { ok: false; reason: string }> {
   return rateLimitFixedWindow(db, `admin_login:${ip}`, ADMIN_LOGIN_LIMIT_PER_MINUTE, 60_000);
+}
+
+export async function rateLimitProxy(
+  db: Db,
+  ip: string
+): Promise<{ ok: true } | { ok: false; reason: string }> {
+  return rateLimitFixedWindow(db, `proxy:${ip}`, PROXY_LIMIT_PER_MINUTE, 60_000);
 }

@@ -71,6 +71,7 @@ type ToolItem = {
   kind: "link" | "page";
   url: string | null;
   icon: string | null;
+  clientCode: string | null;
   enabled: boolean;
   sortOrder: number;
   createdAt: number;
@@ -248,7 +249,7 @@ function hashColor(str: string): string {
   const colors = ["blue", "purple", "green", "orange", "pink", "teal"];
   let h = 0;
   for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
-  return colors[h % colors.length];
+  return colors[h % colors.length] ?? "blue";
 }
 
 function buildTocFromHtml(contentHtml: string): { tocHtml: string; tocInlineLinks: string } {
@@ -538,27 +539,9 @@ ${filter}
 <div class="cards-grid">
   ${cards || `<div class="meta">暂无项目（请先在后台 设置 → 项目页 配置账号）</div>`}
 </div>
-<script>
-  (function () {
-    const key = "bl-projects-platform";
-    try {
-      const url = new URL(location.href);
-      const p = (url.searchParams.get("platform") || "").trim();
-      if (!p) {
-        const stored = localStorage.getItem(key);
-        if (stored && stored !== "all") {
-          url.searchParams.set("platform", stored);
-          location.replace(url.pathname + "?" + url.searchParams.toString());
-          return;
-        }
-      } else {
-        localStorage.setItem(key, p);
-      }
-    } catch {}
-  })();
-</script>
 <div class="footer">© ${escapeHtml(year)} ${escapeHtml(cfg.title ?? "Bitlog")}</div>
 `.trim(),
+        "{{TOOL_SCRIPT}}": `<script>(function(){var key="bl-projects-platform";try{var url=new URL(location.href);var p=(url.searchParams.get("platform")||"").trim();if(!p){var stored=localStorage.getItem(key);if(stored&&stored!=="all"){url.searchParams.set("platform",stored);location.replace(url.pathname+"?"+url.searchParams.toString());return;}}else{localStorage.setItem(key,p);}}catch(e){}})()</script>`,
       });
       return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
     });
@@ -599,14 +582,14 @@ ${filter}
 
       const cards = tools
         .map((t) => {
-          const href = t.url ? String(t.url) : "";
-          const isExternal = /^https?:\/\//i.test(href);
-          const attrs = href
+          const rawHref = t.kind === "page" ? `/tools/${encodeURIComponent(t.slug)}` : (t.url ? String(t.url) : "");
+          const isExternal = /^https?:\/\//i.test(rawHref);
+          const attrs = rawHref
             ? isExternal
-              ? `href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer"`
-              : `href="${escapeHtml(href)}"`
+              ? `href="${escapeHtml(rawHref)}" target="_blank" rel="noopener noreferrer"`
+              : `href="${escapeHtml(rawHref)}"`
             : "";
-          const el = href ? "a" : "div";
+          const el = rawHref ? "a" : "div";
           const groupColors: Record<string, string> = { games: "purple", apis: "blue", utils: "green", other: "gray" };
           const groupIcons: Record<string, string> = {
             games: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 12h4M8 10v4M15 12h.01M18 12h.01"/></svg>`,
@@ -647,9 +630,71 @@ ${filter}
 </div>
 <div class="footer">© ${escapeHtml(year)} ${escapeHtml(cfg.title ?? "Bitlog")}</div>
 `.trim(),
+        "{{TOOL_SCRIPT}}": "",
       });
       return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
     });
+  });
+
+  app.get("/tools/:slug", async (c) => {
+    const cfg = await getConfig(c.env);
+    const slug = c.req.param("slug");
+    let tool: ToolItem;
+    try {
+      const data = await apiJson<ApiOk<{ tool: ToolItem }>>(c.env, `/api/tools/${encodeURIComponent(slug)}`);
+      tool = data.tool;
+    } catch {
+      const year = String(new Date().getFullYear());
+      const html = replaceAll((await loadTemplates(c.env, c.req.url)).page, {
+        "{{PAGE_TITLE}}": escapeHtml(cfg.title ? `${cfg.title} · 工具未找到` : "工具未找到"),
+        "{{CACHE_VERSION}}": escapeHtml(String(cfg.cacheVersion)),
+        "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? ""),
+        "{{PAGE_ID}}": "tools",
+        "{{SEARCH_VALUE}}": "",
+        "{{NAV_HOME_ACTIVE}}": "",
+        "{{NAV_ARTICLES_ACTIVE}}": "",
+        "{{NAV_PROJECTS_ACTIVE}}": "",
+        "{{NAV_TOOLS_ACTIVE}}": "active",
+        "{{MAIN_TITLE}}": escapeHtml("工具未找到"),
+        "{{MAIN_DESC}}": escapeHtml("该工具不存在或已被禁用。"),
+        "{{MAIN_CONTENT}}": `<a class="chip" href="/tools">← 返回工具中心</a><div class="footer">© ${escapeHtml(year)} ${escapeHtml(cfg.title ?? "Bitlog")}</div>`,
+        "{{TOOL_SCRIPT}}": "",
+      });
+      return new Response(html, { status: 404, headers: { "content-type": "text/html; charset=utf-8" } });
+    }
+
+    // kind=link: 直接跳转
+    if (tool.kind === "link" && tool.url) {
+      return Response.redirect(tool.url, 302);
+    }
+
+    const year = String(new Date().getFullYear());
+    const scriptBlock = tool.clientCode
+      ? `<script src="/api/tools/${encodeURIComponent(tool.slug)}/script.js"></script>`
+      : "";
+
+    const html = replaceAll((await loadTemplates(c.env, c.req.url)).page, {
+      "{{PAGE_TITLE}}": escapeHtml(cfg.title ? `${cfg.title} · ${tool.title}` : tool.title),
+      "{{CACHE_VERSION}}": escapeHtml(String(cfg.cacheVersion)),
+      "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? ""),
+      "{{PAGE_ID}}": "tools",
+      "{{SEARCH_VALUE}}": "",
+      "{{NAV_HOME_ACTIVE}}": "",
+      "{{NAV_ARTICLES_ACTIVE}}": "",
+      "{{NAV_PROJECTS_ACTIVE}}": "",
+      "{{NAV_TOOLS_ACTIVE}}": "active",
+      "{{MAIN_TITLE}}": escapeHtml(tool.title),
+      "{{MAIN_DESC}}": escapeHtml(tool.description || ""),
+      "{{MAIN_CONTENT}}": `
+<div class="nav" style="margin-bottom:16px">
+  <a class="chip" href="/tools">← 工具中心</a>
+</div>
+<div id="tool-root"></div>
+<div class="footer">© ${escapeHtml(year)} ${escapeHtml(cfg.title ?? "Bitlog")}</div>
+`.trim(),
+      "{{TOOL_SCRIPT}}": scriptBlock,
+    });
+    return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
   });
 
   app.get("/articles/:slug", async (c) => {

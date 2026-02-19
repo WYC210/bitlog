@@ -14,6 +14,7 @@ export type ToolItem = {
   kind: ToolKind;
   url: string | null;
   icon: string | null;
+  clientCode: string | null;
   enabled: boolean;
   sortOrder: number;
   createdAt: number;
@@ -28,6 +29,7 @@ export type ToolCreateInput = {
   kind?: ToolKind;
   url?: string | null;
   icon?: string | null;
+  clientCode?: string | null;
   enabled?: boolean;
 };
 
@@ -39,6 +41,7 @@ export type ToolUpdateInput = Partial<{
   kind: ToolKind;
   url: string | null;
   icon: string | null;
+  clientCode: string | null;
   enabled: boolean;
 }>;
 
@@ -53,6 +56,7 @@ export async function listToolsAdmin(db: Db): Promise<ToolItem[]> {
           kind,
           url,
           icon,
+          client_code,
           enabled,
           sort_order,
           created_at,
@@ -74,6 +78,7 @@ export async function listToolsPublic(db: Db, groupKey?: ToolGroup | null): Prom
           kind,
           url,
           icon,
+          client_code,
           enabled,
           sort_order,
           created_at,
@@ -84,6 +89,29 @@ export async function listToolsPublic(db: Db, groupKey?: ToolGroup | null): Prom
         ORDER BY sort_order ASC, updated_at DESC`
   );
   return rows.map(mapRow);
+}
+
+export async function getToolBySlug(db: Db, slug: string): Promise<ToolItem | null> {
+  const rows = await db.query<DbToolRow>(
+    sql`SELECT
+          id,
+          slug,
+          title,
+          description,
+          group_key,
+          kind,
+          url,
+          icon,
+          client_code,
+          enabled,
+          sort_order,
+          created_at,
+          updated_at
+        FROM tools
+        WHERE slug = ${slug} AND enabled = 1
+        LIMIT 1`
+  );
+  return rows[0] ? mapRow(rows[0]) : null;
 }
 
 export async function createTool(db: Db, input: ToolCreateInput): Promise<ToolItem> {
@@ -99,6 +127,7 @@ export async function createTool(db: Db, input: ToolCreateInput): Promise<ToolIt
   const kind = normalizeKind(input.kind);
   const url = normalizeUrl(input.url ?? null);
   const icon = normalizeIcon(input.icon ?? null);
+  const clientCode = input.clientCode ? String(input.clientCode) : null;
   const enabled = input.enabled === false ? 0 : 1;
 
   const existing = await db.query<{ id: string }>(sql`SELECT id FROM tools WHERE slug = ${slug} LIMIT 1`);
@@ -109,9 +138,9 @@ export async function createTool(db: Db, input: ToolCreateInput): Promise<ToolIt
 
   await db.execute(
     sql`INSERT INTO tools
-          (id, slug, title, description, group_key, kind, url, icon, enabled, sort_order, created_at, updated_at)
+          (id, slug, title, description, group_key, kind, url, icon, client_code, enabled, sort_order, created_at, updated_at)
         VALUES
-          (${id}, ${slug}, ${title}, ${description}, ${groupKey}, ${kind}, ${url}, ${icon}, ${enabled}, ${sortOrder}, ${now}, ${now})`
+          (${id}, ${slug}, ${title}, ${description}, ${groupKey}, ${kind}, ${url}, ${icon}, ${clientCode}, ${enabled}, ${sortOrder}, ${now}, ${now})`
   );
 
   return {
@@ -123,6 +152,7 @@ export async function createTool(db: Db, input: ToolCreateInput): Promise<ToolIt
     kind,
     url,
     icon,
+    clientCode,
     enabled: enabled === 1,
     sortOrder,
     createdAt: now,
@@ -157,6 +187,7 @@ export async function updateTool(db: Db, id: string, patch: ToolUpdateInput): Pr
   if (typeof patch.kind === "string") parts.push(sql`kind = ${normalizeKind(patch.kind as ToolKind)}`);
   if ("url" in patch) parts.push(sql`url = ${normalizeUrl(patch.url ?? null)}`);
   if ("icon" in patch) parts.push(sql`icon = ${normalizeIcon(patch.icon ?? null)}`);
+  if ("clientCode" in patch) parts.push(sql`client_code = ${patch.clientCode ? String(patch.clientCode) : null}`);
   if (typeof patch.enabled === "boolean") parts.push(sql`enabled = ${patch.enabled ? 1 : 0}`);
 
   if (!parts.length) return;
@@ -191,6 +222,7 @@ type DbToolRow = {
   kind: string;
   url: string | null;
   icon: string | null;
+  client_code: string | null;
   enabled: number;
   sort_order: number;
   created_at: number;
@@ -207,6 +239,7 @@ function mapRow(row: DbToolRow): ToolItem {
     kind: normalizeKind(row.kind as ToolKind),
     url: row.url ? String(row.url) : null,
     icon: row.icon ? String(row.icon) : null,
+    clientCode: row.client_code ? String(row.client_code) : null,
     enabled: Number(row.enabled) === 1,
     sortOrder: Number(row.sort_order ?? 0),
     createdAt: Number(row.created_at ?? 0),

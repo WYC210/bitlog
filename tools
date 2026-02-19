@@ -1,0 +1,285 @@
+1. Base64编解码 (slug: base64)
+
+  var r=document.getElementById('tool-root');
+  var mode='encode',inp='',out='';
+  var s=document.createElement('style');
+  s.textContent='#b64{max-width:800px;margin:0
+  auto;padding:12px;font-family:system-ui,sans-serif}#b64 *{box-sizing:border-box}.b
+  64-bar{display:flex;justify-content:space-between;background:#1e293b;padding:3px  
+  6px;border-radius:6px 6px 0 0;margin-bottom:0}.b64-tab{padding:4px
+  12px;border:none;border-radius:4px;cursor:pointer;font-size:.8rem;background:trans
+  parent;color:#94a3b8}.b64-tab.on{background:#3b82f6;color:#fff}.b64-areas{display:
+  grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}.b64-areas
+  textarea{width:100%;height:200px;padding:8px;font-family:monospace;font-size:.8rem
+  ;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:4px;resiz
+  e:vertical}@media(max-width:600px){.b64-areas{grid-template-columns:1fr}}';       
+  document.head.appendChild(s);
+  function convert(t){if(!t.trim())return'';try{return mode==='encode'?btoa(unescape
+  (encodeURIComponent(t))):decodeURIComponent(escape(atob(t)));}catch(e){return     
+  mode==='encode'?'编码失败':'解码失败：无效的Base64字符串';}}
+  function render(){r.innerHTML='<div id="b64"><div class="b64-bar"><div><button    
+  class="b64-tab'+(mode==='encode'?' on':'')+'" id="b64e">编码</button><button      
+  class="b64-tab'+(mode==='decode'?' on':'')+'" id="b64d">解码</button></div><button
+   class="b64-tab" id="b64c">× 清空</button></div><div class="b64-areas"><textarea  
+  id="b64i" placeholder="'+(mode==='encode'?'输入需要编码的文本...':'输入需要解码的B
+  ase64字符串...')+'" spellcheck="false">'+inp+'</textarea><textarea id="b64o"      
+  placeholder="'+(mode==='encode'?'Base64编码结果...':'解码后的文本...')+'" readonly
+   spellcheck="false">'+out+'</textarea></div></div>';
+  document.getElementById('b64e').onclick=function(){mode='encode';out=convert(inp);
+  render();};
+  document.getElementById('b64d').onclick=function(){mode='decode';out=convert(inp);
+  render();};
+  document.getElementById('b64c').onclick=function(){inp='';out='';render();};      
+  document.getElementById('b64i').oninput=function(){inp=this.value;out=convert(inp)
+  ;document.getElementById('b64o').value=out;};}
+  render();
+
+  ---
+  2. 时间戳转换 (slug: timestamp)
+
+  var r=document.getElementById('tool-root');
+  var ts='',dt='';
+  var s=document.createElement('style');
+  s.textContent='#tsc{max-width:600px;margin:0
+  auto;padding:12px;font-family:system-ui,sans-serif;color:#e2e8f0}#tsc
+  *{box-sizing:border-box}.tsc-bar{display:flex;justify-content:space-between;backgr
+  ound:#1e293b;padding:4px
+  8px;border-radius:6px;margin-bottom:12px}.tsc-btn{padding:4px
+  10px;border:none;border-radius:4px;cursor:pointer;font-size:.8rem;background:#3341
+  55;color:#94a3b8}.tsc-btn:hover{background:#475569;color:#e2e8f0}.tsc-row{display:
+  flex;align-items:center;gap:8px;margin-bottom:8px}.tsc-label{min-width:80px;font-s
+  ize:.8rem;color:#94a3b8}.tsc-input{flex:1;padding:6px 8px;font-family:monospace;fo
+  nt-size:.8rem;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-rad
+  ius:4px}.tsc-input.ro{background:#1e293b;color:#64748b;cursor:default}';
+  document.head.appendChild(s);
+  function pad(n){return String(n).padStart(2,'0');}
+  function fmtDate(ms){var d=new Date(ms);return
+  d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'
+  '+pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds());}
+  function fmtUTC(ms){var d=new Date(ms);return
+  d.getUTCFullYear()+'-'+pad(d.getUTCMonth()+1)+'-'+pad(d.getUTCDate())+'
+  '+pad(d.getUTCHours())+':'+pad(d.getUTCMinutes())+':'+pad(d.getUTCSeconds())+'    
+  UTC';}
+  function relTime(ms){var diff=Date.now()-ms;var abs=Math.abs(diff);var
+  future=diff<0;var
+  s=Math.floor(abs/1000);if(s<60)return(future?'':'')+s+'秒'+(future?'后':'前');var 
+  m=Math.floor(s/60);if(m<60)return m+'分钟'+(future?'后':'前');var
+  h=Math.floor(m/60);if(h<24)return h+'小时'+(future?'后':'前');return
+  Math.floor(h/24)+'天'+(future?'后':'前');}
+  function tsToMs(v){var n=parseInt(v);return v.length<=10?n*1000:n;}
+  function render(){var ms=ts?tsToMs(ts):null;var utc=ms?fmtUTC(ms):'-';var
+  local=ms?fmtDate(ms):'-';var rel=ms?relTime(ms):'-';
+  r.innerHTML='<div id="tsc"><div class="tsc-bar"><button class="tsc-btn"
+  id="tsc-now">当前时间</button><button class="tsc-btn" id="tsc-clr">×
+  清空</button></div><div class="tsc-row"><span
+  class="tsc-label">时间戳</span><input class="tsc-input" id="tsc-ts" value="'+ts+'"
+   placeholder="输入时间戳 (秒或毫秒)..."></div><div class="tsc-row"><span
+  class="tsc-label">日期时间</span><input class="tsc-input" id="tsc-dt"
+  value="'+dt+'" placeholder="2025-01-15 14:30:00"></div><div class="tsc-row"><span 
+  class="tsc-label">UTC时间</span><input class="tsc-input ro" value="'+utc+'"       
+  readonly></div><div class="tsc-row"><span class="tsc-label">本地时间</span><input 
+  class="tsc-input ro" value="'+local+'" readonly></div><div class="tsc-row"><span  
+  class="tsc-label">相对时间</span><input class="tsc-input ro" value="'+rel+'"      
+  readonly></div></div>';
+  document.getElementById('tsc-now').onclick=function(){ts=String(Math.floor(Date.no
+  w()/1000));dt=fmtDate(Date.now());render();};
+  document.getElementById('tsc-clr').onclick=function(){ts='';dt='';render();};     
+  document.getElementById('tsc-ts').oninput=function(){ts=this.value;var
+  n=parseInt(ts);if(!isNaN(n)){var ms2=tsToMs(ts);dt=fmtDate(ms2);}render();};      
+  document.getElementById('tsc-dt').oninput=function(){dt=this.value;var d=new Date(
+  dt);if(!isNaN(d.getTime())){ts=String(Math.floor(d.getTime()/1000));}render();};} 
+  render();
+
+  ---
+  3. JWT解析 (slug: jwt-decoder)
+
+  var r=document.getElementById('tool-root');
+  var tok='',result=null,err='';
+  var s=document.createElement('style');
+  s.textContent='#jwt{max-width:800px;margin:0
+  auto;padding:12px;font-family:system-ui,sans-serif}#jwt *{box-sizing:border-box}.j
+  wt-bar{display:flex;justify-content:space-between;background:#1e293b;padding:3px  
+  6px;border-radius:6px;margin-bottom:8px}.jwt-btn{padding:4px
+  10px;border:none;border-radius:4px;cursor:pointer;font-size:.8rem;background:#3341
+  55;color:#94a3b8}.jwt-btn:hover{background:#475569;color:#e2e8f0}.jwt-areas{displa
+  y:grid;grid-template-columns:1fr 1fr;gap:8px}.jwt-areas
+  textarea{width:100%;height:180px;padding:8px;font-family:monospace;font-size:.75re
+  m;background:#0f172a;color:#e2e8f0;border:1px solid
+  #334155;border-radius:4px;resize:vertical}.jwt-err{padding:10px;background:#450a0a
+  ;color:#fca5a5;border-radius:4px;font-size:.8rem;margin-top:8px}.jwt-pre{padding:8
+  px;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:4px;fon
+  t-family:monospace;font-size:.75rem;white-space:pre-wrap;word-break:break-all;min-
+  height:180px}@media(max-width:600px){.jwt-areas{grid-template-columns:1fr}}';     
+  document.head.appendChild(s);
+  var SAMPLE='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpbmZvIjp7InV1aWQiOiI1NDEzMjA4O
+  DIyMTYyODc3OTgiLCJzZXNzaW9uX2lkIjoiZjA1NGIxMjQtZTZmNy00NGM1LTk2NmUtMzdiNWVhMDc4Y2M
+  3IiwidGVhbV9pZCI6OX0sImV4cCI6MTc1MDgxNjExNX0.-EkJqr10jm_YmkMc0pmjuIq-hV51dthXOaJ0C
+  lpUWsQ';
+  function decode(t){err='';result=null;if(!t.trim()){return;}var
+  p=t.trim().split('.');if(p.length!==3){err='无效的JWT格式，应包含3个部分（header.p
+  ayload.signature）';return;}try{var
+  h=JSON.parse(atob(p[0].replace(/-/g,'+').replace(/_/g,'/')));var
+  pl=JSON.parse(atob(p[1].replace(/-/g,'+').replace(/_/g,'/')));result={header:h,pay
+  load:pl,signature:p[2]};}catch(e){err='JWT解析失败：'+e.message;}}
+  var timer=null;
+  function render(){var outHtml=err?'<div class="jwt-err">⚠
+  '+err+'</div>':result?'<pre
+  class="jwt-pre">'+JSON.stringify(result,null,2)+'</pre>':'<div class="jwt-pre"    
+  style="color:#475569;display:flex;align-items:center;justify-content:center;font-s
+  ize:2rem">🔍</div>';
+  r.innerHTML='<div id="jwt"><div class="jwt-bar"><button class="jwt-btn"
+  id="jwt-sample">示例</button><button class="jwt-btn" id="jwt-clr">×
+  清空</button></div><div class="jwt-areas"><textarea id="jwt-in"
+  placeholder="粘贴JWT Token..."
+  spellcheck="false">'+tok+'</textarea><div>'+outHtml+'</div></div></div>';
+  document.getElementById('jwt-sample').onclick=function(){tok=SAMPLE;decode(tok);re
+  nder();};
+  document.getElementById('jwt-clr').onclick=function(){tok='';result=null;err='';re
+  nder();};
+  document.getElementById('jwt-in').oninput=function(){tok=this.value;clearTimeout(t
+  imer);if(tok.split('.').length===3)timer=setTimeout(function(){decode(tok);render(
+  );},500);else{result=null;err='';}};}
+  render();
+
+  ---
+  4. 进制转换 (slug: number-converter)
+
+  var r=document.getElementById('tool-root');
+  var base='10',val='';
+  var s=document.createElement('style');
+  s.textContent='#nc{max-width:800px;margin:0
+  auto;padding:12px;font-family:system-ui,sans-serif}#nc *{box-sizing:border-box}.nc
+  -bar{display:flex;justify-content:space-between;background:#1e293b;padding:3px    
+  6px;border-radius:6px;margin-bottom:8px}.nc-tab{padding:4px
+  10px;border:none;border-radius:4px;cursor:pointer;font-size:.8rem;background:trans
+  parent;color:#94a3b8}.nc-tab.on{background:#3b82f6;color:#fff}.nc-areas{display:gr
+  id;grid-template-columns:1fr
+  1fr;gap:8px}.nc-in{width:100%;height:120px;padding:8px;font-family:monospace;font-
+  size:.8rem;background:#0f172a;color:#e2e8f0;border:1px solid
+  #334155;border-radius:4px;resize:vertical}.nc-out{background:#0f172a;border:1px   
+  solid #334155;border-radius:4px;padding:10px}.nc-row{display:flex;align-items:cent
+  er;padding:6px 0;border-bottom:1px solid
+  #1e293b}.nc-row:last-child{border-bottom:none}.nc-lbl{min-width:70px;font-size:.75
+  rem;color:#64748b}.nc-val{font-family:monospace;font-size:.8rem;color:#e2e8f0;word
+  -break:break-all}@media(max-width:600px){.nc-areas{grid-template-columns:1fr}}';  
+  document.head.appendChild(s);
+  var SAMPLES={'2':'1010110','8':'777','10':'255','16':'FF'};
+  var PH={'2':'输入二进制 (例如: 1010)','8':'输入八进制 (例如:
+  755)','10':'输入十进制 (例如: 123)','16':'输入十六进制 (例如: FF)'};
+  function
+  parse(v){v=v.trim();if(v.startsWith('0x')||v.startsWith('0X'))v=v.slice(2);else   
+  if(v.startsWith('0b')||v.startsWith('0B'))v=v.slice(2);else
+  if(v.startsWith('0o')||v.startsWith('0O'))v=v.slice(2);return
+  parseInt(v,parseInt(base));}
+  function render(){var dec=val.trim()?parse(val):NaN;var
+  bin=isNaN(dec)?'-':dec.toString(2);var oct=isNaN(dec)?'-':dec.toString(8);var     
+  d10=isNaN(dec)?'-':dec.toString(10);var
+  hex=isNaN(dec)?'-':dec.toString(16).toUpperCase();
+  r.innerHTML='<div id="nc"><div
+  class="nc-bar"><div>'+['2','8','10','16'].map(function(b){return'<button
+  class="nc-tab'+(base===b?' on':'')+'" data-b="'+b+'">'+{'2':'二进制','8':'八进制',
+  '10':'十进制','16':'十六进制'}[b]+'</button>';}).join('')+'<button class="nc-tab" 
+  id="nc-sample">示例</button></div><button class="nc-tab" id="nc-clr">×
+  清空</button></div><div class="nc-areas"><textarea class="nc-in" id="nc-in"       
+  placeholder="'+PH[base]+'" spellcheck="false">'+val+'</textarea><div
+  class="nc-out"><div class="nc-row"><span class="nc-lbl">二进制：</span><span      
+  class="nc-val">'+bin+'</span></div><div class="nc-row"><span
+  class="nc-lbl">八进制：</span><span class="nc-val">'+oct+'</span></div><div       
+  class="nc-row"><span class="nc-lbl">十进制：</span><span
+  class="nc-val">'+d10+'</span></div><div class="nc-row"><span
+  class="nc-lbl">十六进制：</span><span
+  class="nc-val">'+hex+'</span></div></div></div></div>';
+  document.querySelectorAll('.nc-tab[data-b]').forEach(function(btn){btn.onclick=fun
+  ction(){base=this.dataset.b;render();};});
+  document.getElementById('nc-sample').onclick=function(){val=SAMPLES[base];render()
+  ;};
+  document.getElementById('nc-clr').onclick=function(){val='';render();};
+  document.getElementById('nc-in').oninput=function(){val=this.value;var
+  dec2=val.trim()?parse(val):NaN;var bin2=isNaN(dec2)?'-':dec2.toString(2);var      
+  oct2=isNaN(dec2)?'-':dec2.toString(8);var
+  d102=isNaN(dec2)?'-':dec2.toString(10);var hex2=isNaN(dec2)?'-':dec2.toString(16).
+  toUpperCase();document.querySelector('.nc-out').innerHTML='<div
+  class="nc-row"><span class="nc-lbl">二进制：</span><span
+  class="nc-val">'+bin2+'</span></div><div class="nc-row"><span
+  class="nc-lbl">八进制：</span><span class="nc-val">'+oct2+'</span></div><div      
+  class="nc-row"><span class="nc-lbl">十进制：</span><span
+  class="nc-val">'+d102+'</span></div><div class="nc-row"><span
+  class="nc-lbl">十六进制：</span><span class="nc-val">'+hex2+'</span></div>';};}   
+  render();
+
+  ---
+  5. Unicode转换 (slug: unicode-converter)
+
+  var r=document.getElementById('tool-root');
+  var mode='encode',inp='',out='';
+  var s=document.createElement('style');
+  s.textContent='#uc{max-width:800px;margin:0
+  auto;padding:12px;font-family:system-ui,sans-serif}#uc *{box-sizing:border-box}.uc
+  -bar{display:flex;justify-content:space-between;background:#1e293b;padding:3px    
+  6px;border-radius:6px;margin-bottom:8px}.uc-tab{padding:4px
+  10px;border:none;border-radius:4px;cursor:pointer;font-size:.8rem;background:trans
+  parent;color:#94a3b8}.uc-tab.on{background:#3b82f6;color:#fff}.uc-areas{display:gr
+  id;grid-template-columns:1fr 1fr;gap:8px}.uc-areas
+  textarea{width:100%;height:200px;padding:8px;font-family:monospace;font-size:.8rem
+  ;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:4px;resiz
+  e:vertical}@media(max-width:600px){.uc-areas{grid-template-columns:1fr}}';        
+  document.head.appendChild(s);
+  function convert(t){if(!t.trim())return'';if(mode==='encode'){return
+  t.split('').map(function(c){var code=c.charCodeAt(0);return
+  code>127?'\\u'+code.toString(16).padStart(4,'0'):c;}).join('');}else{try{return   
+  t.replace(/\\u([0-9a-fA-F]{4})/g,function(_,h){return String.fromCharCode(parseInt
+  (h,16));});}catch(e){return'解码失败：无效的Unicode字符串';}}}
+  function render(){r.innerHTML='<div id="uc"><div class="uc-bar"><div><button      
+  class="uc-tab'+(mode==='encode'?' on':'')+'" id="uc-e">编码</button><button       
+  class="uc-tab'+(mode==='decode'?' on':'')+'" id="uc-d">解码</button></div><button 
+  class="uc-tab" id="uc-c">× 清空</button></div><div class="uc-areas"><textarea     
+  id="uc-i" placeholder="输入需要编码/解码的Unicode文本..."
+  spellcheck="false">'+inp+'</textarea><textarea id="uc-o"
+  placeholder="转换结果将显示在这里..." readonly
+  spellcheck="false">'+out+'</textarea></div></div>';
+  document.getElementById('uc-e').onclick=function(){mode='encode';out=convert(inp);
+  render();};
+  document.getElementById('uc-d').onclick=function(){mode='decode';out=convert(inp);
+  render();};
+  document.getElementById('uc-c').onclick=function(){inp='';out='';render();};      
+  document.getElementById('uc-i').oninput=function(){inp=this.value;out=convert(inp)
+  ;document.getElementById('uc-o').value=out;};}
+  render();
+
+  ---
+  6. URL编解码 (slug: url-encoder)
+
+  var r=document.getElementById('tool-root');
+  var mode='encode',inp='',out='';
+  var s=document.createElement('style');
+  s.textContent='#ue{max-width:800px;margin:0
+  auto;padding:12px;font-family:system-ui,sans-serif}#ue *{box-sizing:border-box}.ue
+  -bar{display:flex;justify-content:space-between;background:#1e293b;padding:3px    
+  6px;border-radius:6px;margin-bottom:8px}.ue-tab{padding:4px
+  10px;border:none;border-radius:4px;cursor:pointer;font-size:.8rem;background:trans
+  parent;color:#94a3b8}.ue-tab.on{background:#3b82f6;color:#fff}.ue-areas{display:gr
+  id;grid-template-columns:1fr 1fr;gap:8px}.ue-areas
+  textarea{width:100%;height:200px;padding:8px;font-family:monospace;font-size:.8rem
+  ;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:4px;resiz
+  e:vertical}@media(max-width:600px){.ue-areas{grid-template-columns:1fr}}';        
+  document.head.appendChild(s);
+  function convert(t){if(!t.trim())return'';try{return
+  mode==='encode'?encodeURIComponent(t):decodeURIComponent(t);}catch(e){return      
+  mode==='encode'?'编码失败':'解码失败：无效的编码字符串';}}
+  function render(){r.innerHTML='<div id="ue"><div class="ue-bar"><div><button      
+  class="ue-tab'+(mode==='encode'?' on':'')+'" id="ue-e">编码</button><button       
+  class="ue-tab'+(mode==='decode'?' on':'')+'" id="ue-d">解码</button></div><button 
+  class="ue-tab" id="ue-c">× 清空</button></div><div class="ue-areas"><textarea     
+  id="ue-i" placeholder="输入需要编码/解码的URL文本..."
+  spellcheck="false">'+inp+'</textarea><textarea id="ue-o"
+  placeholder="转换结果将显示在这里..." readonly
+  spellcheck="false">'+out+'</textarea></div></div>';
+  document.getElementById('ue-e').onclick=function(){mode='encode';out=convert(inp);
+  render();};
+  document.getElementById('ue-d').onclick=function(){mode='decode';out=convert(inp);
+  render();};
+  document.getElementById('ue-c').onclick=function(){inp='';out='';render();};      
+  document.getElementById('ue-i').oninput=function(){inp=this.value;out=convert(inp)  ;document.getElementById('ue-o').value=out;};}
+  render();
+
+  ---s

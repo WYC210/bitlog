@@ -527,7 +527,8 @@ select option {
 
 .cm-host .cm-cursor {
   border-left-width: 2px !important;
-  border-left-color: rgba(255, 255, 255, 0.85) !important;
+  border-left-color: #fff !important;
+  box-shadow: 0 0 6px 1px rgba(255, 255, 255, 0.6) !important;
 }
 
 .cm-host .cm-dropCursor {
@@ -542,6 +543,7 @@ select option {
 .cm-host .cm-editor.cm-focused .cm-cursor {
   border-left-width: 2px !important;
   border-left-color: var(--accent) !important;
+  box-shadow: 0 0 8px 2px rgba(75, 107, 255, 0.7) !important;
 }
 
 .cm-host .cm-editor.cm-focused {

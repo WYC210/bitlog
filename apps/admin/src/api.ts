@@ -63,6 +63,7 @@ export type AdminToolItem = {
   kind: ToolKind;
   url: string | null;
   icon: string | null;
+  clientCode: string | null;
   enabled: boolean;
   sortOrder: number;
   createdAt: number;
@@ -82,6 +83,7 @@ export async function createAdminTool(payload: {
   kind?: ToolKind;
   url?: string | null;
   icon?: string | null;
+  clientCode?: string | null;
   enabled?: boolean;
 }): Promise<AdminToolItem> {
   const r = await apiJson<{ ok: true; tool: AdminToolItem }>("/api/admin/tools", {
