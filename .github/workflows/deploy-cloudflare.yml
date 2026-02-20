@@ -1,0 +1,108 @@
+name: Deploy to Cloudflare Workers
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-cloudflare-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Setup pnpm (corepack)
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install -r --frozen-lockfile
+
+      - name: Validate Cloudflare secrets
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_D1_DATABASE_ID: ${{ secrets.CLOUDFLARE_D1_DATABASE_ID }}
+          CLOUDFLARE_ZONE_NAME: ${{ secrets.CLOUDFLARE_ZONE_NAME }}
+          CLOUDFLARE_ROUTE_HOSTNAME: ${{ secrets.CLOUDFLARE_ROUTE_HOSTNAME }}
+        run: |
+          set -euo pipefail
+          test -n "${CLOUDFLARE_ACCOUNT_ID}" || (echo "Missing secret: CLOUDFLARE_ACCOUNT_ID" && exit 1)
+          test -n "${CLOUDFLARE_API_TOKEN}" || (echo "Missing secret: CLOUDFLARE_API_TOKEN" && exit 1)
+          test -n "${CLOUDFLARE_D1_DATABASE_ID}" || (echo "Missing secret: CLOUDFLARE_D1_DATABASE_ID" && exit 1)
+          test -n "${CLOUDFLARE_ZONE_NAME}" || (echo "Missing secret: CLOUDFLARE_ZONE_NAME" && exit 1)
+          test -n "${CLOUDFLARE_ROUTE_HOSTNAME}" || (echo "Missing secret: CLOUDFLARE_ROUTE_HOSTNAME" && exit 1)
+
+      - name: Patch routes/zone_name (apps/api + apps/web)
+        env:
+          ROUTE_HOSTNAME: ${{ secrets.CLOUDFLARE_ROUTE_HOSTNAME }}
+          ZONE_NAME: ${{ secrets.CLOUDFLARE_ZONE_NAME }}
+        run: |
+          node -e "const fs=require('fs');const host=String(process.env.ROUTE_HOSTNAME||'').trim();const zone=String(process.env.ZONE_NAME||'').trim();if(!host) throw new Error('Missing ROUTE_HOSTNAME');if(!zone) throw new Error('Missing ZONE_NAME');function patch(p){let s=fs.readFileSync(p,'utf8');let changed=false;const next=s.replace(/zone_name\\s*=\\s*\"[^\"]*\"/g,()=>{changed=true;return 'zone_name = \"'+zone+'\"';}).replace(/pattern\\s*=\\s*\"([^\"]+)\"/g,(m,pat)=>{const i=pat.indexOf('/');const out=(i===-1)?host:(host+pat.slice(i));if(out!==pat) changed=true;return 'pattern = \"'+out+'\"';});if(!changed) throw new Error('No changes made while patching routes in '+p);fs.writeFileSync(p,next);}patch('apps/api/wrangler.toml');patch('apps/web/wrangler.toml');"
+
+      - name: Patch D1 database_id
+        env:
+          D1_ID: ${{ secrets.CLOUDFLARE_D1_DATABASE_ID }}
+        run: |
+          node -e "const fs=require('fs');const p='apps/api/wrangler.toml';let s=fs.readFileSync(p,'utf8');const next=s.replace(/database_id\\s*=\\s*\"[^\"]*\"/g,(m)=>m.replace(/\"[^\"]*\"/, '\"'+process.env.D1_ID+'\"'));if(next===s){throw new Error('Failed to patch database_id in '+p);}fs.writeFileSync(p,next);"
+
+      - name: Apply D1 migrations
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: pnpm exec wrangler d1 migrations apply bitlog --cwd apps/api -c wrangler.toml
+
+      - name: Deploy API Worker
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: pnpm run deploy:api
+
+      - name: Deploy API Worker secrets (optional)
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          WORKER_SECRETS: ${{ secrets.CLOUDFLARE_API_WORKER_SECRETS }}
+        run: |
+          set -euo pipefail
+          if [ -z "${WORKER_SECRETS:-}" ]; then
+            echo "No secrets provided in CLOUDFLARE_API_WORKER_SECRETS, skipping."
+            exit 0
+          fi
+          tmp="$(mktemp)"
+          printf '%s' "$WORKER_SECRETS" > "$tmp"
+          pnpm exec wrangler secret bulk "$tmp" --cwd apps/api -c wrangler.toml
+
+      - name: Deploy Web Worker (includes Admin build)
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: pnpm run deploy:web
+
+      - name: Deploy Web Worker secrets (optional)
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          WORKER_SECRETS: ${{ secrets.CLOUDFLARE_WEB_WORKER_SECRETS }}
+        run: |
+          set -euo pipefail
+          if [ -z "${WORKER_SECRETS:-}" ]; then
+            echo "No secrets provided in CLOUDFLARE_WEB_WORKER_SECRETS, skipping."
+            exit 0
+          fi
+          tmp="$(mktemp)"
+          printf '%s' "$WORKER_SECRETS" > "$tmp"
+          pnpm exec wrangler secret bulk "$tmp" --cwd apps/web -c wrangler.toml

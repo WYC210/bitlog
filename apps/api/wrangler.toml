@@ -12,7 +12,7 @@ compatibility_date = "2026-02-15"
 
 # API worker owns D1/R2.
 d1_databases = [
-  { binding = "DB", database_name = "bitlog", database_id = "f3270ce2-50c8-49d9-a8e7-34924eedc8b8", migrations_dir = "migrations" }
+  { binding = "DB", database_name = "bitlog", database_id = "your_database_id", migrations_dir = "migrations" }
 ]
 
 # Optional R2 bucket. Uncomment to enable uploads.
