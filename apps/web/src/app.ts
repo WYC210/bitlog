@@ -313,18 +313,62 @@ function hashColor(str: string): string {
 }
 
 function buildTocFromHtml(contentHtml: string): { tocHtml: string; tocInlineLinks: string } {
-  const headings = extractHeadings(contentHtml);
+  const isFootnotesHeading = (h: { id: string; text: string }) => {
+    const id = String(h.id ?? "").trim().toLowerCase();
+    const text = String(h.text ?? "").trim().toLowerCase();
+    return id === "footnotes" || text === "footnotes" || text === "脚注";
+  };
+
+  const normalizeTocText = (text: string) => {
+    const s = String(text ?? "").replace(/\s+/g, " ").trim();
+    const stripped = s
+      .replace(/^\d+\)\s+/, "")
+      .replace(/^\d+(?:\.\d+)+\s+/, "")
+      .replace(/^\d+\.\s+/, "");
+    return stripped || s;
+  };
+
+  const headings = extractHeadings(contentHtml).filter((h) => !isFootnotesHeading(h));
   if (headings.length === 0) return { tocHtml: "", tocInlineLinks: "" };
 
-  const tocHtml = headings
-    .map((h) => {
-      const level = h.level === 3 ? "3" : "2";
-      return `<a data-level="${level}" href="#${escapeHtml(h.id)}">${escapeHtml(h.text)}</a>`;
+  const groups: Array<{
+    h2: { id: string; text: string };
+    h3s: Array<{ id: string; text: string }>;
+  }> = [];
+  let current: (typeof groups)[number] | null = null;
+  for (const h of headings) {
+    if (h.level === 2) {
+      current = { h2: { id: h.id, text: h.text }, h3s: [] };
+      groups.push(current);
+      continue;
+    }
+    if (h.level === 3) {
+      if (!current) continue;
+      current.h3s.push({ id: h.id, text: h.text });
+    }
+  }
+
+  let sectionIndex = 0;
+  const tocHtml = groups
+    .map((g) => {
+      const groupId = escapeHtml(g.h2.id);
+      const h2Id = escapeHtml(g.h2.id);
+      const h2Text = escapeHtml(normalizeTocText(g.h2.text));
+      const h2 = `<a class="toc-link toc-link-h2" data-level="2" data-toc-group="${groupId}" data-toc-id="${h2Id}" href="#${h2Id}"><span class="toc-badge" aria-hidden="true">${++sectionIndex}</span><span class="toc-text">${h2Text}</span></a>`;
+      const children = g.h3s
+        .map((h3) => {
+          const id = escapeHtml(h3.id);
+          const text = escapeHtml(normalizeTocText(h3.text));
+          return `<a class="toc-link toc-link-h3" data-level="3" data-toc-group="${groupId}" data-toc-id="${id}" href="#${id}"><span class="toc-bullet" aria-hidden="true"></span><span class="toc-text">${text}</span></a>`;
+        })
+        .join("");
+      return `<div class="toc-group" data-toc-group="${groupId}">${h2}<div class="toc-children">${children}</div></div>`;
     })
     .join("");
 
   const tocInlineLinks = headings
-    .map((h) => `<a href="#${escapeHtml(h.id)}">${escapeHtml(h.text)}</a>`)
+    .filter((h) => h.level === 2)
+    .map((h) => `<a href="#${escapeHtml(h.id)}">${escapeHtml(normalizeTocText(h.text))}</a>`)
     .join("");
 
   return { tocHtml, tocInlineLinks };
@@ -459,10 +503,13 @@ export function createWebApp() {
           const dateText = isoDate(Number(p.publish_at ?? p.updated_at), cfg.timezone);
           const cat = p.category_name ?? p.category_slug ?? "";
           const catChip = cat ? `<span class="chip chip--${hashColor(cat)}">${escapeHtml(cat)}</span>` : "";
+
+          const summary = p.summary ?? "";
+
           return `<a class="card article-card" href="/articles/${encodeURIComponent(p.slug)}">
   <div class="meta">${escapeHtml(dateText)}${catChip ? ` · ${catChip}` : ""}</div>
   <h2 class="article-title">${escapeHtml(p.title)}</h2>
-  <p class="article-summary">${escapeHtml(p.summary ?? "")}</p>
+  ${summary ? `<p class="article-summary">${escapeHtml(summary)}</p>` : ""}
 </a>`;
         })
         .join("\n");

@@ -40,6 +40,19 @@ type ToolGroup = "games" | "apis" | "utils" | "other";
 const ABOUT_KEY_TECH_STACK = "about.tech_stack_json";
 const ABOUT_KEY_VISITED_PLACES = "about.visited_places_json";
 const ABOUT_KEY_TIMELINE = "about.timeline_json";
+const POSTS_KEY_AUTO_SUMMARY = "posts.auto_summary";
+
+function parseLooseBool(v: string | null | undefined): boolean {
+  const s = String(v ?? "").trim().toLowerCase();
+  return s === "1" || s === "true" || s === "yes" || s === "on";
+}
+
+function deriveSummaryFromText(text: string, maxLen = 150): string {
+  const plain = String(text ?? "").replace(/\s+/g, " ").trim();
+  if (!plain) return "";
+  if (plain.length <= maxLen) return plain;
+  return plain.slice(0, maxLen) + "...";
+}
 
 type ProjectItem = {
   platform: ProjectsPlatform;
@@ -491,8 +504,19 @@ export function createApiApp(bindings: ApiBindings) {
     );
     if (maybeCached) return maybeCached;
 
+    const now = nowMs();
     const rows = await bindings.db.query<{ id: string; slug: string; name: string }>(
-      sql`SELECT id, slug, name FROM categories ORDER BY name ASC`
+      sql`SELECT c.id, c.slug, c.name
+          FROM categories c
+          WHERE EXISTS (
+            SELECT 1
+            FROM posts p
+            WHERE p.category_id = c.id
+              AND p.status IN ('published','scheduled')
+              AND p.publish_at IS NOT NULL
+              AND p.publish_at <= ${now}
+          )
+          ORDER BY c.name ASC`
     );
     const response = c.json({ ok: true, categories: rows });
     await putCachedResponse(c.req.raw, response, bindings.db, `categories`);
@@ -503,8 +527,20 @@ export function createApiApp(bindings: ApiBindings) {
     const maybeCached = await getCachedResponse(c.req.raw, bindings.db, `tags`);
     if (maybeCached) return maybeCached;
 
+    const now = nowMs();
     const rows = await bindings.db.query<{ id: string; slug: string; name: string }>(
-      sql`SELECT id, slug, name FROM tags ORDER BY name ASC`
+      sql`SELECT t.id, t.slug, t.name
+          FROM tags t
+          WHERE EXISTS (
+            SELECT 1
+            FROM post_tags pt
+            JOIN posts p ON p.id = pt.post_id
+            WHERE pt.tag_id = t.id
+              AND p.status IN ('published','scheduled')
+              AND p.publish_at IS NOT NULL
+              AND p.publish_at <= ${now}
+          )
+          ORDER BY t.name ASC`
     );
     const response = c.json({ ok: true, tags: rows });
     await putCachedResponse(c.req.raw, response, bindings.db, `tags`);
@@ -2179,6 +2215,9 @@ export function createApiApp(bindings: ApiBindings) {
       embedAllowlist: allowlist,
       embed: embedFromShortcode
     });
+    const autoSummaryEnabled = parseLooseBool(
+      (await getSettingsValues(bindings.db, [POSTS_KEY_AUTO_SUMMARY])).get(POSTS_KEY_AUTO_SUMMARY)
+    );
 
     const createdAt = nowMs();
     const postId = randomId();
@@ -2189,10 +2228,15 @@ export function createApiApp(bindings: ApiBindings) {
       : null;
     const tagIds = await upsertTags(bindings.db, body.tags ?? []);
 
+    let summary = String(body.summary ?? "").trim();
+    if (!summary && autoSummaryEnabled) {
+      summary = deriveSummaryFromText(rendered.text, 150);
+    }
+
     await bindings.db.execute(
       sql`INSERT INTO posts
           (id, slug, title, summary, category_id, status, publish_at, created_at, updated_at, content_md, content_html, content_text)
-          VALUES (${postId}, ${slug}, ${body.title}, ${body.summary ?? ""}, ${categoryId}, ${status}, ${publishAt}, ${createdAt}, ${createdAt}, ${body.content_md}, ${rendered.html}, ${rendered.text})`
+          VALUES (${postId}, ${slug}, ${body.title}, ${summary}, ${categoryId}, ${status}, ${publishAt}, ${createdAt}, ${createdAt}, ${body.content_md}, ${rendered.html}, ${rendered.text})`
     );
     for (const tagId of tagIds) {
       await bindings.db.execute(
@@ -2228,24 +2272,39 @@ export function createApiApp(bindings: ApiBindings) {
 
     const config = await getSiteConfig(bindings.db);
     const allowlist = config.embedAllowlistHosts;
+    const autoSummaryEnabled = parseLooseBool(
+      (await getSettingsValues(bindings.db, [POSTS_KEY_AUTO_SUMMARY])).get(POSTS_KEY_AUTO_SUMMARY)
+    );
 
     const fields: string[] = [];
     const values: unknown[] = [];
+    let renderedTextForSummary: string | null = null;
     if (typeof body.title === "string") {
       fields.push("title = ?");
       values.push(body.title);
-    }
-    if (typeof body.summary === "string") {
-      fields.push("summary = ?");
-      values.push(body.summary);
     }
     if (typeof body.content_md === "string") {
       const rendered = await renderPostContent(body.content_md, {
         embedAllowlist: allowlist,
         embed: embedFromShortcode
       });
+      renderedTextForSummary = rendered.text;
       fields.push("content_md = ?", "content_html = ?", "content_text = ?");
       values.push(body.content_md, rendered.html, rendered.text);
+    }
+    if (typeof body.summary === "string") {
+      let nextSummary = body.summary.trim();
+      if (!nextSummary && autoSummaryEnabled) {
+        if (!renderedTextForSummary) {
+          const rows = await bindings.db.query<{ content_text: string }>(
+            sql`SELECT content_text FROM posts WHERE id = ${id} LIMIT 1`
+          );
+          renderedTextForSummary = rows[0]?.content_text ?? "";
+        }
+        nextSummary = deriveSummaryFromText(renderedTextForSummary, 150);
+      }
+      fields.push("summary = ?");
+      values.push(nextSummary);
     }
     if ("category" in (body ?? {})) {
       const categoryId = body.category
@@ -2287,6 +2346,7 @@ export function createApiApp(bindings: ApiBindings) {
       }
     }
 
+    await cleanupOrphanCategoriesAndTags(bindings.db);
     await bumpCacheVersion(bindings.db);
     return c.json({ ok: true });
   });
@@ -2296,7 +2356,9 @@ export function createApiApp(bindings: ApiBindings) {
     const session = await requireAdmin(bindings, c.req.raw);
     if (!session) return c.json(jsonError("Unauthorized", 401), 401);
     const id = c.req.param("id");
+    await bindings.db.execute(sql`DELETE FROM post_tags WHERE post_id = ${id}`);
     await bindings.db.execute(sql`DELETE FROM posts WHERE id = ${id}`);
+    await cleanupOrphanCategoriesAndTags(bindings.db);
     await bumpCacheVersion(bindings.db);
     return c.json({ ok: true });
   });
@@ -2380,4 +2442,13 @@ async function upsertTags(db: Db, tags: string[]): Promise<string[]> {
     out.push(id);
   }
   return out;
+}
+
+async function cleanupOrphanCategoriesAndTags(db: Db): Promise<void> {
+  await db.execute(
+    sql`DELETE FROM tags WHERE NOT EXISTS (SELECT 1 FROM post_tags pt WHERE pt.tag_id = tags.id)`
+  );
+  await db.execute(
+    sql`DELETE FROM categories WHERE NOT EXISTS (SELECT 1 FROM posts p WHERE p.category_id = categories.id)`
+  );
 }

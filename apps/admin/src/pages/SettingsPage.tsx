@@ -23,6 +23,7 @@ export function SettingsPage(props: {
   const ABOUT_KEY_TECH_STACK = "about.tech_stack_json";
   const ABOUT_KEY_VISITED_PLACES = "about.visited_places_json";
   const ABOUT_KEY_TIMELINE = "about.timeline_json";
+  const POSTS_KEY_AUTO_SUMMARY = "posts.auto_summary";
 
   const [baseUrl, setBaseUrl] = useState(props.cfg?.baseUrl ?? "");
   const [timezone, setTimezone] = useState(props.cfg?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone);
@@ -32,6 +33,7 @@ export function SettingsPage(props: {
   const [footerCopyrightUrl, setFooterCopyrightUrl] = useState(props.cfg?.footerCopyrightUrl ?? "");
   const [footerIcpText, setFooterIcpText] = useState(props.cfg?.footerIcpText ?? "");
   const [footerIcpLink, setFooterIcpLink] = useState(props.cfg?.footerIcpLink ?? "https://beian.miit.gov.cn/");
+  const [autoSummaryEnabled, setAutoSummaryEnabled] = useState(false);
   const [pwOld, setPwOld] = useState("");
   const [pwNew, setPwNew] = useState("");
   const [saving, setSaving] = useState(false);
@@ -214,11 +216,14 @@ export function SettingsPage(props: {
         const settings = await getAdminSettings([
           ABOUT_KEY_TECH_STACK,
           ABOUT_KEY_VISITED_PLACES,
-          ABOUT_KEY_TIMELINE
+          ABOUT_KEY_TIMELINE,
+          POSTS_KEY_AUTO_SUMMARY
         ]);
         setAboutTechStackJson(settings[ABOUT_KEY_TECH_STACK] ?? "");
         setAboutVisitedPlacesJson(settings[ABOUT_KEY_VISITED_PLACES] ?? "");
         setAboutTimelineJson(settings[ABOUT_KEY_TIMELINE] ?? "");
+        const raw = String(settings[POSTS_KEY_AUTO_SUMMARY] ?? "").trim().toLowerCase();
+        setAutoSummaryEnabled(raw === "1" || raw === "true" || raw === "yes" || raw === "on");
       } catch {
         // ignore
       }
@@ -279,7 +284,8 @@ export function SettingsPage(props: {
       await updateSettings({
         "site.base_url": nextBaseUrl,
         "site.timezone": timezone,
-        "site.cache_public_ttl_seconds": Number(cacheTtl)
+        "site.cache_public_ttl_seconds": Number(cacheTtl),
+        [POSTS_KEY_AUTO_SUMMARY]: autoSummaryEnabled ? "1" : "0"
       });
       const newCfg = await getConfig();
       props.onCfg(newCfg);
@@ -622,6 +628,21 @@ export function SettingsPage(props: {
             缓存 TTL（秒，1-3600）
             <input value={cacheTtl} onChange={(e) => setCacheTtl(e.target.value)} />
             <KeyDetails storageKey="site.cache_public_ttl_seconds" />
+          </label>
+          <label>
+            （占位）
+            <input value="" readOnly style={{ opacity: 0.6 }} />
+          </label>
+        </div>
+        <div style={{ height: 10 }} />
+        <div className="row">
+          <label>
+            自动生成摘要（摘要为空时自动从正文截取前 150 字）
+            <select value={autoSummaryEnabled ? "1" : "0"} onChange={(e) => setAutoSummaryEnabled(e.target.value === "1")}>
+              <option value="1">启用</option>
+              <option value="0">关闭</option>
+            </select>
+            <KeyDetails storageKey={POSTS_KEY_AUTO_SUMMARY} />
           </label>
           <label>
             （占位）

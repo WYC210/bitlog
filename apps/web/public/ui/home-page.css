@@ -4,6 +4,47 @@ body[data-page="home"] {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  position: relative;
+}
+
+/* 微妙的网格背景 */
+body[data-page="home"]::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(75, 107, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(75, 107, 255, 0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.6;
+}
+
+[data-theme="dark"] body[data-page="home"]::before {
+  background-image:
+    linear-gradient(rgba(75, 107, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(75, 107, 255, 0.05) 1px, transparent 1px);
+  opacity: 0.4;
+}
+
+/* 隐藏首页的全局发光边框 */
+body[data-page="home"]::after {
+  display: none;
+}
+
+/* 动态光晕动画 */
+@keyframes glow-move {
+  0%, 100% {
+    background-position: 12% -12%, 92% -8%, 50% 110%;
+  }
+  50% {
+    background-position: 15% -10%, 88% -10%, 50% 108%;
+  }
+}
+
+body[data-page="home"] {
+  animation: glow-move 20s ease-in-out infinite;
 }
 
 body[data-page="home"] main.container.page-wrap {
@@ -12,24 +53,46 @@ body[data-page="home"] main.container.page-wrap {
   align-items: center;
   justify-content: center;
   padding: 0;
+  position: relative;
+  z-index: 1;
 }
 
 body[data-page="home"] .hero {
-  padding: 0 0 10px;
+  padding: 80px 20px 120px;
   text-align: center;
   width: 100%;
 }
 
+/* 标题渐入动画 */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 body[data-page="home"] .hero-title {
-  font-size: clamp(72px, 8vw, 120px);
-  margin: 0;
-  letter-spacing: 0.02em;
+  font-size: clamp(64px, 10vw, 140px);
+  animation: fade-in-up 0.8s ease-out;
 }
 
 body[data-page="home"] .hero-subtitle {
-  margin-top: 14px;
-  font-size: 20px;
-  max-width: 820px;
+  margin-top: 24px;
+  font-size: 22px;
+  max-width: 900px;
+  color: var(--text);
+  opacity: 0.75;
+  line-height: 1.8;
+  animation: fade-in-up 0.8s ease-out 0.2s backwards;
+}
+
+[data-theme="dark"] body[data-page="home"] .hero-subtitle {
+  color: #e2e8f0;
+  opacity: 0.85;
 }
 
 /* Old home has no primary CTA buttons */
@@ -39,6 +102,8 @@ body[data-page="home"] .hero-actions {
 
 body[data-page="home"] .site-footer {
   padding: 18px 0 28px;
+  position: relative;
+  z-index: 1;
 }
 
 body[data-page="home"] .site-footer a {
@@ -48,4 +113,43 @@ body[data-page="home"] .site-footer a {
 
 body[data-page="home"] .site-footer a:hover {
   text-decoration: underline;
+}
+
+/* 响应式优化 */
+@media (max-width: 768px) {
+  body[data-page="home"] .hero {
+    padding: 60px 20px 80px;
+  }
+
+  body[data-page="home"] .hero-subtitle {
+    font-size: 18px;
+    margin-top: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  body[data-page="home"] .hero {
+    padding: 40px 16px 60px;
+  }
+
+  body[data-page="home"] .hero-subtitle {
+    font-size: 16px;
+    margin-top: 16px;
+  }
+}
+
+/* 减少动画（尊重用户偏好） */
+@media (prefers-reduced-motion: reduce) {
+  body[data-page="home"] {
+    animation: none;
+  }
+
+  body[data-page="home"] .hero-title,
+  body[data-page="home"] .hero-subtitle {
+    animation: none;
+  }
+
+  body[data-page="home"] .hero-title {
+    text-shadow: none;
+  }
 }

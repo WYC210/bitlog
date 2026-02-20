@@ -180,9 +180,84 @@
 .post-toc {
   position: sticky;
   top: 80px;
+  padding: 18px;
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, var(--border) 75%, transparent);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--surface) 88%, transparent),
+    color-mix(in srgb, var(--surface) 72%, transparent)
+  );
+  backdrop-filter: blur(14px);
+  box-shadow: 0 22px 48px rgba(0, 0, 0, 0.28);
 }
 
-.toc-title {
+.post-toc {
+  max-height: calc(100vh - 96px);
+  overflow: auto;
+  scrollbar-width: thin;
+  scroll-behavior: smooth;
+}
+
+.post-toc::-webkit-scrollbar {
+  width: 10px;
+}
+
+.post-toc::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--border) 70%, transparent);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.post-toc::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--primary) 25%, var(--border));
+  background-clip: padding-box;
+}
+
+.post-toc:hover {
+  transform: none;
+}
+
+.post-toc {
+  --toc-accent: #10b981;
+  --toc-accent-2: #34d399;
+  --toc-active-text: #d1fae5;
+  --toc-active-text-contrast: #052e1c;
+}
+
+[data-theme="light"] .post-toc {
+  --toc-active-text: #052e1c;
+  --toc-active-text-contrast: #052e1c;
+}
+
+.toc-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.toc-children {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-left: 6px;
+  padding-left: 10px;
+  border-left: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-2px);
+  transition: max-height 260ms ease, opacity 240ms ease, transform 240ms ease;
+}
+
+.toc-group.is-open .toc-children {
+  max-height: 680px;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.sidebar-card-title {
   font-size: 16px;
   font-weight: 600;
   color: var(--text);
@@ -190,6 +265,26 @@
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.sidebar-card-title svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+  color: var(--primary);
+  flex: 0 0 auto;
+}
+
+.toc-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
 }
 
 .toc-title svg {
@@ -201,41 +296,140 @@
 .toc-list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
 }
 
-.toc a {
-  display: block;
-  padding: 8px 12px;
-  border-radius: 8px;
-  font-size: 14px;
-  color: var(--muted);
-  text-decoration: none;
-  transition: all 0.2s ease;
-  border-left: 2px solid transparent;
+.post-toc .toc {
+  position: relative;
 }
 
-.toc a:hover {
-  color: var(--text);
-  background: var(--surface-2);
-  border-left-color: var(--primary);
+.post-toc .toc-active-indicator {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 44px;
+  transform: translateY(0);
+  border-radius: 14px;
+  background: linear-gradient(90deg, rgba(16, 185, 129, 0.32), rgba(16, 185, 129, 0.1));
+  border: 1px solid color-mix(in srgb, var(--toc-accent-2) 40%, var(--border));
+  box-shadow:
+    0 14px 34px rgba(16, 185, 129, 0.18),
+    inset 0 0 0 1px rgba(52, 211, 153, 0.14);
+  transition: transform 260ms cubic-bezier(0.2, 0.9, 0.2, 1), height 260ms cubic-bezier(0.2, 0.9, 0.2, 1);
+  z-index: 0;
+  pointer-events: none;
 }
 
-.toc a.active {
-  color: var(--primary-700);
-  background: var(--primary-100);
-  border-left-color: var(--primary);
-  font-weight: 500;
-}
-
-.toc a[data-level="3"] {
-  padding-left: 24px;
+.post-toc .toc-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
   font-size: 13px;
+  line-height: 1.35;
+  color: color-mix(in srgb, var(--text) 84%, var(--muted));
+  text-decoration: none;
+  border: 1px solid transparent;
+  background: color-mix(in srgb, var(--surface) 72%, transparent);
+  transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease, color 180ms ease;
+  position: relative;
+  z-index: 1;
+}
+
+.post-toc .toc-link:hover {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--toc-accent) 28%, var(--border));
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--toc-accent) 14%, transparent),
+    color-mix(in srgb, var(--surface) 80%, transparent)
+  );
+  box-shadow: 0 10px 24px rgba(16, 185, 129, 0.12);
+}
+
+.post-toc .toc-link.active {
+  color: var(--toc-active-text);
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  font-weight: 650;
+}
+
+.post-toc .toc-badge {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  flex: 0 0 auto;
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.2px;
+  color: color-mix(in srgb, var(--toc-accent-2) 90%, white 10%);
+  background: rgba(16, 185, 129, 0.16);
+  border: 1px solid rgba(16, 185, 129, 0.22);
+  box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.08);
+}
+
+.post-toc .toc-link.active .toc-badge {
+  color: var(--toc-active-text-contrast);
+  background: linear-gradient(180deg, rgba(52, 211, 153, 1), rgba(16, 185, 129, 0.9));
+  border-color: rgba(52, 211, 153, 0.75);
+  box-shadow: 0 10px 24px rgba(16, 185, 129, 0.28);
+}
+
+.post-toc .toc-bullet {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  flex: 0 0 auto;
+  background: color-mix(in srgb, var(--muted) 40%, transparent);
+  box-shadow: inset 0 0 0 2px rgba(2, 6, 23, 0.35);
+}
+
+.post-toc .toc-link.active .toc-bullet {
+  background: rgba(52, 211, 153, 0.9);
+  box-shadow: 0 10px 22px rgba(16, 185, 129, 0.2);
+}
+
+.post-toc .toc-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.post-toc .toc-link[data-level="3"] {
+  padding-left: 16px;
+  font-size: 12.5px;
+  opacity: 0.96;
 }
 
 .toc a[data-level="4"] {
   padding-left: 36px;
   font-size: 12px;
+}
+
+.prose h2,
+.prose h3 {
+  scroll-margin-top: 86px;
+}
+
+body[data-page="post"] .layout > aside {
+  align-self: stretch;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .post-toc .toc-link {
+    transition: none;
+  }
+  .toc-children {
+    transition: none;
+  }
+  .post-toc .toc-active-indicator {
+    transition: none;
+  }
 }
 
 /* Post Actions */

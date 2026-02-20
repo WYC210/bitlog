@@ -436,6 +436,14 @@ export function EditorPage(props: {
           status,
           publish_at: publishAt ?? null
         });
+        if (!summary.trim()) {
+          try {
+            const updated = await getAdminPost(id);
+            setSummary(updated.summary ?? "");
+          } catch {
+            // ignore
+          }
+        }
       }
       showToast("已保存", "success");
     } catch (e) {
