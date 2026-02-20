@@ -55,7 +55,7 @@ pnpm exec wrangler d1 create bitlog
 
 ## 2) GitHub Actions 自动部署（推荐）
 
-仓库已包含 workflow：`.github/workflows/deploy-cloudflare.yml`，会在 push 到 `main` 时自动：
+仓库已包含 workflow：`.github/workflows/deploy-cloudflare.yml`，会在 push 到默认分支时自动（本仓库默认分支为 `master`；同时也兼容 `main`）：
 
 1) 安装依赖
 2) patch `apps/api/wrangler.toml` 与 `apps/web/wrangler.toml` 的 routes/zone_name（用于改域名或 Zone）
@@ -83,8 +83,7 @@ GitHub 仓库 -> Settings -> Secrets and variables -> Actions -> New repository 
 
 ### 2.2 触发部署
 
-- 确保默认分支是 `main`
-- push 一次代码到 `main`（或手动在 Actions 里点 `Run workflow`）
+- push 一次代码到默认分支（或手动在 Actions 里点 `Run workflow`）
 - 打开 GitHub Actions 查看日志，确认 deploy 成功
 
 ---
