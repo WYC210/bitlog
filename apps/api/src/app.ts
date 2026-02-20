@@ -764,7 +764,7 @@ export function createApiApp(bindings: ApiBindings) {
       const upstream =
         `https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(String(location.latitude))}` +
         `&longitude=${encodeURIComponent(String(location.longitude))}` +
-        `&current=temperature_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m` +
+        `&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m` +
         `&timezone=auto`;
       try {
         const res = await fetchWithTimeout(
@@ -1964,9 +1964,15 @@ export function createApiApp(bindings: ApiBindings) {
     const body = await c.req.json().catch(() => null) as Record<string, unknown> | null;
     if (!body) return c.json(jsonError("Invalid JSON", 400), 400);
 
-    await setSettings(bindings.db, body);
-    await bumpCacheVersion(bindings.db);
-    return c.json({ ok: true });
+    try {
+      await setSettings(bindings.db, body);
+      await bumpCacheVersion(bindings.db);
+      return c.json({ ok: true });
+    } catch (e) {
+      const msg = (e as any)?.message ? String((e as any).message) : "";
+      if (msg.startsWith("Invalid ")) return c.json(jsonError(msg, 400), 400);
+      throw e;
+    }
   });
 
   app.get("/api/admin/projects-config", async (c) => {

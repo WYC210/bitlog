@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{PAGE_TITLE}}</title>
+    <script>
+      (function () {
+        try {
+          const stored = localStorage.getItem("ui-theme");
+          if (stored) document.documentElement.setAttribute("data-theme", stored);
+        } catch {}
+      })();
+    </script>
+    <link rel="stylesheet" href="/ui/base.css?__cv={{CACHE_VERSION}}" />
+    <link rel="stylesheet" href="/ui/home-page.css?__cv={{CACHE_VERSION}}" />
+  </head>
+  <body data-page="home">
+    <header class="site-header">
+      <div class="container header-inner">
+        <div class="header-left">
+          <a class="brand" href="/">Bitlog</a>
+        </div>
+
+        <div class="header-center">
+          <form class="search" action="/articles" method="get">
+            <input
+              id="navSearch"
+              name="q"
+              value=""
+              aria-label="搜索文章"
+              placeholder="搜索文章（Ctrl/Cmd+F 聚焦）"
+            />
+          </form>
+        </div>
+
+        <div class="header-right">
+          <nav class="nav nav-main" aria-label="主导航">
+            <a class="active" href="/">首页</a>
+            <a href="/articles">文章</a>
+            <a href="/projects">项目</a>
+            <a href="/tools">工具中心</a>
+            <a href="/about">关于我</a>
+          </nav>
+          <a class="btn ghost" href="/admin/">我的</a>
+          <button class="btn ghost icon" id="themeToggle" type="button" aria-label="切换主题" title="切换主题">
+            <svg class="icon-moon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            <svg class="icon-sun" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2" />
+              <path
+                d="M12 2v2m0 16v2m10-10h-2M4 12H2m15.07-7.07-1.41 1.41M8.34 15.66l-1.41 1.41m0-11.31 1.41 1.41m8.32 8.32 1.41 1.41"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="container page-wrap">
+      <!-- Hero Section -->
+      <section class="hero">
+        <h1 class="hero-title">{{SITE_TITLE}}</h1>
+        <p class="hero-subtitle">{{SITE_DESC}}</p>
+        <div class="hero-actions">
+          <a class="btn primary" href="/articles">开始阅读</a>
+          <a class="btn" href="/rss.xml">订阅 RSS</a>
+        </div>
+      </section>
+
+      <!-- Main Layout with Sidebar -->
+      <div class="layout" style="margin-top: 28px;" hidden>
+        <!-- Main Content -->
+        <div>
+          <section style="margin-bottom: 28px;">
+            <h2 class="section-title">精选主题</h2>
+            <div class="feature-grid">
+              <a class="card feature-card" href="/articles">
+                <div class="chip primary">技术</div>
+                <h3 class="feature-title">工程化与架构</h3>
+                <p class="feature-desc">围绕性能、缓存、工程实践的系统化记录。</p>
+              </a>
+              <a class="card feature-card" href="/articles">
+                <div class="chip primary">产品</div>
+                <h3 class="feature-title">方法与策略</h3>
+                <p class="feature-desc">从问题定义到方案落地的完整链路。</p>
+              </a>
+              <a class="card feature-card" href="/articles">
+                <div class="chip primary">写作</div>
+                <h3 class="feature-title">知识沉淀</h3>
+                <p class="feature-desc">让输出成为系统能力，而不是偶然灵感。</p>
+              </a>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="section-title">最近更新</h2>
+            <div class="article-list">{{RECENT_CARDS}}</div>
+          </section>
+        </div>
+
+        <!-- Sidebar Widgets -->
+        <aside>
+          <div style="display: grid; gap: 16px; position: sticky; top: 80px;">
+
+            <!-- Date Widget -->
+            <div class="widget compact">
+              <div class="widget-header">
+                <h3 class="widget-title">
+                  <svg class="widget-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                  </svg>
+                  今日
+                </h3>
+              </div>
+              <div class="widget-body">
+                <div class="date-display">
+                  <div class="date-day" id="currentDay">19</div>
+                  <div class="date-info">
+                    <div class="date-weekday" id="currentWeekday">星期三</div>
+                    <div id="currentDate">2026年2月</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Weather Widget -->
+            <div class="widget">
+              <div class="widget-header">
+                <h3 class="widget-title">
+                  <svg class="widget-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path>
+                    <circle cx="12" cy="12" r="5"></circle>
+                  </svg>
+                  天气
+                </h3>
+              </div>
+              <div class="widget-body">
+                <div class="weather-main">
+                  <div class="weather-icon">☀️</div>
+                  <div class="weather-info">
+                    <div class="weather-temp">22°C</div>
+                    <div class="weather-desc">晴朗 · 空气良好</div>
+                  </div>
+                </div>
+                <div class="weather-details">
+                  <div class="weather-detail">
+                    <div class="weather-detail-label">湿度</div>
+                    <div class="weather-detail-value">65%</div>
+                  </div>
+                  <div class="weather-detail">
+                    <div class="weather-detail-label">风速</div>
+                    <div class="weather-detail-value">12km/h</div>
+                  </div>
+                  <div class="weather-detail">
+                    <div class="weather-detail-label">紫外线</div>
+                    <div class="weather-detail-value">中等</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- GitHub Trending Widget -->
+            <div class="widget">
+              <div class="widget-header">
+                <h3 class="widget-title">
+                  <svg class="widget-icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                  </svg>
+                  GitHub 趋势
+                </h3>
+                <span class="widget-badge">5</span>
+              </div>
+              <div class="widget-body">
+                <div class="trending-list">
+                  <a class="trending-item" href="#" target="_blank">
+                    <div class="trending-item-header">
+                      <div class="trending-item-avatar"></div>
+                      <div class="trending-item-name">anthropics/claude-code</div>
+                    </div>
+                    <div class="trending-item-desc">Official CLI for Claude AI assistant</div>
+                    <div class="trending-item-stats">
+                      <span class="trending-stat">
+                        <svg class="trending-stat-icon" viewBox="0 0 16 16" fill="currentColor">
+                          <path d="M8 .25a.75.75 0 01.673.418l1.882 3.815 4.21.612a.75.75 0 01.416 1.279l-3.046 2.97.719 4.192a.75.75 0 01-1.088.791L8 12.347l-3.766 1.98a.75.75 0 01-1.088-.79l.72-4.194L.818 6.374a.75.75 0 01.416-1.28l4.21-.611L7.327.668A.75.75 0 018 .25z"></path>
+                        </svg>
+                        2.3k
+                      </span>
+                      <span class="trending-stat">TypeScript</span>
+                    </div>
+                  </a>
+
+                  <a class="trending-item" href="#" target="_blank">
+                    <div class="trending-item-header">
+                      <div class="trending-item-avatar"></div>
+                      <div class="trending-item-name">vercel/next.js</div>
+                    </div>
+                    <div class="trending-item-desc">The React Framework for Production</div>
+                    <div class="trending-item-stats">
+                      <span class="trending-stat">
+                        <svg class="trending-stat-icon" viewBox="0 0 16 16" fill="currentColor">
+                          <path d="M8 .25a.75.75 0 01.673.418l1.882 3.815 4.21.612a.75.75 0 01.416 1.279l-3.046 2.97.719 4.192a.75.75 0 01-1.088.791L8 12.347l-3.766 1.98a.75.75 0 01-1.088-.79l.72-4.194L.818 6.374a.75.75 0 01.416-1.28l4.21-.611L7.327.668A.75.75 0 018 .25z"></path>
+                        </svg>
+                        1.8k
+                      </span>
+                      <span class="trending-stat">JavaScript</span>
+                    </div>
+                  </a>
+
+                  <a class="trending-item" href="#" target="_blank">
+                    <div class="trending-item-header">
+                      <div class="trending-item-avatar"></div>
+                      <div class="trending-item-name">microsoft/vscode</div>
+                    </div>
+                    <div class="trending-item-desc">Visual Studio Code</div>
+                    <div class="trending-item-stats">
+                      <span class="trending-stat">
+                        <svg class="trending-stat-icon" viewBox="0 0 16 16" fill="currentColor">
+                          <path d="M8 .25a.75.75 0 01.673.418l1.882 3.815 4.21.612a.75.75 0 01.416 1.279l-3.046 2.97.719 4.192a.75.75 0 01-1.088.791L8 12.347l-3.766 1.98a.75.75 0 01-1.088-.79l.72-4.194L.818 6.374a.75.75 0 01.416-1.28l4.21-.611L7.327.668A.75.75 0 018 .25z"></path>
+                        </svg>
+                        1.5k
+                      </span>
+                      <span class="trending-stat">TypeScript</span>
+                    </div>
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <!-- News Widget -->
+            <div class="widget">
+              <div class="widget-header">
+                <h3 class="widget-title">
+                  <svg class="widget-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"></path>
+                  </svg>
+                  今日新闻
+                </h3>
+                <span class="widget-badge">8</span>
+              </div>
+              <div class="widget-body">
+                <div class="news-list">
+                  <a class="news-item" href="#" target="_blank">
+                    <div class="news-item-title">Claude Code 发布重大更新，支持更多编程语言</div>
+                    <div class="news-item-meta">
+                      <span class="news-item-source">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                          <circle cx="12" cy="12" r="10"></circle>
+                        </svg>
+                        TechCrunch
+                      </span>
+                      <span class="news-item-time">2小时前</span>
+                    </div>
+                  </a>
+
+                  <a class="news-item" href="#" target="_blank">
+                    <div class="news-item-title">React 19 正式版即将发布，带来全新特性</div>
+                    <div class="news-item-meta">
+                      <span class="news-item-source">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                          <circle cx="12" cy="12" r="10"></circle>
+                        </svg>
+                        Dev.to
+                      </span>
+                      <span class="news-item-time">5小时前</span>
+                    </div>
+                  </a>
+
+                  <a class="news-item" href="#" target="_blank">
+                    <div class="news-item-title">TypeScript 5.5 Beta 版本发布</div>
+                    <div class="news-item-meta">
+                      <span class="news-item-source">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                          <circle cx="12" cy="12" r="10"></circle>
+                        </svg>
+                        Microsoft
+                      </span>
+                      <span class="news-item-time">1天前</span>
+                    </div>
+                  </a>
+                </div>
+              </div>
+              <div class="widget-actions">
+                <button class="widget-action">
+                  <svg class="widget-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="1 4 1 10 7 10"></polyline>
+                    <path d="M3.51 15a9 9 0 102.13-9.36L1 10"></path>
+                  </svg>
+                  刷新
+                </button>
+                <a class="widget-action" href="/news">
+                  <svg class="widget-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"></path>
+                    <polyline points="15 3 21 3 21 9"></polyline>
+                    <line x1="10" y1="14" x2="21" y2="3"></line>
+                  </svg>
+                  查看全部
+                </a>
+              </div>
+            </div>
+
+            <!-- Location Widget -->
+            <div class="widget">
+              <div class="widget-header">
+                <h3 class="widget-title">
+                  <svg class="widget-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="2" y1="12" x2="22" y2="12"></line>
+                    <path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"></path>
+                  </svg>
+                  地球足迹
+                </h3>
+              </div>
+              <div class="widget-body">
+                <div class="map-container">
+                  <div class="map-placeholder">地图加载中...</div>
+                </div>
+                <div class="location-info">
+                  <div class="location-item">
+                    <svg class="location-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"></path>
+                      <circle cx="12" cy="10" r="3"></circle>
+                    </svg>
+                    <span class="location-text">中国 · 北京</span>
+                  </div>
+                  <div class="location-item">
+                    <svg class="location-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"></path>
+                      <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                    <span class="location-text">访问过 12 个城市</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Stats Widget -->
+            <div class="widget compact">
+              <div class="widget-header">
+                <h3 class="widget-title">
+                  <svg class="widget-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="20" x2="12" y2="10"></line>
+                    <line x1="18" y1="20" x2="18" y2="4"></line>
+                    <line x1="6" y1="20" x2="6" y2="16"></line>
+                  </svg>
+                  统计
+                </h3>
+              </div>
+              <div class="widget-body">
+                <div class="stats-grid">
+                  <div class="stat-card">
+                    <div class="stat-value">42</div>
+                    <div class="stat-label">文章</div>
+                  </div>
+                  <div class="stat-card">
+                    <div class="stat-value">8</div>
+                    <div class="stat-label">项目</div>
+                  </div>
+                  <div class="stat-card">
+                    <div class="stat-value">1.2k</div>
+                    <div class="stat-label">访问</div>
+                  </div>
+                  <div class="stat-card">
+                    <div class="stat-value">156</div>
+                    <div class="stat-label">订阅</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </aside>
+      </div>
+    </main>
+
+    {{SITE_FOOTER}}
+
+    <script src="/ui/theme-toggle.js?__cv={{CACHE_VERSION}}"></script>
+    <script src="/ui/search-suggest.js?__cv={{CACHE_VERSION}}"></script>
+    <script src="/ui/code-copy.js?__cv={{CACHE_VERSION}}"></script>
+    <script>
+      (function () {
+        const shortcutsText = {{SHORTCUTS_TEXT}};
+        const page = document.body?.dataset?.page || "global";
+        const search = document.getElementById("navSearch");
+
+        function shouldIgnore(e) {
+          const t = e.target;
+          if (!t) return false;
+          const tag = (t.tagName || "").toLowerCase();
+          return tag === "input" || tag === "textarea" || tag === "select" || t.isContentEditable;
+        }
+
+        function parseShortcuts() {
+          try {
+            return shortcutsText ? JSON.parse(shortcutsText) : {};
+          } catch {
+            return {};
+          }
+        }
+
+        const sc = parseShortcuts();
+        const effective = Object.assign({}, sc?.global || {}, sc?.contexts?.[page] || {});
+        const getSpec = (k, fallback) => (effective && effective[k] ? String(effective[k]) : fallback);
+
+        const specs = {
+          focusSearch: getSpec("focusSearch", "ctrl+f"),
+          goHome: getSpec("goHome", "ctrl+h"),
+          back: getSpec("goBack", getSpec("back", "g b")),
+          forward: getSpec("goForward", getSpec("forward", "g n"))
+        };
+
+        function matchChord(e, combo) {
+          const s = String(combo || "").trim().toLowerCase();
+          if (!s || s.includes(" ")) return false;
+          const parts = s
+            .split("+")
+            .map((x) => x.trim())
+            .filter(Boolean);
+          const key = (e.key || "").toLowerCase();
+          const wantCtrl = parts.includes("ctrl");
+          const wantMeta = parts.includes("meta");
+          const wantMod = parts.includes("cmd") || parts.includes("mod");
+          const wantAlt = parts.includes("alt");
+          const wantShift = parts.includes("shift");
+          const wantKey = parts.find((p) => !["ctrl", "cmd", "mod", "meta", "alt", "shift"].includes(p));
+          if (wantCtrl && !e.ctrlKey) return false;
+          if (wantMeta && !e.metaKey) return false;
+          if (wantMod && !(e.ctrlKey || e.metaKey)) return false;
+          if (wantAlt && !e.altKey) return false;
+          if (wantShift && !e.shiftKey) return false;
+          if (wantKey && wantKey !== key) return false;
+          return true;
+        }
+
+        function parseSeq(spec) {
+          const s = String(spec || "").trim().toLowerCase();
+          if (!s.includes(" ")) return null;
+          return s.split(/\s+/).map((x) => x.trim()).filter(Boolean);
+        }
+
+        let seq = [];
+        let seqTimer = null;
+        function pushSeq(key) {
+          if (!key || key.length !== 1) return;
+          seq.push(key);
+          if (seq.length > 4) seq.shift();
+          if (seqTimer) clearTimeout(seqTimer);
+          seqTimer = setTimeout(() => {
+            seq = [];
+            seqTimer = null;
+          }, 900);
+        }
+        function matchSeq(keys) {
+          if (!keys || !keys.length) return false;
+          if (seq.length < keys.length) return false;
+          const tail = seq.slice(seq.length - keys.length);
+          for (let i = 0; i < keys.length; i++) {
+            if (tail[i] !== keys[i]) return false;
+          }
+          return true;
+        }
+
+        function focusSearch() {
+          if (!search) return;
+          search.focus();
+          try {
+            search.select();
+          } catch {}
+        }
+
+        document.addEventListener("keydown", (e) => {
+          if (shouldIgnore(e)) return;
+
+          if (!e.ctrlKey && !e.metaKey && !e.altKey) pushSeq((e.key || "").toLowerCase());
+
+          if (matchChord(e, specs.focusSearch)) {
+            e.preventDefault();
+            focusSearch();
+            return;
+          }
+          if (matchChord(e, specs.goHome)) {
+            e.preventDefault();
+            window.location.href = "/";
+            return;
+          }
+
+          const backSeq = parseSeq(specs.back);
+          const fwdSeq = parseSeq(specs.forward);
+          if (matchChord(e, specs.back) || (backSeq && matchSeq(backSeq))) {
+            e.preventDefault();
+            history.back();
+            return;
+          }
+          if (matchChord(e, specs.forward) || (fwdSeq && matchSeq(fwdSeq))) {
+            e.preventDefault();
+            history.forward();
+            return;
+          }
+        });
+      })();
+    </script>
+  </body>
+</html>

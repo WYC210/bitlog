@@ -13,6 +13,7 @@
       })();
     </script>
     <link rel="stylesheet" href="/ui/base.css?__cv={{CACHE_VERSION}}" />
+    <link rel="stylesheet" href="/ui/home-page.css?__cv={{CACHE_VERSION}}" />
   </head>
   <body data-page="home">
     <header class="site-header">
@@ -75,35 +76,9 @@
           <a class="btn" href="/rss.xml">订阅 RSS</a>
         </div>
       </section>
-
-      <section style="margin-top: 20px">
-        <h2 class="section-title">精选主题</h2>
-        <div class="feature-grid">
-          <a class="card feature-card" href="/articles">
-            <div class="chip primary">技术</div>
-            <h3 class="feature-title">工程化与架构</h3>
-            <p class="feature-desc">围绕性能、缓存、工程实践的系统化记录。</p>
-          </a>
-          <a class="card feature-card" href="/articles">
-            <div class="chip primary">产品</div>
-            <h3 class="feature-title">方法与策略</h3>
-            <p class="feature-desc">从问题定义到方案落地的完整链路。</p>
-          </a>
-          <a class="card feature-card" href="/articles">
-            <div class="chip primary">写作</div>
-            <h3 class="feature-title">知识沉淀</h3>
-            <p class="feature-desc">让输出成为系统能力，而不是偶然灵感。</p>
-          </a>
-        </div>
-      </section>
-
-      <section style="margin-top: 28px">
-        <h2 class="section-title">最近更新</h2>
-        <div class="article-list">{{RECENT_CARDS}}</div>
-      </section>
     </main>
 
-    <div class="footer">© {{YEAR}} {{SITE_TITLE}} · All rights reserved.</div>
+    {{SITE_FOOTER}}
 
     <script src="/ui/theme-toggle.js?__cv={{CACHE_VERSION}}"></script>
     <script src="/ui/search-suggest.js?__cv={{CACHE_VERSION}}"></script>

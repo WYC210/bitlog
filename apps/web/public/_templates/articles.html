@@ -13,6 +13,7 @@
       })();
     </script>
     <link rel="stylesheet" href="/ui/base.css?__cv={{CACHE_VERSION}}" />
+    <link rel="stylesheet" href="/ui/articles-page.css?__cv={{CACHE_VERSION}}" />
   </head>
   <body data-page="articles">
     <header class="site-header">
@@ -67,9 +68,11 @@
     </header>
 
     <main class="container page-wrap">
-      <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 16px">
-        {{FILTER_PILL}}
-        <span class="meta">{{RESULT_META}}</span>
+      <div class="articles-header">
+        <div class="articles-filter-bar">
+          {{FILTER_PILL}}
+          <span class="articles-result-meta">{{RESULT_META}}</span>
+        </div>
       </div>
 
       <div class="layout">
@@ -78,22 +81,32 @@
           <div class="footer">Tips：可使用分类/标签过滤，或搜索缩小范围。</div>
         </section>
 
-        <aside>
-          <div class="card aside-block">
-            <h3 class="aside-title">分类</h3>
+        <aside class="articles-sidebar">
+          <div class="sidebar-card">
+            <h3 class="sidebar-card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+              </svg>
+              分类
+            </h3>
             <div class="tag-list">{{CATEGORIES}}</div>
           </div>
 
-          <div style="height: 14px"></div>
-
-          <div class="card aside-block">
-            <h3 class="aside-title">标签</h3>
+          <div class="sidebar-card">
+            <h3 class="sidebar-card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                <line x1="7" y1="7" x2="7.01" y2="7"></line>
+              </svg>
+              标签
+            </h3>
             <div class="tag-list">{{TAGS}}</div>
           </div>
         </aside>
       </div>
     </main>
 
+    {{SITE_FOOTER}}
     <script src="/ui/theme-toggle.js?__cv={{CACHE_VERSION}}"></script>
     <script src="/ui/search-suggest.js?__cv={{CACHE_VERSION}}"></script>
     <script src="/ui/code-copy.js?__cv={{CACHE_VERSION}}"></script>

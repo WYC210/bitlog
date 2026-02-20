@@ -28,6 +28,9 @@ export type SiteConfig = {
   cacheTtlSeconds: number;
   cacheVersion: number;
   shortcutsJson: string | null;
+  footerCopyrightUrl: string | null;
+  footerIcpText: string | null;
+  footerIcpLink: string | null;
 };
 
 export type AdminPrefs = {

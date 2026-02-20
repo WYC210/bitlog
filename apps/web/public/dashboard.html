@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dashboard - Bitlog</title>
+    <link rel="stylesheet" href="/ui/base.css?__cv={{CACHE_VERSION}}" />
+    <link rel="stylesheet" href="/ui/dashboard-widgets.css?__cv={{CACHE_VERSION}}" />
+    <link rel="stylesheet" href="/ui/dashboard-enhancements.css?__cv={{CACHE_VERSION}}" />
+  </head>
+  <body>
+    <div class="dashboard-container">
+      <div class="dashboard-grid">
+
+        <!-- Weather Card -->
+        <div class="glass-card">
+          <div class="glass-card-header">
+            <h3 class="glass-card-title">
+              <div class="glass-card-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="5"></circle>
+                  <line x1="12" y1="1" x2="12" y2="3"></line>
+                  <line x1="12" y1="21" x2="12" y2="23"></line>
+                  <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                  <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                  <line x1="1" y1="12" x2="3" y2="12"></line>
+                  <line x1="21" y1="12" x2="23" y2="12"></line>
+                  <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                  <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                </svg>
+              </div>
+              天气
+            </h3>
+            <span class="glass-card-badge">实时</span>
+          </div>
+          <div class="glass-card-body">
+            <div class="weather-card-main">
+              <div class="weather-card-icon">☀️</div>
+              <div>
+                <div class="weather-card-temp">22°</div>
+                <div class="weather-card-desc">晴朗 · 空气良好</div>
+              </div>
+            </div>
+            <div class="weather-card-details">
+              <div class="weather-detail-item">
+                <svg class="weather-detail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path>
+                </svg>
+                <div class="weather-detail-value">65%</div>
+                <div class="weather-detail-label">湿度</div>
+              </div>
+              <div class="weather-detail-item">
+                <svg class="weather-detail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"></path>
+                </svg>
+                <div class="weather-detail-value">12</div>
+                <div class="weather-detail-label">风速</div>
+              </div>
+              <div class="weather-detail-item">
+                <svg class="weather-detail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="5"></circle>
+                  <line x1="12" y1="1" x2="12" y2="3"></line>
+                </svg>
+                <div class="weather-detail-value">中</div>
+                <div class="weather-detail-label">紫外线</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stats Card - 文章 -->
+        <div class="glass-card">
+          <div class="glass-card-header">
+            <h3 class="glass-card-title">
+              <div class="glass-card-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="16" y1="13" x2="8" y2="13"></line>
+                  <line x1="16" y1="17" x2="8" y2="17"></line>
+                  <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+              </div>
+              文章总数
+            </h3>
+          </div>
+          <div class="glass-card-body">
+            <div class="stat-card-value">42</div>
+            <div class="stat-card-label">已发布文章</div>
+            <div class="stat-card-change positive">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="18 15 12 9 6 15"></polyline>
+              </svg>
+              +12% 本月
+            </div>
+          </div>
+        </div>
+
+        <!-- Stats Card - 访问量 -->
+        <div class="glass-card">
+          <div class="glass-card-header">
+            <h3 class="glass-card-title">
+              <div class="glass-card-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+              </div>
+              访问量
+            </h3>
+          </div>
+          <div class="glass-card-body">
+            <div class="stat-card-value">1.2k</div>
+            <div class="stat-card-label">本月访问</div>
+            <div class="stat-card-change positive">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="18 15 12 9 6 15"></polyline>
+              </svg>
+              +28% 本月
+            </div>
+          </div>
+        </div>
+
+        <!-- GitHub Trending -->
+        <div class="glass-card" style="grid-column: span 1;">
+          <div class="glass-card-header">
+            <h3 class="glass-card-title">
+              <div class="glass-card-icon">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                </svg>
+              </div>
+              GitHub 趋势
+            </h3>
+            <span class="glass-card-badge">3</span>
+          </div>
+          <div class="glass-card-body">
+            <div class="glass-list">
+              <a href="https://github.com/anthropics/claude-code" target="_blank" class="glass-list-item">
+                <div class="glass-list-item-icon">
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                  </svg>
+                </div>
+                <div class="glass-list-item-content">
+                  <div class="glass-list-item-title">anthropics/claude-code</div>
+                  <div class="glass-list-item-subtitle">
+                    <span>TypeScript</span>
+                    <span>•</span>
+                    <span>Official CLI for Claude</span>
+                  </div>
+                </div>
+                <div class="glass-list-item-meta">⭐ 2.3k</div>
+              </a>
+
+              <a href="https://github.com/vercel/next.js" target="_blank" class="glass-list-item">
+                <div class="glass-list-item-icon">
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                  </svg>
+                </div>
+                <div class="glass-list-item-content">
+                  <div class="glass-list-item-title">vercel/next.js</div>
+                  <div class="glass-list-item-subtitle">
+                    <span>JavaScript</span>
+                    <span>•</span>
+                    <span>The React Framework</span>
+                  </div>
+                </div>
+                <div class="glass-list-item-meta">⭐ 1.8k</div>
+              </a>
+
+              <a href="https://github.com/microsoft/vscode" target="_blank" class="glass-list-item">
+                <div class="glass-list-item-icon">
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                  </svg>
+                </div>
+                <div class="glass-list-item-content">
+                  <div class="glass-list-item-title">microsoft/vscode</div>
+                  <div class="glass-list-item-subtitle">
+                    <span>TypeScript</span>
+                    <span>•</span>
+                    <span>Visual Studio Code</span>
+                  </div>
+                </div>
+                <div class="glass-list-item-meta">⭐ 1.5k</div>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- News Card -->
+        <div class="glass-card" style="grid-column: span 1;">
+          <div class="glass-card-header">
+            <h3 class="glass-card-title">
+              <div class="glass-card-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"></path>
+                </svg>
+              </div>
+              今日新闻
+            </h3>
+            <span class="glass-card-badge">8</span>
+          </div>
+          <div class="glass-card-body">
+            <div class="glass-list">
+              <a href="#" class="glass-list-item">
+                <div class="glass-list-item-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                  </svg>
+                </div>
+                <div class="glass-list-item-content">
+                  <div class="glass-list-item-title">Claude Code 发布重大更新</div>
+                  <div class="glass-list-item-subtitle">
+                    <span>TechCrunch</span>
+                    <span>•</span>
+                    <span>2小时前</span>
+                  </div>
+                </div>
+              </a>
+
+              <a href="#" class="glass-list-item">
+                <div class="glass-list-item-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                  </svg>
+                </div>
+                <div class="glass-list-item-content">
+                  <div class="glass-list-item-title">React 19 正式版即将发布</div>
+                  <div class="glass-list-item-subtitle">
+                    <span>Dev.to</span>
+                    <span>•</span>
+                    <span>5小时前</span>
+                  </div>
+                </div>
+              </a>
+
+              <a href="#" class="glass-list-item">
+                <div class="glass-list-item-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                  </svg>
+                </div>
+                <div class="glass-list-item-content">
+                  <div class="glass-list-item-title">TypeScript 5.5 Beta 发布</div>
+                  <div class="glass-list-item-subtitle">
+                    <span>Microsoft</span>
+                    <span>•</span>
+                    <span>1天前</span>
+                  </div>
+                </div>
+              </a>
+            </div>
+          </div>
+          <div class="glass-card-actions">
+            <button class="glass-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="1 4 1 10 7 10"></polyline>
+                <path d="M3.51 15a9 9 0 102.13-9.36L1 10"></path>
+              </svg>
+              刷新
+            </button>
+            <a href="/news" class="glass-btn primary">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"></path>
+                <polyline points="15 3 21 3 21 9"></polyline>
+                <line x1="10" y1="14" x2="21" y2="3"></line>
+              </svg>
+              查看全部
+            </a>
+          </div>
+        </div>
+
+        <!-- Progress Card -->
+        <div class="glass-card">
+          <div class="glass-card-header">
+            <h3 class="glass-card-title">
+              <div class="glass-card-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                  <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+              </div>
+              项目进度
+            </h3>
+          </div>
+          <div class="glass-card-body">
+            <div class="progress-card-item">
+              <div class="progress-card-header">
+                <span class="progress-card-label">博客重构</span>
+                <span class="progress-card-value">85%</span>
+              </div>
+              <div class="progress-bar">
+                <div class="progress-bar-fill" style="width: 85%"></div>
+              </div>
+            </div>
+
+            <div class="progress-card-item">
+              <div class="progress-card-header">
+                <span class="progress-card-label">UI 优化</span>
+                <span class="progress-card-value">60%</span>
+              </div>
+              <div class="progress-bar">
+                <div class="progress-bar-fill" style="width: 60%"></div>
+              </div>
+            </div>
+
+            <div class="progress-card-item">
+              <div class="progress-card-header">
+                <span class="progress-card-label">性能提升</span>
+                <span class="progress-card-value">40%</span>
+              </div>
+              <div class="progress-bar">
+                <div class="progress-bar-fill" style="width: 40%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Activity Feed -->
+        <div class="glass-card" style="grid-column: span 1;">
+          <div class="glass-card-header">
+            <h3 class="glass-card-title">
+              <div class="glass-card-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                </svg>
+              </div>
+              最近活动
+            </h3>
+          </div>
+          <div class="glass-card-body">
+            <div class="activity-feed">
+              <div class="activity-item">
+                <div class="activity-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                  </svg>
+                </div>
+                <div class="activity-content">
+                  <div class="activity-title">发布新文章《Widget 系统设计》</div>
+                  <div class="activity-time">2小时前</div>
+                </div>
+              </div>
+
+              <div class="activity-item">
+                <div class="activity-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                </div>
+                <div class="activity-content">
+                  <div class="activity-title">新增 12 位订阅者</div>
+                  <div class="activity-time">5小时前</div>
+                </div>
+              </div>
+
+              <div class="activity-item">
+                <div class="activity-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="16 18 22 12 16 6"></polyline>
+                    <polyline points="8 6 2 12 8 18"></polyline>
+                  </svg>
+                </div>
+                <div class="activity-content">
+                  <div class="activity-title">更新项目代码</div>
+                  <div class="activity-time">1天前</div>
+                </div>
+              </div>
+
+              <div class="activity-item">
+                <div class="activity-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                  </svg>
+                </div>
+                <div class="activity-content">
+                  <div class="activity-title">收到 3 条新评论</div>
+                  <div class="activity-time">2天前</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chart Card -->
+        <div class="glass-card" style="grid-column: span 2;">
+          <div class="glass-card-header">
+            <h3 class="glass-card-title">
+              <div class="glass-card-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="20" x2="12" y2="10"></line>
+                  <line x1="18" y1="20" x2="18" y2="4"></line>
+                  <line x1="6" y1="20" x2="6" y2="16"></line>
+                </svg>
+              </div>
+              访问趋势
+            </h3>
+            <span class="glass-card-badge">本月</span>
+          </div>
+          <div class="glass-card-body">
+            <div class="chart-card-container">
+              <div class="chart-placeholder">
+                📊 图表数据加载中...
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <script src="/ui/theme-toggle.js?__cv={{CACHE_VERSION}}"></script>
+    <script src="/ui/dashboard-widgets.js?__cv={{CACHE_VERSION}}"></script>
+  </body>
+</html>

@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{{PAGE_TITLE}}</title>
+    <title>关于我 - 预览</title>
     <script>
       (function () {
         try {
@@ -12,11 +12,11 @@
         } catch {}
       })();
     </script>
-    <link rel="stylesheet" href="/ui/base.css?__cv={{CACHE_VERSION}}" />
-    <link rel="stylesheet" href="/ui/about-page.css?__cv={{CACHE_VERSION}}" />
-    <link rel="stylesheet" href="/ui/dashboard-widgets.css?__cv={{CACHE_VERSION}}" />
+    <link rel="stylesheet" href="/ui/base.css" />
+    <link rel="stylesheet" href="/ui/about-page.css" />
+    <link rel="stylesheet" href="/ui/dashboard-widgets.css" />
   </head>
-  <body data-page="{{PAGE_ID}}">
+  <body data-page="about">
     <header class="site-header">
       <div class="container header-inner">
         <div class="header-left">
@@ -28,7 +28,7 @@
             <input
               id="navSearch"
               name="q"
-              value="{{SEARCH_VALUE}}"
+              value=""
               aria-label="搜索文章"
               placeholder="搜索文章（Ctrl/Cmd+F 聚焦）"
             />
@@ -37,11 +37,11 @@
 
         <div class="header-right">
           <nav class="nav nav-main" aria-label="主导航">
-            <a class="{{NAV_HOME_ACTIVE}}" href="/">首页</a>
-            <a class="{{NAV_ARTICLES_ACTIVE}}" href="/articles">文章</a>
-            <a class="{{NAV_PROJECTS_ACTIVE}}" href="/projects">项目</a>
-            <a class="{{NAV_TOOLS_ACTIVE}}" href="/tools">工具中心</a>
-            <a class="{{NAV_ABOUT_ACTIVE}}" href="/about">关于我</a>
+            <a href="/">首页</a>
+            <a href="/articles">文章</a>
+            <a href="/projects">项目</a>
+            <a href="/tools">工具中心</a>
+            <a class="active" href="/about">关于我</a>
           </nav>
           <a class="btn ghost" href="/admin/">我的</a>
           <button class="btn ghost icon" id="themeToggle" type="button" aria-label="切换主题" title="切换主题">
@@ -69,13 +69,12 @@
     </header>
 
     <main class="container page-wrap">
-      <!-- Check if this is the about page -->
       <div class="about-container">
         <!-- Hero Section -->
         <section class="about-hero">
           <div class="about-hero-content">
-            <h1 class="about-hero-title">{{MAIN_TITLE}}</h1>
-            <p class="about-hero-subtitle">{{MAIN_DESC}}</p>
+            <h1 class="about-hero-title">你好，我是开发者</h1>
+            <p class="about-hero-subtitle">全栈工程师 · 开源爱好者 · 技术博主</p>
             <div class="about-hero-actions">
               <a class="btn primary" href="/articles">查看文章</a>
               <a class="btn" href="#contact">联系我</a>
@@ -109,72 +108,131 @@
 
         <!-- Main Layout with Sidebar -->
         <div class="about-layout">
-          <!-- Left Sidebar (Wide screens) -->
-          <aside class="about-sidebar about-sidebar--left" aria-label="每日新闻">
-            <div class="glass-card" id="about-news-card">
-              <div class="glass-card-header">
-                <h3 class="glass-card-title">
-                  <div class="glass-card-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"></path>
-                    </svg>
-                  </div>
-                  每日新闻
-                </h3>
-                <span class="glass-card-badge">图</span>
-              </div>
-              <div class="glass-card-body">
-                <img id="about-news-image" alt="每日新闻图片" />
-                <div class="meta" id="about-news-hint">点击图片新窗口查看</div>
-              </div>
-            </div>
-          </aside>
-
           <!-- Main Content -->
           <div class="about-main">
             <article class="card">
               <div class="card-body">
-                <div class="prose">{{MAIN_CONTENT}}</div>
+                <div class="prose">
+                  <h2>关于我</h2>
+                  <p>
+                    我是一名热爱技术的全栈开发者，专注于构建优雅、高效的 Web 应用。
+                    在过去的几年里，我参与了多个大型项目的开发，积累了丰富的实战经验。
+                  </p>
+                  <p>
+                    我相信技术的力量可以改变世界，也相信通过分享和交流可以让技术社区变得更好。
+                    这个博客是我记录学习、分享经验的地方，希望能对你有所帮助。
+                  </p>
+                  <h3>我的技术栈</h3>
+                  <p>
+                    前端：React、Vue、TypeScript、Next.js、Tailwind CSS<br>
+                    后端：Node.js、Python、Go、PostgreSQL、Redis<br>
+                    工具：Git、Docker、CI/CD、AWS
+                  </p>
+                </div>
               </div>
             </article>
 
             <!-- Skills Section -->
             <section class="about-section">
               <h2 class="about-section-title">技能专长</h2>
-              <div class="about-skills-grid" id="about-skills">
-                <div class="meta">加载中...</div>
+              <div class="about-skills-grid">
+                <div class="about-skill-card">
+                  <div class="about-skill-header">
+                    <div class="about-skill-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="16 18 22 12 16 6"></polyline>
+                        <polyline points="8 6 2 12 8 18"></polyline>
+                      </svg>
+                    </div>
+                    <h3 class="about-skill-title">前端开发</h3>
+                  </div>
+                  <p class="about-skill-description">
+                    精通现代前端技术栈，擅长构建高性能、可维护的 Web 应用。
+                  </p>
+                  <div class="about-skill-tags">
+                    <span class="about-skill-tag">React</span>
+                    <span class="about-skill-tag">Vue</span>
+                    <span class="about-skill-tag">TypeScript</span>
+                    <span class="about-skill-tag">Next.js</span>
+                  </div>
+                </div>
+
+                <div class="about-skill-card">
+                  <div class="about-skill-header">
+                    <div class="about-skill-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                        <line x1="8" y1="21" x2="16" y2="21"></line>
+                        <line x1="12" y1="17" x2="12" y2="21"></line>
+                      </svg>
+                    </div>
+                    <h3 class="about-skill-title">UI/UX 设计</h3>
+                  </div>
+                  <p class="about-skill-description">
+                    注重用户体验，擅长将设计理念转化为优雅的界面实现。
+                  </p>
+                  <div class="about-skill-tags">
+                    <span class="about-skill-tag">Figma</span>
+                    <span class="about-skill-tag">Tailwind</span>
+                    <span class="about-skill-tag">CSS</span>
+                    <span class="about-skill-tag">动画</span>
+                  </div>
+                </div>
+
+                <div class="about-skill-card">
+                  <div class="about-skill-header">
+                    <div class="about-skill-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="2" y1="12" x2="22" y2="12"></line>
+                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                      </svg>
+                    </div>
+                    <h3 class="about-skill-title">后端开发</h3>
+                  </div>
+                  <p class="about-skill-description">
+                    熟悉服务端开发，能够构建稳定可靠的 API 服务。
+                  </p>
+                  <div class="about-skill-tags">
+                    <span class="about-skill-tag">Node.js</span>
+                    <span class="about-skill-tag">Python</span>
+                    <span class="about-skill-tag">数据库</span>
+                    <span class="about-skill-tag">API</span>
+                  </div>
+                </div>
               </div>
             </section>
 
             <!-- Timeline Section -->
             <section class="about-section">
               <h2 class="about-section-title">工作经历</h2>
-              <div class="about-timeline" id="about-experience">
-                <div class="meta">加载中...</div>
-              </div>
-            </section>
-
-            <!-- Travel Footprint (moved under Work Experience) -->
-            <section class="about-section">
-              <h2 class="about-section-title">旅行足迹</h2>
-              <div class="card" style="padding: 14px">
-                <div class="nav" style="justify-content: space-between; align-items: center">
-                  <div>
-                    <div style="font-weight: 800; font-size: 18px">旅行足迹</div>
-                    <div class="meta">3D 世界地图（浏览器运行）</div>
-                  </div>
-                  <button class="chip" id="aboutHeatmapReload" type="button">重载</button>
+              <div class="about-timeline">
+                <div class="about-timeline-item">
+                  <div class="about-timeline-date">2023 - 至今</div>
+                  <h3 class="about-timeline-title">高级前端工程师</h3>
+                  <div class="about-timeline-company">某科技公司</div>
+                  <p class="about-timeline-description">
+                    负责公司核心产品的前端架构设计与开发，带领团队完成多个重要项目。
+                  </p>
                 </div>
-                <div style="height: 10px"></div>
-                <div
-                  id="about-heatmap"
-                  style="
-                    height: 520px;
-                    border-radius: 14px;
-                    overflow: hidden;
-                    border: 1px solid rgba(255, 255, 255, 0.08);
-                  "
-                ></div>
+
+                <div class="about-timeline-item">
+                  <div class="about-timeline-date">2021 - 2023</div>
+                  <h3 class="about-timeline-title">前端工程师</h3>
+                  <div class="about-timeline-company">某互联网公司</div>
+                  <p class="about-timeline-description">
+                    参与多个 Web 应用的开发，积累了丰富的前端开发经验。
+                  </p>
+                </div>
+
+                <div class="about-timeline-item">
+                  <div class="about-timeline-date">2019 - 2021</div>
+                  <h3 class="about-timeline-title">初级前端工程师</h3>
+                  <div class="about-timeline-company">某创业公司</div>
+                  <p class="about-timeline-description">
+                    从零开始学习前端开发，快速成长为独立开发者。
+                  </p>
+                </div>
               </div>
             </section>
 
@@ -228,6 +286,62 @@
 
           <!-- Sidebar Widgets -->
           <aside class="about-sidebar">
+            <!-- Weather Widget -->
+            <div class="glass-card">
+              <div class="glass-card-header">
+                <h3 class="glass-card-title">
+                  <div class="glass-card-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="5"></circle>
+                      <line x1="12" y1="1" x2="12" y2="3"></line>
+                      <line x1="12" y1="21" x2="12" y2="23"></line>
+                      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                      <line x1="1" y1="12" x2="3" y2="12"></line>
+                      <line x1="21" y1="12" x2="23" y2="12"></line>
+                      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                  </div>
+                  实时天气
+                </h3>
+                <span class="glass-card-badge">实时</span>
+              </div>
+              <div class="glass-card-body">
+                <div class="weather-card-main">
+                  <div class="weather-card-icon">☀️</div>
+                  <div>
+                    <div class="weather-card-temp">22°</div>
+                    <div class="weather-card-desc">晴朗 · 空气良好</div>
+                  </div>
+                </div>
+                <div class="weather-card-details">
+                  <div class="weather-detail-item">
+                    <svg class="weather-detail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path>
+                    </svg>
+                    <div class="weather-detail-value">65%</div>
+                    <div class="weather-detail-label">湿度</div>
+                  </div>
+                  <div class="weather-detail-item">
+                    <svg class="weather-detail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"></path>
+                    </svg>
+                    <div class="weather-detail-value">12</div>
+                    <div class="weather-detail-label">风速</div>
+                  </div>
+                  <div class="weather-detail-item">
+                    <svg class="weather-detail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="5"></circle>
+                      <line x1="12" y1="1" x2="12" y2="3"></line>
+                    </svg>
+                    <div class="weather-detail-value">中</div>
+                    <div class="weather-detail-label">紫外线</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <!-- News Widget -->
             <div class="glass-card">
               <div class="glass-card-header">
@@ -368,132 +482,6 @@
       </div>
     </main>
 
-    {{SITE_FOOTER}}
-    {{TOOL_SCRIPT}}
-    <script src="/ui/theme-toggle.js?__cv={{CACHE_VERSION}}"></script>
-    <script src="/ui/search-suggest.js?__cv={{CACHE_VERSION}}"></script>
-    <script src="/ui/code-copy.js?__cv={{CACHE_VERSION}}"></script>
-    <script>
-      (function () {
-        const shortcutsText = {{SHORTCUTS_TEXT}};
-        const page = document.body?.dataset?.page || "global";
-        const search = document.getElementById("navSearch");
-
-        function shouldIgnore(e) {
-          const t = e.target;
-          if (!t) return false;
-          const tag = (t.tagName || "").toLowerCase();
-          return tag === "input" || tag === "textarea" || tag === "select" || t.isContentEditable;
-        }
-
-        function parseShortcuts() {
-          try {
-            return shortcutsText ? JSON.parse(shortcutsText) : {};
-          } catch {
-            return {};
-          }
-        }
-
-        const sc = parseShortcuts();
-        const effective = Object.assign({}, sc?.global || {}, sc?.contexts?.[page] || {});
-        const getSpec = (k, fallback) => (effective && effective[k] ? String(effective[k]) : fallback);
-
-        const specs = {
-          focusSearch: getSpec("focusSearch", "ctrl+f"),
-          goHome: getSpec("goHome", "ctrl+h"),
-          back: getSpec("goBack", getSpec("back", "g b")),
-          forward: getSpec("goForward", getSpec("forward", "g n"))
-        };
-
-        function matchChord(e, combo) {
-          const s = String(combo || "").trim().toLowerCase();
-          if (!s || s.includes(" ")) return false;
-          const parts = s
-            .split("+")
-            .map((x) => x.trim())
-            .filter(Boolean);
-          const key = (e.key || "").toLowerCase();
-          const wantCtrl = parts.includes("ctrl");
-          const wantMeta = parts.includes("meta");
-          const wantMod = parts.includes("cmd") || parts.includes("mod");
-          const wantAlt = parts.includes("alt");
-          const wantShift = parts.includes("shift");
-          const wantKey = parts.find((p) => !["ctrl", "cmd", "mod", "meta", "alt", "shift"].includes(p));
-          if (wantCtrl && !e.ctrlKey) return false;
-          if (wantMeta && !e.metaKey) return false;
-          if (wantMod && !(e.ctrlKey || e.metaKey)) return false;
-          if (wantAlt && !e.altKey) return false;
-          if (wantShift && !e.shiftKey) return false;
-          if (wantKey && wantKey !== key) return false;
-          return true;
-        }
-
-        function parseSeq(spec) {
-          const s = String(spec || "").trim().toLowerCase();
-          if (!s.includes(" ")) return null;
-          return s.split(/\\s+/).map((x) => x.trim()).filter(Boolean);
-        }
-
-        let seq = [];
-        let seqTimer = null;
-        function pushSeq(key) {
-          if (!key || key.length !== 1) return;
-          seq.push(key);
-          if (seq.length > 4) seq.shift();
-          if (seqTimer) clearTimeout(seqTimer);
-          seqTimer = setTimeout(() => {
-            seq = [];
-            seqTimer = null;
-          }, 900);
-        }
-        function matchSeq(keys) {
-          if (!keys || !keys.length) return false;
-          if (seq.length < keys.length) return false;
-          const tail = seq.slice(seq.length - keys.length);
-          for (let i = 0; i < keys.length; i++) {
-            if (tail[i] !== keys[i]) return false;
-          }
-          return true;
-        }
-
-        function focusSearch() {
-          if (!search) return;
-          search.focus();
-          try {
-            search.select();
-          } catch {}
-        }
-
-        document.addEventListener("keydown", (e) => {
-          if (shouldIgnore(e)) return;
-
-          if (!e.ctrlKey && !e.metaKey && !e.altKey) pushSeq((e.key || "").toLowerCase());
-
-          if (matchChord(e, specs.focusSearch)) {
-            e.preventDefault();
-            focusSearch();
-            return;
-          }
-          if (matchChord(e, specs.goHome)) {
-            e.preventDefault();
-            window.location.href = "/";
-            return;
-          }
-
-          const backSeq = parseSeq(specs.back);
-          const fwdSeq = parseSeq(specs.forward);
-          if (matchChord(e, specs.back) || (backSeq && matchSeq(backSeq))) {
-            e.preventDefault();
-            history.back();
-            return;
-          }
-          if (matchChord(e, specs.forward) || (fwdSeq && matchSeq(fwdSeq))) {
-            e.preventDefault();
-            history.forward();
-            return;
-          }
-        });
-      })();
-    </script>
+    <script src="/ui/theme-toggle.js"></script>
   </body>
 </html>

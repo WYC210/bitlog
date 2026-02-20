@@ -43,6 +43,7 @@ export function AccountPage(props: {
 }) {
   const [shortcutsText, setShortcutsText] = useState(props.prefs?.shortcutsJson ?? "");
   const [editorLayout, setEditorLayout] = useState<AdminPrefs["editorLayout"]>(props.prefs?.editorLayout ?? "split");
+  const [shortcutsDirty, setShortcutsDirty] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const [pwOld, setPwOld] = useState("");
@@ -61,9 +62,18 @@ export function AccountPage(props: {
 
   useEffect(() => {
     if (!props.prefs) return;
-    setShortcutsText(props.prefs.shortcutsJson ?? "");
+    if (!shortcutsDirty) setShortcutsText(props.prefs.shortcutsJson ?? "");
     setEditorLayout(props.prefs.editorLayout ?? "split");
   }, [props.prefs]);
+
+  useEffect(() => {
+    const base = props.prefs?.shortcutsJson ?? "";
+    if (shortcutsText === base) {
+      if (shortcutsDirty) setShortcutsDirty(false);
+    } else {
+      if (!shortcutsDirty) setShortcutsDirty(true);
+    }
+  }, [shortcutsText, props.prefs?.shortcutsJson]);
 
   useEffect(() => {
     if (!recording) return;
@@ -89,6 +99,7 @@ export function AccountPage(props: {
     const sc = ensureAdminGlobal(JSON.parse(JSON.stringify(parsed.value ?? {})));
     sc.contexts["admin.global"][action] = spec;
     setShortcutsText(JSON.stringify(sc, null, 2));
+    setShortcutsDirty(true);
   }
 
   function clearShortcut(action: ShortcutAction) {
@@ -96,6 +107,7 @@ export function AccountPage(props: {
     const sc = ensureAdminGlobal(JSON.parse(JSON.stringify(parsed.value ?? {})));
     delete sc.contexts["admin.global"][action];
     setShortcutsText(JSON.stringify(sc, null, 2));
+    setShortcutsDirty(true);
   }
 
   async function reloadPrefs() {
@@ -103,7 +115,26 @@ export function AccountPage(props: {
     props.onPrefs(p);
   }
 
-  async function savePrefs() {
+  async function persistEditorLayout(next: AdminPrefs["editorLayout"]) {
+    props.onError("");
+    if (editorLayout === next) {
+      setEditorLayout(next);
+      return;
+    }
+    setSaving(true);
+    try {
+      setEditorLayout(next);
+      await updateAdminPrefs({ editorLayout: next });
+      await reloadPrefs();
+    } catch (e) {
+      const err = e as ApiError;
+      props.onError(err.message || "保存失败");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function saveShortcuts() {
     props.onError("");
     if (!parsed.ok) {
       props.onError(parseError || "JSON 解析失败");
@@ -111,10 +142,8 @@ export function AccountPage(props: {
     }
     setSaving(true);
     try {
-      await updateAdminPrefs({
-        shortcutsJson: shortcutsText.trim() ? shortcutsText : null,
-        editorLayout
-      });
+      await updateAdminPrefs({ shortcutsJson: shortcutsText.trim() ? shortcutsText : null });
+      setShortcutsDirty(false);
       await reloadPrefs();
       alert("已保存");
     } catch (e) {
@@ -190,13 +219,13 @@ export function AccountPage(props: {
         <div className="muted">布局偏好会写入 DB，跨设备生效。</div>
         <div style={{ height: 10 }} />
         <div className="nav">
-          <button className={`chip ${editorLayout === "write" ? "chip-primary" : ""}`} onClick={() => setEditorLayout("write")}>
+          <button className={`chip ${editorLayout === "write" ? "chip-primary" : ""}`} onClick={() => void persistEditorLayout("write")}>
             单栏：写作
           </button>
-          <button className={`chip ${editorLayout === "preview" ? "chip-primary" : ""}`} onClick={() => setEditorLayout("preview")}>
+          <button className={`chip ${editorLayout === "preview" ? "chip-primary" : ""}`} onClick={() => void persistEditorLayout("preview")}>
             单栏：预览
           </button>
-          <button className={`chip ${editorLayout === "split" ? "chip-primary" : ""}`} onClick={() => setEditorLayout("split")}>
+          <button className={`chip ${editorLayout === "split" ? "chip-primary" : ""}`} onClick={() => void persistEditorLayout("split")}>
             左右分栏
           </button>
         </div>
@@ -238,8 +267,8 @@ export function AccountPage(props: {
         {parseError ? <div className="muted" style={{ color: "#ffb4b4" }}>{parseError}</div> : null}
         <div style={{ height: 10 }} />
         <div className="nav">
-          <button className="chip chip-primary" onClick={() => void savePrefs()} disabled={saving || !parsed.ok}>
-            {saving ? "保存中…" : "保存偏好"}
+          <button className="chip chip-primary" onClick={() => void saveShortcuts()} disabled={saving || !parsed.ok || !shortcutsDirty}>
+            {saving ? "保存中…" : "保存快捷键"}
           </button>
           <button
             className="chip"

@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Widget System Demo - Bitlog</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 40px 20px;
+      }
+
+      .demo-container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .demo-header {
+        text-align: center;
+        color: white;
+        margin-bottom: 40px;
+      }
+
+      .demo-header h1 {
+        font-size: 48px;
+        font-weight: 800;
+        margin-bottom: 12px;
+        text-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      }
+
+      .demo-header p {
+        font-size: 18px;
+        opacity: 0.9;
+      }
+
+      .demo-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 24px;
+        margin-bottom: 40px;
+      }
+
+      .demo-card {
+        background: white;
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+      }
+
+      .demo-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 24px 48px rgba(0, 0, 0, 0.2);
+      }
+
+      .demo-card h2 {
+        font-size: 24px;
+        margin-bottom: 12px;
+        color: #667eea;
+      }
+
+      .demo-card p {
+        color: #666;
+        line-height: 1.6;
+        margin-bottom: 16px;
+      }
+
+      .demo-card ul {
+        list-style: none;
+        padding: 0;
+      }
+
+      .demo-card li {
+        padding: 8px 0;
+        color: #444;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .demo-card li::before {
+        content: "✓";
+        color: #10b981;
+        font-weight: bold;
+        font-size: 18px;
+      }
+
+      .demo-actions {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        justify-content: center;
+        margin-top: 32px;
+      }
+
+      .demo-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 14px 28px;
+        border-radius: 999px;
+        font-size: 16px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        border: none;
+      }
+
+      .demo-btn.primary {
+        background: white;
+        color: #667eea;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+      }
+
+      .demo-btn.primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.2);
+      }
+
+      .demo-btn.secondary {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        backdrop-filter: blur(10px);
+      }
+
+      .demo-btn.secondary:hover {
+        background: rgba(255, 255, 255, 0.3);
+      }
+
+      .demo-preview {
+        background: white;
+        border-radius: 16px;
+        padding: 32px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        margin-bottom: 40px;
+      }
+
+      .demo-preview h2 {
+        font-size: 28px;
+        margin-bottom: 20px;
+        color: #333;
+      }
+
+      .preview-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 16px;
+      }
+
+      .preview-item {
+        border: 2px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 16px;
+        transition: all 0.3s ease;
+      }
+
+      .preview-item:hover {
+        border-color: #667eea;
+        background: #f9fafb;
+      }
+
+      .preview-item h3 {
+        font-size: 16px;
+        margin-bottom: 8px;
+        color: #667eea;
+      }
+
+      .preview-item p {
+        font-size: 14px;
+        color: #666;
+        line-height: 1.5;
+      }
+
+      .demo-code {
+        background: #1e293b;
+        border-radius: 12px;
+        padding: 24px;
+        margin: 20px 0;
+        overflow-x: auto;
+      }
+
+      .demo-code pre {
+        color: #e2e8f0;
+        font-family: "Courier New", monospace;
+        font-size: 14px;
+        line-height: 1.6;
+      }
+
+      .demo-code code {
+        color: #7dd3fc;
+      }
+
+      .demo-footer {
+        text-align: center;
+        color: white;
+        margin-top: 60px;
+        opacity: 0.8;
+      }
+
+      @media (max-width: 768px) {
+        .demo-header h1 {
+          font-size: 32px;
+        }
+
+        .demo-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .preview-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="demo-container">
+      <div class="demo-header">
+        <h1>🎨 Widget System</h1>
+        <p>现代化的侧边栏小组件系统 - 为你的博客增添活力</p>
+      </div>
+
+      <div class="demo-grid">
+        <div class="demo-card">
+          <h2>📅 日期组件</h2>
+          <p>实时显示当前日期和星期</p>
+          <ul>
+            <li>大号日期显示</li>
+            <li>自动更新</li>
+            <li>渐变动画效果</li>
+          </ul>
+        </div>
+
+        <div class="demo-card">
+          <h2>🌤️ 天气组件</h2>
+          <p>展示实时天气信息</p>
+          <ul>
+            <li>温度和天气状况</li>
+            <li>湿度、风速、紫外线</li>
+            <li>支持 API 集成</li>
+          </ul>
+        </div>
+
+        <div class="demo-card">
+          <h2>🔥 GitHub 趋势</h2>
+          <p>显示热门开源项目</p>
+          <ul>
+            <li>实时趋势数据</li>
+            <li>Star 数量统计</li>
+            <li>编程语言标签</li>
+          </ul>
+        </div>
+
+        <div class="demo-card">
+          <h2>📰 今日新闻</h2>
+          <p>聚合科技新闻资讯</p>
+          <ul>
+            <li>多源新闻聚合</li>
+            <li>自动刷新</li>
+            <li>时间戳显示</li>
+          </ul>
+        </div>
+
+        <div class="demo-card">
+          <h2>🗺️ 地球足迹</h2>
+          <p>展示地理位置信息</p>
+          <ul>
+            <li>地图可视化</li>
+            <li>位置标记</li>
+            <li>访问统计</li>
+          </ul>
+        </div>
+
+        <div class="demo-card">
+          <h2>📊 统计组件</h2>
+          <p>展示博客关键数据</p>
+          <ul>
+            <li>文章和项目数量</li>
+            <li>访问和订阅统计</li>
+            <li>悬停动画效果</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="demo-preview">
+        <h2>✨ 核心特性</h2>
+        <div class="preview-grid">
+          <div class="preview-item">
+            <h3>📱 响应式设计</h3>
+            <p>完美适配桌面、平板和移动设备</p>
+          </div>
+          <div class="preview-item">
+            <h3>🎨 现代化 UI</h3>
+            <p>基于 Swiss Modernism 2.0 设计系统</p>
+          </div>
+          <div class="preview-item">
+            <h3>♿ 无障碍支持</h3>
+            <p>符合 WCAG 2.1 AA 标准</p>
+          </div>
+          <div class="preview-item">
+            <h3>🚀 高性能</h3>
+            <p>懒加载、缓存、防抖优化</p>
+          </div>
+          <div class="preview-item">
+            <h3>🌓 深色模式</h3>
+            <p>自动适配亮色/暗色主题</p>
+          </div>
+          <div class="preview-item">
+            <h3>🔄 自动刷新</h3>
+            <p>智能更新，保持数据新鲜</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="demo-preview">
+        <h2>🚀 快速开始</h2>
+        <p style="margin-bottom: 16px; color: #666;">只需三步，即可集成到你的博客：</p>
+
+        <div class="demo-code">
+          <pre><code><!-- 1. 引入样式文件 -->
+&lt;link rel="stylesheet" href="/ui/widgets.css" /&gt;
+&lt;link rel="stylesheet" href="/ui/widgets-enhanced.css" /&gt;
+
+<!-- 2. 添加组件 HTML -->
+&lt;aside&gt;
+  &lt;div class="widget"&gt;
+    &lt;div class="widget-header"&gt;
+      &lt;h3 class="widget-title"&gt;天气&lt;/h3&gt;
+    &lt;/div&gt;
+    &lt;div class="widget-body"&gt;
+      &lt;!-- 组件内容 --&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/aside&gt;
+
+<!-- 3. 引入 JavaScript -->
+&lt;script src="/ui/widgets.js"&gt;&lt;/script&gt;</code></pre>
+        </div>
+      </div>
+
+      <div class="demo-preview">
+        <h2>📦 文件结构</h2>
+        <div class="demo-code">
+          <pre><code>apps/web/public/
+├── ui/
+│   ├── base.css              # 基础样式
+│   ├── widgets.css           # 组件样式
+│   ├── widgets-enhanced.css  # 增强样式
+│   └── widgets.js            # 组件逻辑
+└── _templates/
+    └── home.html             # 首页模板（已集成）</code></pre>
+        </div>
+      </div>
+
+      <div class="demo-preview">
+        <h2>🔧 API 配置</h2>
+        <p style="margin-bottom: 16px; color: #666;">在 widgets.js 中配置你的 API：</p>
+
+        <div class="demo-code">
+          <pre><code>// 天气 API
+async function fetchWeather() {
+  const response = await fetch('YOUR_WEATHER_API_URL');
+  return await response.json();
+}
+
+// GitHub API
+async function fetchGitHubTrending() {
+  const response = await fetch('https://api.github.com/...');
+  return await response.json();
+}
+
+// 新闻 API
+async function fetchNews() {
+  const response = await fetch('YOUR_NEWS_API_URL');
+  return await response.json();
+}</code></pre>
+        </div>
+      </div>
+
+      <div class="demo-actions">
+        <a href="/" class="demo-btn primary">
+          <span>🏠</span>
+          <span>查看实际效果</span>
+        </a>
+        <a href="/plan/WIDGET_QUICK_START.md" class="demo-btn secondary">
+          <span>📖</span>
+          <span>阅读文档</span>
+        </a>
+        <a href="https://github.com" class="demo-btn secondary" target="_blank">
+          <span>💻</span>
+          <span>查看源码</span>
+        </a>
+      </div>
+
+      <div class="demo-footer">
+        <p>Made with ❤️ by Claude Code</p>
+        <p style="margin-top: 8px; font-size: 14px;">© 2026 Bitlog · All rights reserved</p>
+      </div>
+    </div>
+
+    <script>
+      // 简单的动画效果
+      document.addEventListener('DOMContentLoaded', () => {
+        const cards = document.querySelectorAll('.demo-card, .demo-preview');
+
+        const observer = new IntersectionObserver((entries) => {
+          entries.forEach((entry, index) => {
+            if (entry.isIntersecting) {
+              setTimeout(() => {
+                entry.target.style.opacity = '1';
+                entry.target.style.transform = 'translateY(0)';
+              }, index * 100);
+            }
+          });
+        }, {
+          threshold: 0.1
+        });
+
+        cards.forEach(card => {
+          card.style.opacity = '0';
+          card.style.transform = 'translateY(20px)';
+          card.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+          observer.observe(card);
+        });
+      });
+    </script>
+  </body>
+</html>

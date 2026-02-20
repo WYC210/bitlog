@@ -1,0 +1,389 @@
+/* Widget System - Additional Responsive Styles */
+
+/* Ensure sidebar is properly positioned */
+.layout > aside {
+  min-width: 0;
+}
+
+/* Widget hover effects with cursor pointer */
+.widget {
+  cursor: default;
+}
+
+.news-item,
+.trending-item,
+.widget-action {
+  cursor: pointer;
+}
+
+/* Smooth transitions for all interactive elements */
+.news-item,
+.trending-item,
+.widget-action,
+.stat-card {
+  transition: all 0.2s ease;
+}
+
+/* Loading state for widgets */
+.widget[data-loading="true"] {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.widget[data-loading="true"]::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: widget-spin 0.8s linear infinite;
+}
+
+@keyframes widget-spin {
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+/* Empty state for widgets */
+.widget-empty {
+  padding: 24px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.widget-empty-icon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 12px;
+  opacity: 0.3;
+}
+
+/* Error state for widgets */
+.widget-error {
+  padding: 16px;
+  border-radius: 10px;
+  background: color-mix(in srgb, #ef4444 10%, transparent);
+  border: 1px solid color-mix(in srgb, #ef4444 30%, var(--border));
+  color: #dc2626;
+  font-size: 13px;
+  text-align: center;
+}
+
+[data-theme="dark"] .widget-error {
+  background: color-mix(in srgb, #ef4444 15%, transparent);
+  border-color: color-mix(in srgb, #ef4444 40%, var(--border));
+  color: #fca5a5;
+}
+
+/* Skeleton loading for widget content */
+.widget-skeleton {
+  display: grid;
+  gap: 10px;
+}
+
+.skeleton-line {
+  height: 12px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--border) 50%, transparent) 25%,
+    color-mix(in srgb, var(--border) 80%, transparent) 50%,
+    color-mix(in srgb, var(--border) 50%, transparent) 75%
+  );
+  background-size: 200% 100%;
+  border-radius: 6px;
+  animation: skeleton-shimmer 1.5s infinite;
+}
+
+.skeleton-line.short {
+  width: 60%;
+}
+
+.skeleton-line.medium {
+  width: 80%;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Widget badge pulse animation */
+.widget-badge {
+  animation: badge-pulse 2s ease-in-out infinite;
+}
+
+@keyframes badge-pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+/* Trending item language colors */
+.trending-stat[data-lang="TypeScript"] {
+  color: #3178c6;
+}
+
+.trending-stat[data-lang="JavaScript"] {
+  color: #f7df1e;
+}
+
+.trending-stat[data-lang="Python"] {
+  color: #3776ab;
+}
+
+.trending-stat[data-lang="Go"] {
+  color: #00add8;
+}
+
+.trending-stat[data-lang="Rust"] {
+  color: #ce422b;
+}
+
+/* News source colors */
+.news-item-source[data-source="TechCrunch"] svg {
+  color: #0a0;
+}
+
+.news-item-source[data-source="Dev.to"] svg {
+  color: #0a0a23;
+}
+
+.news-item-source[data-source="Microsoft"] svg {
+  color: #00a4ef;
+}
+
+/* Weather icon animations */
+.weather-icon {
+  animation: weather-float 3s ease-in-out infinite;
+}
+
+@keyframes weather-float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+/* Date day number gradient animation */
+.date-day {
+  background: linear-gradient(135deg, var(--primary), #7da2ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: gradient-shift 3s ease infinite;
+  background-size: 200% 200%;
+}
+
+@keyframes gradient-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* Stat card hover effect */
+.stat-card:hover {
+  transform: translateY(-2px);
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface-2));
+  border-color: color-mix(in srgb, var(--primary) 30%, var(--border));
+}
+
+.stat-card:hover .stat-value {
+  transform: scale(1.05);
+}
+
+.stat-value {
+  transition: transform 0.2s ease;
+}
+
+/* Widget action button active state */
+.widget-action:active {
+  transform: scale(0.95);
+}
+
+/* Scrollbar styling for widget lists */
+.trending-list::-webkit-scrollbar,
+.news-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.trending-list::-webkit-scrollbar-thumb,
+.news-list::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--border) 60%, transparent);
+  border-radius: 999px;
+}
+
+.trending-list::-webkit-scrollbar-track,
+.news-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Focus visible states for accessibility */
+.news-item:focus-visible,
+.trending-item:focus-visible,
+.widget-action:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Print styles */
+@media print {
+  .widget {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .widget-actions {
+    display: none;
+  }
+
+  aside {
+    display: none;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .widget {
+    border-width: 2px;
+  }
+
+  .widget-header {
+    border-bottom-width: 2px;
+  }
+
+  .news-item,
+  .trending-item {
+    border-width: 2px;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .weather-icon,
+  .date-day,
+  .widget-badge {
+    animation: none;
+  }
+
+  .news-item:hover,
+  .trending-item:hover,
+  .stat-card:hover {
+    transform: none;
+  }
+
+  .skeleton-line {
+    animation: none;
+  }
+}
+
+/* Dark mode specific adjustments */
+[data-theme="dark"] .weather-icon {
+  background: linear-gradient(135deg, rgba(75, 107, 255, 0.25), rgba(99, 102, 241, 0.15));
+}
+
+[data-theme="dark"] .date-day {
+  filter: brightness(1.2);
+}
+
+[data-theme="dark"] .stat-card:hover {
+  background: color-mix(in srgb, var(--primary) 15%, var(--surface-2));
+}
+
+/* Mobile optimizations */
+@media (max-width: 640px) {
+  .widget {
+    padding: 14px;
+  }
+
+  .widget.compact {
+    padding: 10px;
+  }
+
+  .widget-header {
+    padding-bottom: 8px;
+  }
+
+  .widget-title {
+    font-size: 13px;
+  }
+
+  .widget-icon {
+    width: 16px;
+    height: 16px;
+  }
+
+  .weather-icon {
+    width: 48px;
+    height: 48px;
+    font-size: 28px;
+  }
+
+  .weather-temp {
+    font-size: 24px;
+  }
+
+  .date-day {
+    font-size: 32px;
+  }
+
+  .news-item,
+  .trending-item {
+    padding: 8px;
+  }
+
+  .widget-actions {
+    flex-direction: column;
+  }
+
+  .widget-action {
+    width: 100%;
+  }
+}
+
+/* Tablet optimizations */
+@media (min-width: 641px) and (max-width: 980px) {
+  .layout > aside {
+    margin-top: 28px;
+  }
+
+  .widget {
+    max-width: 600px;
+    margin: 0 auto;
+  }
+}
+
+/* Large screen optimizations */
+@media (min-width: 1440px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr) 360px;
+  }
+
+  .widget {
+    padding: 18px;
+  }
+}
+
+/* Ultra-wide screen optimizations */
+@media (min-width: 1920px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr) 400px;
+  }
+}

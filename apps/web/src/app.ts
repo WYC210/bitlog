@@ -17,6 +17,9 @@ type SiteConfig = {
   cacheTtlSeconds: number;
   cacheVersion: number;
   shortcutsJson: string | null;
+  footerCopyrightUrl: string | null;
+  footerIcpText: string | null;
+  footerIcpLink: string | null;
 };
 
 type Category = { id: string; slug: string; name: string };
@@ -112,6 +115,52 @@ function escapeHtml(s: string): string {
     .replaceAll("'", "&#39;");
 }
 
+function safeHref(input: string | null): string | null {
+  const s = String(input ?? "").trim();
+  if (!s) return null;
+  if (s.startsWith("/")) return s;
+  try {
+    const u = new URL(s);
+    if (u.protocol === "http:" || u.protocol === "https:") return u.toString();
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function renderSiteFooter(cfg: SiteConfig, year: string): string {
+  const title = cfg.title ?? "Bitlog";
+  const copyrightText = `© ${year} ${title}. All rights reserved.`;
+  const copyrightHref = safeHref(cfg.footerCopyrightUrl) ?? safeHref(cfg.baseUrl) ?? null;
+  const copyrightHtml = copyrightHref
+    ? `<a href="${escapeHtml(copyrightHref)}" target="_blank" rel="noopener noreferrer">${escapeHtml(copyrightText)}</a>`
+    : `<span>${escapeHtml(copyrightText)}</span>`;
+
+  const dot = `<span class="site-footer__dot" aria-hidden="true">·</span>`;
+  const sitemap = `<a href="/sitemap.xml" target="_blank" rel="noopener noreferrer" aria-label="网站地图">Sitemap</a>`;
+  const rss = `<a href="/rss.xml" target="_blank" rel="noopener noreferrer" aria-label="RSS订阅">RSS</a>`;
+
+  const icpText = String(cfg.footerIcpText ?? "").trim();
+  const icpHref = safeHref(cfg.footerIcpLink) ?? "https://beian.miit.gov.cn/";
+  const icpHtml = icpText
+    ? `<div class="site-footer__icp">
+  <img src="/images/national.png" alt="备案图标" width="16" height="16" loading="lazy" decoding="async" />
+  <a href="${escapeHtml(icpHref)}" target="_blank" rel="noopener noreferrer">${escapeHtml(icpText)}</a>
+</div>`
+    : "";
+
+  return `<footer class="site-footer">
+  <div class="site-footer__links">
+    ${copyrightHtml}
+    ${dot}
+    ${sitemap}
+    ${dot}
+    ${rss}
+  </div>
+  ${icpHtml}
+</footer>`;
+}
+
 function isoDate(ms: number, tz: string | null): string {
   const dtf = new Intl.DateTimeFormat("zh-CN", {
     timeZone: tz ?? undefined,
@@ -205,6 +254,8 @@ async function maybeCachePage(
   if (typeof (globalThis as any).caches === "undefined" || !(caches as any).default) return build();
 
   const url = new URL(request.url);
+  // Local dev: avoid caching HTML pages so template tweaks reflect immediately.
+  if (url.hostname === "127.0.0.1" || url.hostname === "localhost") return build();
   url.searchParams.set("__cv", String(cfg.cacheVersion));
   url.searchParams.set("__k", cacheKey);
   const keyReq = new Request(url.toString(), request);
@@ -219,6 +270,15 @@ async function maybeCachePage(
   const toCache = new Response(res.clone().body, { status: res.status, headers });
   await cache.put(keyReq, toCache.clone());
   return toCache;
+}
+
+function cacheVersionForRequest(cfg: SiteConfig, reqUrl: string): string {
+  try {
+    const url = new URL(reqUrl);
+    // Local dev: force-refresh static assets (CSS/JS) without needing to bump cache_version.
+    if (url.hostname === "127.0.0.1" || url.hostname === "localhost") return String(Date.now());
+  } catch {}
+  return String(cfg.cacheVersion);
 }
 
 function renderChips(items: Array<{ name: string; slug: string }>, baseHref: string): string {
@@ -321,33 +381,18 @@ export function createWebApp() {
   app.get("/", async (c) => {
     const cfg = await getConfig(c.env);
     return maybeCachePage(c.req.raw, cfg, "web:home", async () => {
-      const list = await apiJson<ApiOk<{ posts: PostListItem[] }>>(c.env, `/api/posts?page=1&pageSize=6`);
-      const posts = list.posts ?? [];
-
-      const cards = posts
-        .map((p) => {
-          const dateText = isoDate(Number(p.publish_at ?? p.updated_at), cfg.timezone);
-          const cat = p.category_name ?? p.category_slug ?? "";
-          const catChip = cat ? `<span class="chip chip--${hashColor(cat)}">${escapeHtml(cat)}</span>` : "";
-          return `<a class="card article-card" href="/articles/${encodeURIComponent(p.slug)}">
-  <div class="meta">${escapeHtml(dateText)}${catChip ? ` · ${catChip}` : ""}</div>
-  <h2 class="article-title">${escapeHtml(p.title)}</h2>
-  <p class="article-summary">${escapeHtml(p.summary ?? "")}</p>
-</a>`;
-        })
-        .join("\n");
-
       const year = String(new Date().getFullYear());
+      const footer = renderSiteFooter(cfg, year);
       const html = replaceAll((await loadTemplates(c.env, c.req.url)).home, {
         "{{PAGE_TITLE}}": escapeHtml(cfg.title ?? "Bitlog"),
         "{{SITE_TITLE}}": escapeHtml(cfg.title ?? "Bitlog"),
         "{{SITE_DESC}}": escapeHtml(
           cfg.description ??
-            "在 AI 时代重定义思考与写作：更清晰的结构，更轻量的表达，更可复用的知识沉淀。"
+            "在 AI 时代重新定义思考"
         ),
-        "{{RECENT_CARDS}}": cards || `<div class="meta">暂无文章</div>`,
         "{{YEAR}}": escapeHtml(year),
-        "{{CACHE_VERSION}}": escapeHtml(String(cfg.cacheVersion)),
+        "{{SITE_FOOTER}}": footer,
+        "{{CACHE_VERSION}}": escapeHtml(cacheVersionForRequest(cfg, c.req.url)),
         "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? "")
       });
 
@@ -375,6 +420,8 @@ export function createWebApp() {
     const pageSize = Math.min(30, Math.max(1, Number(url.searchParams.get("pageSize") ?? "10")));
 
     return maybeCachePage(c.req.raw, cfg, `web:articles:${q}:${category ?? ""}:${tag ?? ""}:${page}:${pageSize}`, async () => {
+      const year = String(new Date().getFullYear());
+      const footer = renderSiteFooter(cfg, year);
       const [categories, tags] = await Promise.all([
         apiJson<ApiOk<{ categories: Category[] }>>(c.env, "/api/categories").then((r) => r.categories),
         apiJson<ApiOk<{ tags: Tag[] }>>(c.env, "/api/tags").then((r) => r.tags)
@@ -431,7 +478,8 @@ export function createWebApp() {
         "{{POST_CARDS}}": cards || `<div class="meta">暂无文章</div>`,
         "{{CATEGORIES}}": renderChipsWithActive(categories, "/articles?category=", category),
         "{{TAGS}}": renderChipsWithActive(tags as any, "/articles?tag=", tag),
-        "{{CACHE_VERSION}}": escapeHtml(String(cfg.cacheVersion)),
+        "{{SITE_FOOTER}}": footer,
+        "{{CACHE_VERSION}}": escapeHtml(cacheVersionForRequest(cfg, c.req.url)),
         "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? "")
       });
 
@@ -448,6 +496,7 @@ export function createWebApp() {
 
     return maybeCachePage(c.req.raw, cfg, `web:projects:${platform}`, async () => {
       const year = String(new Date().getFullYear());
+      const footer = renderSiteFooter(cfg, year);
 
       const data = await apiJson<
         ApiOk<{
@@ -524,7 +573,7 @@ export function createWebApp() {
 
       const html = replaceAll((await loadTemplates(c.env, c.req.url)).page, {
         "{{PAGE_TITLE}}": escapeHtml(cfg.title ? `${cfg.title} · 项目` : "项目"),
-        "{{CACHE_VERSION}}": escapeHtml(String(cfg.cacheVersion)),
+        "{{CACHE_VERSION}}": escapeHtml(cacheVersionForRequest(cfg, c.req.url)),
         "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? ""),
         "{{PAGE_ID}}": "projects",
         "{{SEARCH_VALUE}}": "",
@@ -540,8 +589,8 @@ ${filter}
 <div class="cards-grid">
   ${cards || `<div class="meta">暂无项目（请先在后台 设置 → 项目页 配置账号）</div>`}
 </div>
-<div class="footer">© ${escapeHtml(year)} ${escapeHtml(cfg.title ?? "Bitlog")}</div>
 `.trim(),
+        "{{SITE_FOOTER}}": footer,
         "{{TOOL_SCRIPT}}": `<script>(function(){var key="bl-projects-platform";try{var url=new URL(location.href);var p=(url.searchParams.get("platform")||"").trim();if(!p){var stored=localStorage.getItem(key);if(stored&&stored!=="all"){url.searchParams.set("platform",stored);location.replace(url.pathname+"?"+url.searchParams.toString());return;}}else{localStorage.setItem(key,p);}}catch(e){}})()</script>`,
       });
       return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
@@ -552,9 +601,10 @@ ${filter}
     const cfg = await getConfig(c.env);
     return maybeCachePage(c.req.raw, cfg, "web:about", async () => {
       const year = String(new Date().getFullYear());
+      const footer = renderSiteFooter(cfg, year);
       const html = replaceAll((await loadTemplates(c.env, c.req.url)).page, {
         "{{PAGE_TITLE}}": escapeHtml(cfg.title ? `${cfg.title} · 关于我` : "关于我"),
-        "{{CACHE_VERSION}}": escapeHtml(String(cfg.cacheVersion)),
+        "{{CACHE_VERSION}}": escapeHtml(cacheVersionForRequest(cfg, c.req.url)),
         "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? ""),
         "{{PAGE_ID}}": "about",
         "{{SEARCH_VALUE}}": "",
@@ -564,71 +614,10 @@ ${filter}
         "{{NAV_TOOLS_ACTIVE}}": "",
         "{{NAV_ABOUT_ACTIVE}}": "active",
         "{{MAIN_TITLE}}": escapeHtml("关于我"),
-        "{{MAIN_DESC}}": escapeHtml("实时天气 · 今日快讯 · 技术栈 · 旅行足迹 · 我的过往"),
-        "{{MAIN_CONTENT}}": `
-<div class="grid" style="gap: 14px">
-  <section class="card" style="padding: 14px">
-    <div class="nav" style="justify-content: space-between; align-items: center">
-      <div>
-        <div style="font-weight: 800; font-size: 18px">实时天气</div>
-        <div class="meta">IP 自动定位（无需授权）</div>
-      </div>
-      <button class="chip" id="aboutWeatherRefresh" type="button">刷新</button>
-    </div>
-    <div style="height: 10px"></div>
-    <div id="about-weather"></div>
-  </section>
-
-  <section class="card" style="padding: 14px">
-    <div style="font-weight: 800; font-size: 18px">今日快讯</div>
-    <div class="meta">每日新闻图片 · 程序员历史事件</div>
-    <div style="height: 10px"></div>
-    <div class="grid" style="grid-template-columns: 1fr 1.2fr; gap: 12px">
-      <div>
-        <div class="meta" style="margin-bottom: 6px">每日新闻图片</div>
-        <img id="about-news-image" alt="每日新闻图片" style="width: 100%; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08)" />
-      </div>
-      <div>
-        <div class="nav" style="justify-content: space-between; align-items: center; margin-bottom: 6px">
-          <div class="meta">程序员历史事件</div>
-          <button class="chip" id="aboutHistoryRefresh" type="button">刷新</button>
-        </div>
-        <div id="about-history"></div>
-      </div>
-    </div>
-  </section>
-
-  <section class="card" style="padding: 14px">
-    <div>
-      <div style="font-weight: 800; font-size: 18px">我的技术栈</div>
-      <div class="meta">可在后台编辑</div>
-    </div>
-    <div style="height: 10px"></div>
-    <div id="about-tech"></div>
-  </section>
-
-  <section class="card" style="padding: 14px">
-    <div class="nav" style="justify-content: space-between; align-items: center">
-      <div>
-        <div style="font-weight: 800; font-size: 18px">旅行足迹</div>
-        <div class="meta">3D 世界地图（浏览器运行）</div>
-      </div>
-      <button class="chip" id="aboutHeatmapReload" type="button">重载</button>
-    </div>
-    <div style="height: 10px"></div>
-    <div id="about-heatmap" style="height: 520px; border-radius: 14px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08)"></div>
-  </section>
-
-  <section class="card" style="padding: 14px">
-    <div style="font-weight: 800; font-size: 18px">我的过往</div>
-    <div class="meta">可在后台编辑</div>
-    <div style="height: 10px"></div>
-    <div id="about-timeline"></div>
-  </section>
-</div>
-<div class="footer">© ${escapeHtml(year)} ${escapeHtml(cfg.title ?? "Bitlog")}</div>
-`.trim(),
-        "{{TOOL_SCRIPT}}": `<script type="module" src="/ui/about/about.js?__cv=${escapeHtml(String(cfg.cacheVersion))}"></script>`,
+        "{{MAIN_DESC}}": escapeHtml("工作经历 · 旅行足迹"),
+        "{{MAIN_CONTENT}}": "",
+        "{{SITE_FOOTER}}": footer,
+        "{{TOOL_SCRIPT}}": `<script type="module" src="/ui/about/about.js?__cv=${escapeHtml(cacheVersionForRequest(cfg, c.req.url))}"></script>`,
       });
       return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
     });
@@ -647,6 +636,7 @@ ${filter}
 
     return maybeCachePage(c.req.raw, cfg, `web:tools:${group}`, async () => {
       const year = String(new Date().getFullYear());
+      const footer = renderSiteFooter(cfg, year);
       const apiPath = group === "all" ? "/api/tools" : `/api/tools?group=${encodeURIComponent(group)}`;
       const data = await apiJson<ApiOk<{ tools: ToolItem[] }>>(c.env, apiPath);
       const tools = data.tools ?? [];
@@ -700,7 +690,7 @@ ${filter}
 
       const html = replaceAll((await loadTemplates(c.env, c.req.url)).page, {
         "{{PAGE_TITLE}}": escapeHtml(cfg.title ? `${cfg.title} · 工具中心` : "工具中心"),
-        "{{CACHE_VERSION}}": escapeHtml(String(cfg.cacheVersion)),
+        "{{CACHE_VERSION}}": escapeHtml(cacheVersionForRequest(cfg, c.req.url)),
         "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? ""),
         "{{PAGE_ID}}": "tools",
         "{{SEARCH_VALUE}}": "",
@@ -716,8 +706,8 @@ ${filter}
 <div class="cards-grid">
   ${cards || `<div class="meta">暂无工具（请先在后台 设置 → 工具中心 新增）</div>`}
 </div>
-<div class="footer">© ${escapeHtml(year)} ${escapeHtml(cfg.title ?? "Bitlog")}</div>
 `.trim(),
+        "{{SITE_FOOTER}}": footer,
         "{{TOOL_SCRIPT}}": "",
       });
       return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
@@ -733,9 +723,10 @@ ${filter}
       tool = data.tool;
     } catch {
       const year = String(new Date().getFullYear());
+      const footer = renderSiteFooter(cfg, year);
       const html = replaceAll((await loadTemplates(c.env, c.req.url)).page, {
         "{{PAGE_TITLE}}": escapeHtml(cfg.title ? `${cfg.title} · 工具未找到` : "工具未找到"),
-        "{{CACHE_VERSION}}": escapeHtml(String(cfg.cacheVersion)),
+          "{{CACHE_VERSION}}": escapeHtml(cacheVersionForRequest(cfg, c.req.url)),
         "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? ""),
         "{{PAGE_ID}}": "tools",
         "{{SEARCH_VALUE}}": "",
@@ -746,7 +737,8 @@ ${filter}
         "{{NAV_ABOUT_ACTIVE}}": "",
         "{{MAIN_TITLE}}": escapeHtml("工具未找到"),
         "{{MAIN_DESC}}": escapeHtml("该工具不存在或已被禁用。"),
-        "{{MAIN_CONTENT}}": `<a class="chip" href="/tools">← 返回工具中心</a><div class="footer">© ${escapeHtml(year)} ${escapeHtml(cfg.title ?? "Bitlog")}</div>`,
+        "{{MAIN_CONTENT}}": `<a class="chip" href="/tools">← 返回工具中心</a>`,
+        "{{SITE_FOOTER}}": footer,
         "{{TOOL_SCRIPT}}": "",
       });
       return new Response(html, { status: 404, headers: { "content-type": "text/html; charset=utf-8" } });
@@ -758,13 +750,14 @@ ${filter}
     }
 
     const year = String(new Date().getFullYear());
+    const footer = renderSiteFooter(cfg, year);
     const scriptBlock = tool.clientCode
       ? `<script src="/api/tools/${encodeURIComponent(tool.slug)}/script.js"></script>`
       : "";
 
     const html = replaceAll((await loadTemplates(c.env, c.req.url)).page, {
       "{{PAGE_TITLE}}": escapeHtml(cfg.title ? `${cfg.title} · ${tool.title}` : tool.title),
-      "{{CACHE_VERSION}}": escapeHtml(String(cfg.cacheVersion)),
+      "{{CACHE_VERSION}}": escapeHtml(cacheVersionForRequest(cfg, c.req.url)),
       "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? ""),
       "{{PAGE_ID}}": "tools",
       "{{SEARCH_VALUE}}": "",
@@ -780,8 +773,8 @@ ${filter}
   <a class="chip" href="/tools">← 工具中心</a>
 </div>
 <div id="tool-root"></div>
-<div class="footer">© ${escapeHtml(year)} ${escapeHtml(cfg.title ?? "Bitlog")}</div>
 `.trim(),
+      "{{SITE_FOOTER}}": footer,
       "{{TOOL_SCRIPT}}": scriptBlock,
     });
     return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
@@ -791,6 +784,8 @@ ${filter}
     const cfg = await getConfig(c.env);
     const slug = c.req.param("slug");
     return maybeCachePage(c.req.raw, cfg, `web:post:${slug}`, async () => {
+      const year = String(new Date().getFullYear());
+      const footer = renderSiteFooter(cfg, year);
       const publicResp = await apiForwardJson<ApiOk<{ post: PostDetail }>>(
         c.env,
         c.req.raw,
@@ -844,7 +839,8 @@ ${filter}
         "{{TAG_CHIPS}}": tagChips || `<span class="meta">无标签</span>`,
         "{{TOC_GROUPS}}": toc.tocHtml || `<div class="meta">无目录</div>`,
         "{{POST_CONTENT}}": post.content_html ?? "",
-        "{{CACHE_VERSION}}": escapeHtml(String(cfg.cacheVersion)),
+        "{{SITE_FOOTER}}": footer,
+        "{{CACHE_VERSION}}": escapeHtml(cacheVersionForRequest(cfg, c.req.url)),
         "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? "")
       });
 

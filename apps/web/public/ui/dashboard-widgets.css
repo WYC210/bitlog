@@ -1,0 +1,613 @@
+/* Dashboard Widget System - Glassmorphism Style */
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap');
+
+/* Dashboard Variables */
+:root {
+  --dashboard-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --glass-bg: rgba(255, 255, 255, 0.1);
+  --glass-border: rgba(255, 255, 255, 0.2);
+  --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+  --glass-blur: 12px;
+  --card-radius: 20px;
+  --card-padding: 24px;
+  --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-theme="dark"] {
+  --glass-bg: rgba(30, 41, 59, 0.7);
+  --glass-border: rgba(148, 163, 184, 0.2);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+}
+
+/* Dashboard Container */
+.dashboard-container {
+  min-height: 100vh;
+  background: var(--dashboard-bg);
+  background-attachment: fixed;
+  padding: 40px 20px;
+}
+
+[data-theme="dark"] .dashboard-container {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+}
+
+/* Dashboard Grid */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Glass Card Base */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border-radius: var(--card-radius);
+  border: 1px solid var(--glass-border);
+  padding: var(--card-padding);
+  box-shadow: var(--glass-shadow);
+  transition: var(--transition-smooth);
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  transition: left 0.5s ease;
+}
+
+.glass-card:hover::before {
+  left: 100%;
+}
+
+.glass-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 16px 48px 0 rgba(31, 38, 135, 0.5);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+[data-theme="dark"] .glass-card:hover {
+  box-shadow: 0 16px 48px 0 rgba(0, 0, 0, 0.7);
+}
+
+/* Card Header */
+.glass-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.glass-card-title {
+  font-family: 'Fira Sans', sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+}
+
+[data-theme="dark"] .glass-card-title {
+  color: rgba(248, 250, 252, 0.95);
+}
+
+.glass-card-icon {
+  width: 24px;
+  height: 24px;
+  padding: 6px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.glass-card-icon svg {
+  width: 100%;
+  height: 100%;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.glass-card-badge {
+  background: rgba(34, 197, 94, 0.2);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  color: #22c55e;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'Fira Code', monospace;
+}
+
+/* Card Body */
+.glass-card-body {
+  color: rgba(255, 255, 255, 0.85);
+  font-family: 'Fira Sans', sans-serif;
+}
+
+[data-theme="dark"] .glass-card-body {
+  color: rgba(226, 232, 240, 0.85);
+}
+
+/* Stat Card */
+.stat-card-value {
+  font-size: 48px;
+  font-weight: 700;
+  font-family: 'Fira Code', monospace;
+  color: rgba(255, 255, 255, 0.95);
+  line-height: 1;
+  margin-bottom: 8px;
+  background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.7) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.stat-card-label {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 500;
+}
+
+.stat-card-change {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 12px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Fira Code', monospace;
+}
+
+.stat-card-change.positive {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.stat-card-change.negative {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.stat-card-change svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Weather Card */
+.weather-card-main {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.weather-card-icon {
+  font-size: 64px;
+  line-height: 1;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.2));
+}
+
+.weather-card-temp {
+  font-size: 56px;
+  font-weight: 700;
+  font-family: 'Fira Code', monospace;
+  color: rgba(255, 255, 255, 0.95);
+  line-height: 1;
+}
+
+.weather-card-desc {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.75);
+  margin-top: 8px;
+}
+
+.weather-card-details {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.weather-detail-item {
+  text-align: center;
+}
+
+.weather-detail-icon {
+  width: 20px;
+  height: 20px;
+  margin: 0 auto 8px;
+  opacity: 0.8;
+}
+
+.weather-detail-value {
+  font-size: 18px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+  font-family: 'Fira Code', monospace;
+}
+
+.weather-detail-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 4px;
+}
+
+/* List Card */
+.glass-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.glass-list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  transition: var(--transition-smooth);
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+}
+
+.glass-list-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateX(4px);
+}
+
+.glass-list-item:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 2px;
+}
+
+.glass-list-item-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.glass-list-item-icon svg {
+  width: 20px;
+  height: 20px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.glass-list-item-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.glass-list-item-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.glass-list-item-subtitle {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.glass-list-item-meta {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  font-family: 'Fira Code', monospace;
+}
+
+/* Progress Card */
+.progress-card-item {
+  margin-bottom: 20px;
+}
+
+.progress-card-item:last-child {
+  margin-bottom: 0;
+}
+
+.progress-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.progress-card-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.progress-card-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+  font-family: 'Fira Code', monospace;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #22c55e 0%, #10b981 100%);
+  border-radius: 999px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.progress-bar-fill::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+  animation: progress-shimmer 2s infinite;
+}
+
+@keyframes progress-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Chart Card */
+.chart-card-container {
+  height: 200px;
+  margin-top: 20px;
+  position: relative;
+}
+
+.chart-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 14px;
+}
+
+/* Activity Feed Card */
+.activity-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.activity-item {
+  display: flex;
+  gap: 12px;
+  position: relative;
+}
+
+.activity-item::before {
+  content: "";
+  position: absolute;
+  left: 15px;
+  top: 32px;
+  bottom: -16px;
+  width: 2px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.activity-item:last-child::before {
+  display: none;
+}
+
+.activity-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.activity-icon svg {
+  width: 16px;
+  height: 16px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.activity-content {
+  flex: 1;
+  padding-top: 2px;
+}
+
+.activity-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.95);
+  margin-bottom: 4px;
+}
+
+.activity-time {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  font-family: 'Fira Code', monospace;
+}
+
+/* Card Actions */
+.glass-card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.glass-btn {
+  flex: 1;
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.glass-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.glass-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.glass-btn.primary {
+  background: rgba(34, 197, 94, 0.2);
+  border-color: rgba(34, 197, 94, 0.4);
+  color: #22c55e;
+}
+
+.glass-btn.primary:hover {
+  background: rgba(34, 197, 94, 0.3);
+  border-color: rgba(34, 197, 94, 0.5);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .dashboard-container {
+    padding: 20px 16px;
+  }
+
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .glass-card {
+    padding: 20px;
+  }
+
+  .stat-card-value {
+    font-size: 36px;
+  }
+
+  .weather-card-temp {
+    font-size: 42px;
+  }
+
+  .weather-card-icon {
+    font-size: 48px;
+  }
+
+  .weather-card-details {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .glass-card,
+  .glass-list-item,
+  .glass-btn,
+  .progress-bar-fill {
+    transition: none;
+  }
+
+  .glass-card:hover {
+    transform: none;
+  }
+
+  .progress-bar-fill::after {
+    animation: none;
+  }
+
+  .glass-card::before {
+    display: none;
+  }
+}
+
+/* Focus States */
+.glass-card:focus-visible,
+.glass-list-item:focus-visible,
+.glass-btn:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 4px;
+}
+
+/* Light theme focus states */
+[data-theme="light"] .glass-card:focus-visible,
+[data-theme="light"] .glass-list-item:focus-visible,
+[data-theme="light"] .glass-btn:focus-visible {
+  outline-color: var(--primary);
+}

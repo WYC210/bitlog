@@ -10,6 +10,9 @@ export interface SiteConfig {
   cacheTtlSeconds: number;
   cacheVersion: number;
   shortcutsJson: string | null;
+  footerCopyrightUrl: string | null;
+  footerIcpText: string | null;
+  footerIcpLink: string | null;
 }
 
 const KEY_TITLE = "site.title";
@@ -20,10 +23,13 @@ const KEY_EMBED_ALLOWLIST = "site.embed_allowlist";
 const KEY_CACHE_TTL = "site.cache_public_ttl_seconds";
 const KEY_CACHE_VERSION = "site.cache_version";
 const KEY_SHORTCUTS = "site.shortcuts_json";
+const KEY_FOOTER_COPYRIGHT_URL = "site.footer_copyright_url";
+const KEY_FOOTER_ICP_TEXT = "site.footer_icp_text";
+const KEY_FOOTER_ICP_LINK = "site.footer_icp_link";
 
 export async function getSiteConfig(db: Db): Promise<SiteConfig> {
   const rows = await db.query<{ key: string; value: string }>(
-    sql`SELECT key, value FROM settings WHERE key IN (${KEY_TITLE}, ${KEY_DESCRIPTION}, ${KEY_BASE_URL}, ${KEY_TIMEZONE}, ${KEY_EMBED_ALLOWLIST}, ${KEY_CACHE_TTL}, ${KEY_CACHE_VERSION}, ${KEY_SHORTCUTS})`
+    sql`SELECT key, value FROM settings WHERE key IN (${KEY_TITLE}, ${KEY_DESCRIPTION}, ${KEY_BASE_URL}, ${KEY_TIMEZONE}, ${KEY_EMBED_ALLOWLIST}, ${KEY_CACHE_TTL}, ${KEY_CACHE_VERSION}, ${KEY_SHORTCUTS}, ${KEY_FOOTER_COPYRIGHT_URL}, ${KEY_FOOTER_ICP_TEXT}, ${KEY_FOOTER_ICP_LINK})`
   );
   const map = new Map(rows.map((r) => [r.key, r.value]));
 
@@ -40,6 +46,9 @@ export async function getSiteConfig(db: Db): Promise<SiteConfig> {
   const title = map.get(KEY_TITLE) ?? null;
   const description = map.get(KEY_DESCRIPTION) ?? null;
   const shortcutsJson = map.get(KEY_SHORTCUTS) ?? null;
+  const footerCopyrightUrl = map.get(KEY_FOOTER_COPYRIGHT_URL) ?? null;
+  const footerIcpText = map.get(KEY_FOOTER_ICP_TEXT) ?? null;
+  const footerIcpLink = map.get(KEY_FOOTER_ICP_LINK) ?? null;
 
   return {
     title,
@@ -49,7 +58,10 @@ export async function getSiteConfig(db: Db): Promise<SiteConfig> {
     embedAllowlistHosts,
     cacheTtlSeconds,
     cacheVersion,
-    shortcutsJson
+    shortcutsJson,
+    footerCopyrightUrl,
+    footerIcpText,
+    footerIcpLink
   };
 }
 
@@ -82,7 +94,7 @@ export async function bumpCacheVersion(db: Db): Promise<void> {
 function normalizeSettingValue(key: string, value: unknown): string {
   if (key === KEY_BASE_URL) {
     const normalized = normalizeBaseUrl(String(value ?? ""));
-    if (!normalized) throw new Error("Invalid site.base_url");
+    if (!normalized) throw new Error("Invalid site.base_url (example: https://example.com)");
     return normalized;
   }
   if (key === KEY_TIMEZONE) {
@@ -114,12 +126,28 @@ function normalizeSettingValue(key: string, value: unknown): string {
 }
 
 function normalizeBaseUrl(input: string | null): string | null {
-  const s = String(input ?? "").trim();
-  if (!s) return null;
+  const raw = String(input ?? "").trim();
+  if (!raw) return null;
+
+  // Accept "example.com" and normalize to "https://example.com".
+  // For local dev, prefer http:// for localhost/127.0.0.1.
+  let s = raw;
+  if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(s)) {
+    const lower = s.toLowerCase();
+    const scheme =
+      lower.startsWith("localhost") ||
+      lower.startsWith("127.0.0.1") ||
+      lower.startsWith("[::1]")
+        ? "http://"
+        : "https://";
+    s = scheme + s;
+  }
+
   try {
     const url = new URL(s);
     if (url.hash || url.search) return null;
     if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+    if (url.username || url.password) return null;
     url.pathname = url.pathname.replace(/\/+$/, "");
     const out = url.toString().replace(/\/$/, "");
     return out;
@@ -150,4 +178,3 @@ function parseEmbedAllowlist(jsonText: string | null): Set<string> {
     return new Set();
   }
 }
-

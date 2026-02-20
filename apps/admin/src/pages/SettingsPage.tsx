@@ -29,6 +29,9 @@ export function SettingsPage(props: {
   const [cacheTtl, setCacheTtl] = useState(String(props.cfg?.cacheTtlSeconds ?? 60));
   const [embedAllowlist, setEmbedAllowlist] = useState((props.cfg?.embedAllowlistHosts ?? []).join("\n"));
   const [shortcuts, setShortcuts] = useState(props.cfg?.shortcutsJson ?? "");
+  const [footerCopyrightUrl, setFooterCopyrightUrl] = useState(props.cfg?.footerCopyrightUrl ?? "");
+  const [footerIcpText, setFooterIcpText] = useState(props.cfg?.footerIcpText ?? "");
+  const [footerIcpLink, setFooterIcpLink] = useState(props.cfg?.footerIcpLink ?? "https://beian.miit.gov.cn/");
   const [pwOld, setPwOld] = useState("");
   const [pwNew, setPwNew] = useState("");
   const [saving, setSaving] = useState(false);
@@ -73,6 +76,35 @@ export function SettingsPage(props: {
     enabled: true
   });
 
+  function KeyDetails(props: { storageKey: string }) {
+    const [copied, setCopied] = useState(false);
+    const k = String(props.storageKey ?? "").trim();
+    if (!k) return null;
+    return (
+      <details className="muted" style={{ marginTop: 6 }}>
+        <summary style={{ cursor: "pointer" }}>高级：内部键（点开查看/复制）</summary>
+        <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 8, flexWrap: "wrap" }}>
+          <code style={{ padding: "4px 8px", borderRadius: 8, background: "rgba(255,255,255,0.06)" }}>{k}</code>
+          <button
+            className="chip"
+            type="button"
+            onClick={() => {
+              try {
+                void navigator.clipboard?.writeText(k);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 1200);
+              } catch {
+                // ignore
+              }
+            }}
+          >
+            {copied ? "已复制" : "复制"}
+          </button>
+        </div>
+      </details>
+    );
+  }
+
   async function formatJs(code: string): Promise<string> {
     const prettierMod = (await import("prettier/standalone")) as any;
     const babelMod = (await import("prettier/plugins/babel")) as any;
@@ -108,7 +140,7 @@ export function SettingsPage(props: {
       setAboutVisitedPlacesJson((v) => formatJsonSync(v));
       setAboutTimelineJson((v) => formatJsonSync(v));
     } catch (e) {
-      const msg = (e as any)?.message ? String((e as any).message) : "JSON format failed";
+      const msg = (e as any)?.message ? String((e as any).message) : "JSON 格式化失败";
       props.onError(msg);
     } finally {
       setFormattingAboutJson(false);
@@ -153,6 +185,9 @@ export function SettingsPage(props: {
     setCacheTtl(String(props.cfg.cacheTtlSeconds ?? 60));
     setEmbedAllowlist((props.cfg.embedAllowlistHosts ?? []).join("\n"));
     setShortcuts(props.cfg.shortcutsJson ?? "");
+    setFooterCopyrightUrl(props.cfg.footerCopyrightUrl ?? "");
+    setFooterIcpText(props.cfg.footerIcpText ?? "");
+    setFooterIcpLink(props.cfg.footerIcpLink ?? "https://beian.miit.gov.cn/");
   }, [props.cfg]);
 
   useEffect(() => {
@@ -209,30 +244,111 @@ export function SettingsPage(props: {
       });
       const newCfg = await getConfig();
       props.onCfg(newCfg);
-      alert("Saved (cache_version bumped)");
+      alert("已保存（cache_version 已递增）");
     } catch (e) {
       const err = e as ApiError;
-      props.onError(err.message || "Save failed");
+      props.onError(err.message || "保存失败");
     } finally {
       setSaving(false);
     }
   }
 
-  async function saveSettings() {
+  function parseAllowlistHosts(input: string): string[] {
+    return String(input ?? "")
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean)
+      .map((h) => h.replace(/^https?:\/\//, "").split("/")[0]!)
+      .filter(Boolean);
+  }
+
+  async function saveSiteCoreSettings() {
     props.onError("");
     setSaving(true);
     try {
-      const allowlistHosts = embedAllowlist
-        .split("\n")
-        .map((l) => l.trim())
-        .filter(Boolean)
-        .map((h) => h.replace(/^https?:\/\//, "").split("/")[0]!);
+      let nextBaseUrl = String(baseUrl ?? "").trim();
+      if (!nextBaseUrl) {
+        props.onError("站点域名（site.base_url）必填，例如：https://www.example.com");
+        return;
+      }
+      if (!/^https?:\/\//i.test(nextBaseUrl)) {
+        nextBaseUrl = `https://${nextBaseUrl}`;
+        setBaseUrl(nextBaseUrl);
+      }
+
       await updateSettings({
-        "site.base_url": baseUrl,
+        "site.base_url": nextBaseUrl,
         "site.timezone": timezone,
-        "site.cache_public_ttl_seconds": Number(cacheTtl),
-        "site.embed_allowlist": allowlistHosts,
-        "site.shortcuts_json": shortcuts
+        "site.cache_public_ttl_seconds": Number(cacheTtl)
+      });
+      const newCfg = await getConfig();
+      props.onCfg(newCfg);
+      alert("已保存（cache_version 已递增）");
+    } catch (e) {
+      const err = e as ApiError;
+      props.onError(err.message || "保存失败");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function saveEmbedAllowlist() {
+    props.onError("");
+    setSaving(true);
+    try {
+      const allowlistHosts = parseAllowlistHosts(embedAllowlist);
+      await updateSettings({ "site.embed_allowlist": allowlistHosts });
+      const newCfg = await getConfig();
+      props.onCfg(newCfg);
+      alert("已保存（cache_version 已递增）");
+    } catch (e) {
+      const err = e as ApiError;
+      props.onError(err.message || "保存失败");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function saveShortcuts() {
+    props.onError("");
+    setSaving(true);
+    try {
+      const text = String(shortcuts ?? "").trim();
+      if (text) JSON.parse(text);
+      await updateSettings({ "site.shortcuts_json": shortcuts });
+      const newCfg = await getConfig();
+      props.onCfg(newCfg);
+      alert("已保存（cache_version 已递增）");
+    } catch (e) {
+      const err = e as ApiError;
+      props.onError(err.message || "保存失败");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function isValidHrefForFooter(s: string): boolean {
+    const v = String(s ?? "").trim();
+    if (!v) return true;
+    return v.startsWith("/") || /^https?:\/\//i.test(v);
+  }
+
+  async function saveFooter() {
+    props.onError("");
+    setSaving(true);
+    try {
+      if (!isValidHrefForFooter(footerCopyrightUrl)) {
+        props.onError("版权链接格式不正确：请输入以 https:// 开头的链接，或以 / 开头的站内路径。");
+        return;
+      }
+      if (!isValidHrefForFooter(footerIcpLink)) {
+        props.onError("ICP 链接格式不正确：请输入以 https:// 开头的链接，或以 / 开头的站内路径。");
+        return;
+      }
+      await updateSettings({
+        "site.footer_copyright_url": footerCopyrightUrl,
+        "site.footer_icp_text": footerIcpText,
+        "site.footer_icp_link": footerIcpLink
       });
       const newCfg = await getConfig();
       props.onCfg(newCfg);
@@ -360,7 +476,7 @@ export function SettingsPage(props: {
   async function addTool() {
     props.onError("");
     if (!newTool.title.trim() || !newTool.slug.trim()) {
-      props.onError("请填写 title / slug");
+      props.onError("请填写 标题 / 路径标识");
       return;
     }
     setSaving(true);
@@ -422,7 +538,7 @@ export function SettingsPage(props: {
   return (
     <div className="grid">
       <div className="card">
-        <h2 style={{ margin: "0 0 8px" }}>/about 配置</h2>
+        <h2 style={{ margin: "0 0 8px" }}>关于页配置（/about）</h2>
         <div className="muted">存储在 settings 表中（JSON，多行）。/about 页面会读取并展示。</div>
         <div style={{ height: 10 }} />
         <div className="nav" style={{ marginBottom: 10 }}>
@@ -435,18 +551,20 @@ export function SettingsPage(props: {
         </div>
 
         <label>
-          {ABOUT_KEY_TECH_STACK}
+          <div style={{ fontWeight: 700 }}>技能专长（JSON）</div>
+          <KeyDetails storageKey={ABOUT_KEY_TECH_STACK} />
           <CodeEditor
             value={aboutTechStackJson}
             onChange={(v) => setAboutTechStackJson(v)}
             onSave={() => void saveAbout()}
-            placeholder={`[\n  { \"title\": \"Frontend\", \"items\": [\"TypeScript\", \"React\"] },\n  { \"title\": \"Backend\", \"items\": [\"Hono\", \"SQLite\"] }\n]`}
+            placeholder={`[\n  {\n    \"title\": \"前端开发\",\n    \"description\": \"精通现代前端技术栈，擅长构建高性能 Web 应用。\",\n    \"tags\": [\"React\", \"Vue\", \"TypeScript\"],\n    \"icon\": \"frontend\"\n  },\n  {\n    \"title\": \"UI/UX 设计\",\n    \"description\": \"注重用户体验，擅长将设计理念转化为界面实现。\",\n    \"tags\": [\"Figma\", \"Tailwind\", \"CSS\"],\n    \"icon\": \"design\"\n  }\n]\n\n// 兼容写法：也支持 items 字段\n// { \"title\": \"Backend\", \"items\": [\"Hono\", \"SQLite\"] }`}
           />
         </label>
 
         <div style={{ height: 10 }} />
         <label>
-          {ABOUT_KEY_VISITED_PLACES}
+          <div style={{ fontWeight: 700 }}>旅行足迹（地点列表 JSON）</div>
+          <KeyDetails storageKey={ABOUT_KEY_VISITED_PLACES} />
           <CodeEditor
             value={aboutVisitedPlacesJson}
             onChange={(v) => setAboutVisitedPlacesJson(v)}
@@ -457,12 +575,13 @@ export function SettingsPage(props: {
 
         <div style={{ height: 10 }} />
         <label>
-          {ABOUT_KEY_TIMELINE}
+          <div style={{ fontWeight: 700 }}>工作经历（JSON）</div>
+          <KeyDetails storageKey={ABOUT_KEY_TIMELINE} />
           <CodeEditor
             value={aboutTimelineJson}
             onChange={(v) => setAboutTimelineJson(v)}
             onSave={() => void saveAbout()}
-            placeholder={`[\n  { \"year\": 2023, \"title\": \"Started\", \"description\": \"...\" }\n]`}
+            placeholder={`[\n  {\n    \"date\": \"2023 - 至今\",\n    \"title\": \"高级前端工程师\",\n    \"company\": \"某科技公司\",\n    \"description\": \"负责核心产品的前端架构设计与开发，带领团队完成多个重要项目。\"\n  },\n  {\n    \"date\": \"2021 - 2023\",\n    \"title\": \"前端工程师\",\n    \"company\": \"某互联网公司\",\n    \"description\": \"参与多个 Web 应用的开发，积累了丰富的前端开发经验。\"\n  }\n]`}
           />
         </label>
       </div>
@@ -471,39 +590,120 @@ export function SettingsPage(props: {
         <h2 style={{ margin: "0 0 8px" }}>站点设置</h2>
         <div className="muted">提示：保存会触发缓存软失效（cache_version 递增）。</div>
         <div style={{ height: 12 }} />
+        <h3 style={{ margin: "6px 0 4px" }}>基础</h3>
         <div className="row">
           <label>
-            site.base_url（必填）
+            站点域名（必填）
             <input value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} placeholder="https://example.com" />
+            <KeyDetails storageKey="site.base_url" />
           </label>
           <label>
-            site.timezone（IANA）
-            <input value={timezone} onChange={(e) => setTimezone(e.target.value)} placeholder="Asia/Shanghai" />
+            时区
+            <input
+              value={timezone}
+              onChange={(e) => setTimezone(e.target.value)}
+              placeholder="Asia/Shanghai"
+              list="timezone-list"
+            />
+            <datalist id="timezone-list">
+              <option value="Asia/Shanghai" />
+              <option value="UTC" />
+              <option value="Asia/Tokyo" />
+              <option value="America/Los_Angeles" />
+              <option value="America/New_York" />
+              <option value="Europe/London" />
+            </datalist>
+            <KeyDetails storageKey="site.timezone" />
           </label>
         </div>
         <div style={{ height: 10 }} />
         <div className="row">
           <label>
-            Public Cache TTL（秒，1-3600）
+            缓存 TTL（秒，1-3600）
             <input value={cacheTtl} onChange={(e) => setCacheTtl(e.target.value)} />
+            <KeyDetails storageKey="site.cache_public_ttl_seconds" />
           </label>
           <label>
             （占位）
             <input value="" readOnly style={{ opacity: 0.6 }} />
           </label>
         </div>
-        <div style={{ height: 10 }} />
+        <div className="nav">
+          <button className="chip chip-primary" onClick={() => void saveSiteCoreSettings()} disabled={saving}>
+            {saving ? "保存中..." : "保存基础设置"}
+          </button>
+        </div>
+        <div style={{ height: 16 }} />
         <label>
-          site.embed_allowlist（host，一行一个；空=禁用）
-          <textarea value={embedAllowlist} onChange={(e) => setEmbedAllowlist(e.target.value)} />
-        </label>
-        <label>
-          site.shortcuts_json（JSON）
-          <textarea value={shortcuts} onChange={(e) => setShortcuts(e.target.value)} />
+          <h3 style={{ margin: "6px 0 4px" }}>嵌入域名白名单</h3>
+          嵌入域名白名单（每行一个；留空=禁用）
+          <textarea
+            value={embedAllowlist}
+            onChange={(e) => setEmbedAllowlist(e.target.value)}
+            placeholder={"github.com\nwww.youtube.com\nplayer.bilibili.com"}
+          />
+          <KeyDetails storageKey="site.embed_allowlist" />
         </label>
         <div className="nav">
-          <button className="chip chip-primary" onClick={() => void saveSettings()} disabled={saving}>
-            {saving ? "保存中..." : "保存设置"}
+          <button className="chip chip-primary" onClick={() => void saveEmbedAllowlist()} disabled={saving}>
+            {saving ? "保存中..." : "保存白名单"}
+          </button>
+        </div>
+        <div style={{ height: 16 }} />
+        <label>
+          <h3 style={{ margin: "6px 0 4px" }}>快捷键</h3>
+          快捷键（JSON）
+          <textarea
+            value={shortcuts}
+            onChange={(e) => setShortcuts(e.target.value)}
+            placeholder={`{\n  \"global\": { \"focusSearch\": \"ctrl+f\", \"goHome\": \"ctrl+h\" },\n  \"contexts\": { \"articles\": { \"back\": \"g b\", \"forward\": \"g n\" } }\n}`}
+          />
+          <KeyDetails storageKey="site.shortcuts_json" />
+        </label>
+        <div className="nav">
+          <button className="chip chip-primary" onClick={() => void saveShortcuts()} disabled={saving}>
+            {saving ? "保存中..." : "保存快捷键"}
+          </button>
+        </div>
+        <div style={{ height: 10 }} />
+        <h3 style={{ margin: "6px 0 4px" }}>底部（Footer）</h3>
+        <div className="muted">所有公共页面底部展示：版权信息 + Sitemap/RSS + ICP 备案（可配置）。</div>
+        <div style={{ height: 12 }} />
+        <div className="row">
+          <label>
+            版权链接（可选）
+            <input
+              value={footerCopyrightUrl}
+              onChange={(e) => setFooterCopyrightUrl(e.target.value)}
+              placeholder="https://example.com"
+            />
+            <KeyDetails storageKey="site.footer_copyright_url" />
+          </label>
+          <label>
+            ICP 备案号（可选）
+            <input value={footerIcpText} onChange={(e) => setFooterIcpText(e.target.value)} placeholder="冀ICP备2023042333号-1" />
+            <KeyDetails storageKey="site.footer_icp_text" />
+          </label>
+        </div>
+        <div style={{ height: 10 }} />
+        <div className="row">
+          <label>
+            ICP 链接（可选）
+            <input
+              value={footerIcpLink}
+              onChange={(e) => setFooterIcpLink(e.target.value)}
+              placeholder="https://beian.miit.gov.cn/"
+            />
+            <KeyDetails storageKey="site.footer_icp_link" />
+          </label>
+          <label>
+            （占位）
+            <input value="" readOnly style={{ opacity: 0.6 }} />
+          </label>
+        </div>
+        <div className="nav">
+          <button className="chip chip-primary" onClick={() => void saveFooter()} disabled={saving}>
+            {saving ? "保存中..." : "保存底部"}
           </button>
         </div>
       </div>
@@ -642,14 +842,14 @@ export function SettingsPage(props: {
                 <div style={{ marginTop: 12 }}>
                   <div className="row">
                     <label>
-                      title
+                      标题
                       <input
                         value={String(toolDraft.title ?? "")}
                         onChange={(e) => setToolDraft({ ...toolDraft, title: e.target.value })}
                       />
                     </label>
                     <label>
-                      slug
+                      路径标识
                       <input
                         value={String(toolDraft.slug ?? "")}
                         onChange={(e) => setToolDraft({ ...toolDraft, slug: e.target.value })}
@@ -659,31 +859,31 @@ export function SettingsPage(props: {
                   <div style={{ height: 10 }} />
                   <div className="row">
                     <label>
-                      group
+                      分组
                       <select
                         value={String(toolDraft.groupKey ?? "utils")}
                         onChange={(e) => setToolDraft({ ...toolDraft, groupKey: e.target.value as ToolGroup })}
                       >
-                        <option value="games">games</option>
-                        <option value="apis">apis</option>
-                        <option value="utils">utils</option>
-                        <option value="other">other</option>
+                        <option value="utils">通用（utils）</option>
+                        <option value="apis">API（apis）</option>
+                        <option value="games">游戏（games）</option>
+                        <option value="other">其他（other）</option>
                       </select>
                     </label>
                     <label>
-                      kind
+                      类型
                       <select
                         value={String(toolDraft.kind ?? "link")}
                         onChange={(e) => setToolDraft({ ...toolDraft, kind: e.target.value as ToolKind })}
                       >
-                        <option value="link">link</option>
-                        <option value="page">page</option>
+                        <option value="link">外链（link）</option>
+                        <option value="page">站内页（page）</option>
                       </select>
                     </label>
                   </div>
                   <div style={{ height: 10 }} />
                   <label>
-                    url（link=外链；page=站内路径）
+                    链接/路径（外链=完整 URL；站内页=/tools/...）
                     <input
                       value={String(toolDraft.url ?? "")}
                       onChange={(e) => setToolDraft({ ...toolDraft, url: e.target.value })}
@@ -691,7 +891,7 @@ export function SettingsPage(props: {
                     />
                   </label>
                   <label>
-                    description
+                    描述
                     <textarea
                       value={String(toolDraft.description ?? "")}
                       onChange={(e) => setToolDraft({ ...toolDraft, description: e.target.value })}
@@ -742,40 +942,48 @@ export function SettingsPage(props: {
         <h3 style={{ margin: "0 0 8px" }}>新增工具</h3>
         <div className="row">
           <label>
-            title
+            标题
             <input value={newTool.title} onChange={(e) => setNewTool({ ...newTool, title: e.target.value })} />
           </label>
           <label>
-            slug
-            <input value={newTool.slug} onChange={(e) => setNewTool({ ...newTool, slug: e.target.value })} placeholder="snake / api-tester" />
+            路径标识
+            <input
+              value={newTool.slug}
+              onChange={(e) => setNewTool({ ...newTool, slug: e.target.value })}
+              placeholder="snake / api-tester"
+            />
           </label>
         </div>
         <div style={{ height: 10 }} />
         <div className="row">
           <label>
-            group
+            分组
             <select value={newTool.groupKey} onChange={(e) => setNewTool({ ...newTool, groupKey: e.target.value as ToolGroup })}>
-              <option value="games">games</option>
-              <option value="apis">apis</option>
-              <option value="utils">utils</option>
-              <option value="other">other</option>
+              <option value="utils">通用（utils）</option>
+              <option value="apis">API（apis）</option>
+              <option value="games">游戏（games）</option>
+              <option value="other">其他（other）</option>
             </select>
           </label>
           <label>
-            kind
+            类型
             <select value={newTool.kind} onChange={(e) => setNewTool({ ...newTool, kind: e.target.value as ToolKind })}>
-              <option value="link">link</option>
-              <option value="page">page</option>
+              <option value="link">外链（link）</option>
+              <option value="page">站内页（page）</option>
             </select>
           </label>
         </div>
         <div style={{ height: 10 }} />
         <label>
-          url（可空）
-          <input value={newTool.url} onChange={(e) => setNewTool({ ...newTool, url: e.target.value })} placeholder="https://... 或 /tools/xxx" />
+          链接/路径（可空）
+          <input
+            value={newTool.url}
+            onChange={(e) => setNewTool({ ...newTool, url: e.target.value })}
+            placeholder="https://... 或 /tools/xxx"
+          />
         </label>
         <label>
-          description（可空）
+          描述（可空）
           <textarea value={newTool.description} onChange={(e) => setNewTool({ ...newTool, description: e.target.value })} style={{ minHeight: 80 }} />
         </label>
         {newTool.kind === "page" && (
