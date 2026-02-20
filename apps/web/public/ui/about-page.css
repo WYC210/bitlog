@@ -46,6 +46,14 @@ body[data-page="projects"] .about-layout {
   grid-template-columns: 1fr;
 }
 
+/* Tools/Projects: hide About-only sections rendered by shared template */
+body[data-page="tools"] .about-section,
+body[data-page="tools"] .about-contact,
+body[data-page="projects"] .about-section,
+body[data-page="projects"] .about-contact {
+  display: none;
+}
+
 /* Left sidebar: only enabled on wide About page */
 .about-sidebar--left {
   display: none;

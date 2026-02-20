@@ -3,11 +3,6 @@
   const tocRoot = document.querySelector(".post-toc .toc");
   if (!tocRoot) return;
 
-  tocRoot.classList.add("has-active-indicator");
-  const indicator = document.createElement("div");
-  indicator.className = "toc-active-indicator";
-  tocRoot.prepend(indicator);
-
   const reduceMotion =
     window.matchMedia &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -29,31 +24,6 @@
   let activeId = "";
   let openGroup = "";
 
-  function updateIndicatorForId(id) {
-    const it = items.find((x) => x.id === id);
-    if (!it?.link) return;
-    const link = it.link;
-    const y = link.offsetTop;
-    const h = link.offsetHeight;
-    indicator.style.height = `${h}px`;
-    indicator.style.transform = `translateY(${y}px)`;
-
-    const scrollContainer = document.querySelector(".post-toc");
-    if (scrollContainer && scrollContainer.contains(link)) {
-      const c = scrollContainer;
-      const cRect = c.getBoundingClientRect();
-      const r = link.getBoundingClientRect();
-      const pad = 12;
-      if (r.top < cRect.top + pad || r.bottom > cRect.bottom - pad) {
-        try {
-          link.scrollIntoView({ block: "nearest", behavior: reduceMotion ? "auto" : "smooth" });
-        } catch {
-          // ignore
-        }
-      }
-    }
-  }
-
   function setActive(nextId) {
     const id = String(nextId || "");
     if (!id || id === activeId) return;
@@ -69,8 +39,6 @@
     for (const it of items) {
       it.link.classList.toggle("active", it.id === id);
     }
-
-    requestAnimationFrame(() => updateIndicatorForId(id));
   }
 
   for (const it of items) {
@@ -139,10 +107,4 @@
       }
     }
   }
-
-  // Ensure indicator is positioned on first paint.
-  requestAnimationFrame(() => {
-    if (activeId) updateIndicatorForId(activeId);
-    else updateFromScroll();
-  });
 })();

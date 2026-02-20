@@ -71,41 +71,9 @@
     <main class="container page-wrap">
       <!-- Check if this is the about page -->
       <div class="about-container">
-        <!-- Hero Section -->
-        <section class="about-hero">
-          <div class="about-hero-content">
-            <h1 class="about-hero-title">{{MAIN_TITLE}}</h1>
-            <p class="about-hero-subtitle">{{MAIN_DESC}}</p>
-            <div class="about-hero-actions">
-              <a class="btn primary" href="/articles">查看文章</a>
-              <a class="btn" href="#contact">联系我</a>
-            </div>
-          </div>
-          <div class="about-hero-image">
-            <div class="about-avatar-decoration"></div>
-            <img class="about-avatar" src="/images/avatar.jpg" alt="头像" onerror="this.style.display='none'" />
-          </div>
-        </section>
+        {{HERO_SECTION}}
 
-        <!-- Stats Section -->
-        <section class="about-stats">
-          <div class="about-stat-card">
-            <div class="about-stat-value">42</div>
-            <div class="about-stat-label">文章</div>
-          </div>
-          <div class="about-stat-card">
-            <div class="about-stat-value">8</div>
-            <div class="about-stat-label">项目</div>
-          </div>
-          <div class="about-stat-card">
-            <div class="about-stat-value">1.2k</div>
-            <div class="about-stat-label">访问</div>
-          </div>
-          <div class="about-stat-card">
-            <div class="about-stat-value">156</div>
-            <div class="about-stat-label">订阅</div>
-          </div>
-        </section>
+        {{STATS_SECTION}}
 
         <!-- Main Layout with Sidebar -->
         <div class="about-layout">

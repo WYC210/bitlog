@@ -629,8 +629,8 @@ export function createWebApp() {
         "{{NAV_PROJECTS_ACTIVE}}": "active",
         "{{NAV_TOOLS_ACTIVE}}": "",
         "{{NAV_ABOUT_ACTIVE}}": "",
-        "{{MAIN_TITLE}}": escapeHtml("项目"),
-        "{{MAIN_DESC}}": escapeHtml("展示 GitHub / Gitee 个人项目（可筛选）。"),
+        "{{HERO_SECTION}}": "",
+        "{{STATS_SECTION}}": "",
         "{{MAIN_CONTENT}}": `
 ${filter}
 <div class="cards-grid">
@@ -660,8 +660,8 @@ ${filter}
         "{{NAV_PROJECTS_ACTIVE}}": "",
         "{{NAV_TOOLS_ACTIVE}}": "",
         "{{NAV_ABOUT_ACTIVE}}": "active",
-        "{{MAIN_TITLE}}": escapeHtml("关于我"),
-        "{{MAIN_DESC}}": escapeHtml("工作经历 · 旅行足迹"),
+        "{{HERO_SECTION}}": "",
+        "{{STATS_SECTION}}": "",
         "{{MAIN_CONTENT}}": "",
         "{{SITE_FOOTER}}": footer,
         "{{TOOL_SCRIPT}}": `<script type="module" src="/ui/about/about.js?__cv=${escapeHtml(cacheVersionForRequest(cfg, c.req.url))}"></script>`,
@@ -746,8 +746,8 @@ ${filter}
         "{{NAV_PROJECTS_ACTIVE}}": "",
         "{{NAV_TOOLS_ACTIVE}}": "active",
         "{{NAV_ABOUT_ACTIVE}}": "",
-        "{{MAIN_TITLE}}": escapeHtml("工具中心"),
-        "{{MAIN_DESC}}": escapeHtml("小游戏 / API 工具 / 常用入口（后台实时管理）。"),
+        "{{HERO_SECTION}}": "",
+        "{{STATS_SECTION}}": "",
         "{{MAIN_CONTENT}}": `
 ${filter}
 <div class="cards-grid">
@@ -773,7 +773,7 @@ ${filter}
       const footer = renderSiteFooter(cfg, year);
       const html = replaceAll((await loadTemplates(c.env, c.req.url)).page, {
         "{{PAGE_TITLE}}": escapeHtml(cfg.title ? `${cfg.title} · 工具未找到` : "工具未找到"),
-          "{{CACHE_VERSION}}": escapeHtml(cacheVersionForRequest(cfg, c.req.url)),
+        "{{CACHE_VERSION}}": escapeHtml(cacheVersionForRequest(cfg, c.req.url)),
         "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? ""),
         "{{PAGE_ID}}": "tools",
         "{{SEARCH_VALUE}}": "",
@@ -782,9 +782,14 @@ ${filter}
         "{{NAV_PROJECTS_ACTIVE}}": "",
         "{{NAV_TOOLS_ACTIVE}}": "active",
         "{{NAV_ABOUT_ACTIVE}}": "",
-        "{{MAIN_TITLE}}": escapeHtml("工具未找到"),
-        "{{MAIN_DESC}}": escapeHtml("该工具不存在或已被禁用。"),
-        "{{MAIN_CONTENT}}": `<a class="chip" href="/tools">← 返回工具中心</a>`,
+        "{{HERO_SECTION}}": "",
+        "{{STATS_SECTION}}": "",
+        "{{MAIN_CONTENT}}": `
+<div class="nav" style="margin-bottom:16px">
+  <a class="chip" href="/tools">← 返回工具中心</a>
+</div>
+<div class="meta">该工具不存在或已被禁用。</div>
+        `.trim(),
         "{{SITE_FOOTER}}": footer,
         "{{TOOL_SCRIPT}}": "",
       });
@@ -813,14 +818,14 @@ ${filter}
       "{{NAV_PROJECTS_ACTIVE}}": "",
       "{{NAV_TOOLS_ACTIVE}}": "active",
       "{{NAV_ABOUT_ACTIVE}}": "",
-      "{{MAIN_TITLE}}": escapeHtml(tool.title),
-      "{{MAIN_DESC}}": escapeHtml(tool.description || ""),
+      "{{HERO_SECTION}}": "",
+      "{{STATS_SECTION}}": "",
       "{{MAIN_CONTENT}}": `
 <div class="nav" style="margin-bottom:16px">
   <a class="chip" href="/tools">← 工具中心</a>
 </div>
 <div id="tool-root"></div>
-`.trim(),
+      `.trim(),
       "{{SITE_FOOTER}}": footer,
       "{{TOOL_SCRIPT}}": scriptBlock,
     });
