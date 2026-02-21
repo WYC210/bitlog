@@ -161,3 +161,12 @@ pnpm run deploy:web
 2) 取消注释 `apps/api/wrangler.toml` 的 `r2_buckets` 并填 bucket 名
 3) 重新部署 `apps/api`
 4) 确保 API Token 有 R2 相关权限
+
+### Q4：修改管理员密码时报 500 / `Pbkdf2 failed: iteration counts above 100000 are not supported`
+
+Cloudflare Workers 的 WebCrypto PBKDF2 有硬性限制：`iterations` 必须 `<= 100000`，否则会抛 `NotSupportedError` 并返回 500。
+
+处理方案：
+
+- 确保 `PASSWORD_PBKDF2_ITERATIONS`（可选）设置为 `<= 100000`（默认 `100000`）
+- 建议配置 `PASSWORD_PEPPER` 作为 Worker Secret 提升安全性：`wrangler secret put PASSWORD_PEPPER`（或在 Dashboard 里添加 Secret）

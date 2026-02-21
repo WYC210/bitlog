@@ -14,24 +14,52 @@ export interface StoredPasswordLike {
   iterations: number;
 }
 
-const DEFAULT_ITERATIONS = 310_000;
+// Cloudflare Workers WebCrypto PBKDF2 has a hard limit: iterations must be <= 100000.
+// If a larger value is requested, deriveBits throws NotSupportedError.
+export const CF_PBKDF2_MAX_ITERATIONS = 100_000;
+
+// Keep the default at the platform max for best security without breaking on Workers.
+const DEFAULT_ITERATIONS = CF_PBKDF2_MAX_ITERATIONS;
+
+export interface PasswordPolicy {
+  pepper?: string;
+  iterations?: number;
+}
 
 export async function hashPassword(
   password: string,
-  iterations = DEFAULT_ITERATIONS
+  policy?: PasswordPolicy
 ): Promise<StoredPassword> {
+  const pepper = normalizePepper(policy?.pepper);
+  const iterations = normalizeIterations(policy?.iterations ?? DEFAULT_ITERATIONS);
   const salt = crypto.getRandomValues(new Uint8Array(16));
-  const hash = await pbkdf2Sha256(password, salt, iterations);
-  return { hash, salt, iterations };
+  const input = pepper ? applyPepper(password, pepper) : password;
+  const hash = await pbkdf2Sha256(input, salt, iterations);
+  return { hash, salt, iterations: encodeIterations(iterations, !!pepper) };
 }
 
 export async function verifyPassword(
   password: string,
-  stored: StoredPasswordLike
+  stored: StoredPasswordLike,
+  policy?: Pick<PasswordPolicy, "pepper">
 ): Promise<boolean> {
   const salt = await toBytes(stored.salt, "salt");
   const expected = await toBytes(stored.hash, "hash");
-  const actual = await pbkdf2Sha256(password, salt, stored.iterations);
+
+  const decoded = decodeIterations(Number(stored.iterations));
+  if (decoded.iterations > CF_PBKDF2_MAX_ITERATIONS) {
+    throw new Error(
+      `PBKDF2 iterations above ${CF_PBKDF2_MAX_ITERATIONS} are not supported (stored ${decoded.iterations})`
+    );
+  }
+
+  const pepper = normalizePepper(policy?.pepper);
+  if (decoded.peppered && !pepper) {
+    throw new Error("Password pepper is required but not configured (set PASSWORD_PEPPER)");
+  }
+
+  const input = decoded.peppered ? applyPepper(password, pepper!) : password;
+  const actual = await pbkdf2Sha256(input, salt, decoded.iterations);
   if (actual.length !== expected.length) return false;
   let diff = 0;
   for (let i = 0; i < actual.length; i++) diff |= actual[i]! ^ expected[i]!;
@@ -123,7 +151,7 @@ function byteArrayFromNumbers(input: unknown[], label: string): Uint8Array {
   return new Uint8Array(out);
 }
 
-export async function ensureDefaultAdmin(db: Db): Promise<void> {
+export async function ensureDefaultAdmin(db: Db, policy?: PasswordPolicy): Promise<void> {
   const existing = await db.query<{ id: string }>(
     sql`SELECT id FROM admin_users LIMIT 1`
   );
@@ -131,10 +159,37 @@ export async function ensureDefaultAdmin(db: Db): Promise<void> {
 
   const id = randomId();
   const now = Date.now();
-  const { hash, salt, iterations } = await hashPassword("123456");
+  const { hash, salt, iterations } = await hashPassword("123456", policy);
   await db.execute(
     sql`INSERT INTO admin_users
         (id, username, password_hash, password_salt, password_iterations, created_at, updated_at)
         VALUES (${id}, ${"admin"}, ${hash}, ${salt}, ${iterations}, ${now}, ${now})`
   );
+}
+
+export function decodeIterations(iterations: number): { iterations: number; peppered: boolean } {
+  const n = Number(iterations);
+  if (!Number.isFinite(n) || n === 0) return { iterations: DEFAULT_ITERATIONS, peppered: false };
+  return { iterations: Math.abs(Math.trunc(n)), peppered: n < 0 };
+}
+
+function encodeIterations(iterations: number, peppered: boolean): number {
+  const n = normalizeIterations(iterations);
+  return peppered ? -n : n;
+}
+
+function normalizeIterations(iterations: number): number {
+  const n = Number(iterations);
+  if (!Number.isFinite(n) || n <= 0) return DEFAULT_ITERATIONS;
+  return Math.min(CF_PBKDF2_MAX_ITERATIONS, Math.floor(n));
+}
+
+function normalizePepper(pepper: unknown): string | null {
+  const s = typeof pepper === "string" ? pepper.trim() : "";
+  return s ? s : null;
+}
+
+function applyPepper(password: string, pepper: string): string {
+  // Use a NUL separator to avoid ambiguous concatenations.
+  return `${password}\u0000${pepper}`;
 }

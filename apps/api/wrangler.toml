@@ -23,3 +23,11 @@ d1_databases = [
 
 [vars]
 # Reserved for future.
+#
+# Password hashing:
+# - PBKDF2 iterations must be <= 100000 on Cloudflare Workers (WebCrypto limit).
+# - Optional: tune for performance (default: 100000).
+# PASSWORD_PBKDF2_ITERATIONS = "100000"
+#
+# Recommended: set a pepper as a Worker secret (do NOT put it in vars):
+#   wrangler secret put PASSWORD_PEPPER

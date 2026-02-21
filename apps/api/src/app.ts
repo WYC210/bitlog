@@ -3,7 +3,14 @@ import { getCookie, setCookie, deleteCookie } from "hono/cookie";
 import type { Db } from "@bitlog/db";
 import { sql, join } from "@bitlog/db/sql";
 import type { R2Bucket } from "@cloudflare/workers-types";
-import { ensureDefaultAdmin, verifyPassword, hashPassword } from "./lib/password.js";
+import {
+  CF_PBKDF2_MAX_ITERATIONS,
+  decodeIterations,
+  ensureDefaultAdmin,
+  hashPassword,
+  verifyPassword
+} from "./lib/password.js";
+import type { PasswordPolicy } from "./lib/password.js";
 import { randomId, randomToken, sha256Bytes, timingSafeEqual } from "./lib/crypto.js";
 import { slugifyUnique } from "./lib/slug.js";
 import { renderPostContent } from "./lib/render.js";
@@ -31,6 +38,7 @@ import {
 export interface ApiBindings {
   db: Db;
   assetsR2?: R2Bucket;
+  password?: PasswordPolicy;
 }
 
 type PostStatus = "draft" | "published" | "scheduled";
@@ -45,6 +53,19 @@ const POSTS_KEY_AUTO_SUMMARY = "posts.auto_summary";
 function parseLooseBool(v: string | null | undefined): boolean {
   const s = String(v ?? "").trim().toLowerCase();
   return s === "1" || s === "true" || s === "yes" || s === "on";
+}
+
+function getEffectivePasswordPolicy(input?: PasswordPolicy): { iterations: number; pepper?: string } {
+  const rawPepper = typeof input?.pepper === "string" ? input.pepper.trim() : "";
+  const pepper = rawPepper ? rawPepper : undefined;
+
+  const rawIterations = Number(input?.iterations);
+  const iterations =
+    Number.isFinite(rawIterations) && rawIterations > 0
+      ? Math.min(CF_PBKDF2_MAX_ITERATIONS, Math.floor(rawIterations))
+      : CF_PBKDF2_MAX_ITERATIONS;
+
+  return pepper ? { pepper, iterations } : { iterations };
 }
 
 function deriveSummaryFromText(text: string, maxLen = 150): string {
@@ -1761,7 +1782,8 @@ export function createApiApp(bindings: ApiBindings) {
 
   app.post("/api/admin/login", async (c) => {
     if (!isSameOriginRequest(c.req.raw)) return c.json(jsonError("Forbidden", 403), 403);
-    await ensureDefaultAdmin(bindings.db);
+    const passwordPolicy = getEffectivePasswordPolicy(bindings.password);
+    await ensureDefaultAdmin(bindings.db, passwordPolicy);
     const ip = getClientIp(c.req.raw);
     const limited = await rateLimitAdminLogin(bindings.db, ip);
     if (!limited.ok) return c.json(jsonError("Too Many Requests", 429), 429);
@@ -1792,8 +1814,25 @@ export function createApiApp(bindings: ApiBindings) {
       hash: user.password_hash,
       salt: user.password_salt,
       iterations: Number(user.password_iterations)
-    });
+    }, passwordPolicy);
     if (!ok) return c.json(jsonError("Invalid credentials", 401), 401);
+
+    // Opportunistically upgrade stored password parameters (pepper and/or iterations) after a successful login.
+    const stored = decodeIterations(Number(user.password_iterations));
+    const targetPeppered = !!passwordPolicy.pepper;
+    const needsPepperUpgrade = targetPeppered && !stored.peppered;
+    const needsIterationsUpgrade = stored.iterations < passwordPolicy.iterations;
+    if (needsPepperUpgrade || needsIterationsUpgrade) {
+      const upgraded = await hashPassword(password, passwordPolicy);
+      await bindings.db.execute(
+        sql`UPDATE admin_users
+            SET password_hash = ${upgraded.hash},
+                password_salt = ${upgraded.salt},
+                password_iterations = ${upgraded.iterations},
+                updated_at = ${nowMs()}
+            WHERE id = ${user.id}`
+      );
+    }
 
     const sessionId = randomId();
     const refreshToken = randomToken();
@@ -1933,6 +1972,7 @@ export function createApiApp(bindings: ApiBindings) {
     if (!isSameOriginRequest(c.req.raw)) return c.json(jsonError("Forbidden", 403), 403);
     const session = await requireAdmin(bindings, c.req.raw);
     if (!session) return c.json(jsonError("Unauthorized", 401), 401);
+    const passwordPolicy = getEffectivePasswordPolicy(bindings.password);
     const body = await c.req.json().catch(() => null) as
       | { oldPassword?: string; newPassword?: string }
       | null;
@@ -1955,10 +1995,10 @@ export function createApiApp(bindings: ApiBindings) {
       hash: row.password_hash,
       salt: row.password_salt,
       iterations: Number(row.password_iterations)
-    });
+    }, passwordPolicy);
     if (!ok) return c.json(jsonError("Invalid credentials", 401), 401);
 
-    const { hash, salt, iterations } = await hashPassword(newPassword);
+    const { hash, salt, iterations } = await hashPassword(newPassword, passwordPolicy);
     await bindings.db.execute(
       sql`UPDATE admin_users
           SET password_hash = ${hash},
