@@ -629,9 +629,10 @@ export function EditorPage(props: {
 
   if (loading) return <div className="card">加载中...</div>;
 
-  const railPreview = toolboxDragging && toolboxDragTarget === "left" && toolboxDock !== "left";
+  const railAllowed = layout !== "preview";
+  const railPreview = railAllowed && toolboxDragging && toolboxDragTarget === "left" && toolboxDock !== "left";
   const topPreview = toolboxDragging && toolboxDragTarget === "top" && toolboxDock !== "top";
-  const railOpen = toolboxDock === "left" || railPreview;
+  const railOpen = railAllowed && (toolboxDock === "left" || railPreview);
   const topOpen = toolboxDock === "top" || topPreview;
   const railExpanded = railOpen && toolboxDock === "left" && toolboxRailExpanded && !toolboxDragging;
 

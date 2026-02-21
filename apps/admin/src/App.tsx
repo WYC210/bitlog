@@ -424,9 +424,15 @@ export function App() {
                 <path d="M21 3v18" />
               </svg>
             </button>
-          </div>
-          <a className="btn" href="/articles">
-            前往站点
+        </div>
+          <a className="btn btn-site" href="/articles" title="前往站点" aria-label="前往站点">
+            <span className="btn-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M3 12h18" />
+                <path d="M12 3v18" />
+              </svg>
+            </span>
+            <span className="btn-label">前往站点</span>
           </a>
         </div>
       </aside>

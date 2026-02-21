@@ -692,10 +692,10 @@ export function SettingsPage(props: {
           </button>
         </div>
         <div style={{ height: 16 }} />
-        <h3 style={{ margin: "6px 0 4px" }}>UI 椋庢牸</h3>
+        <h3 style={{ margin: "6px 0 4px" }}>UI 风格</h3>
         <div className="row">
           <label>
-            Web 椋庢牸
+            Web 风格
             <select value={webStyle} onChange={(e) => setWebStyle(e.target.value as UiStyle)}>
               {UI_STYLES.map((s) => (
                 <option key={s.value} value={s.value}>
@@ -706,7 +706,7 @@ export function SettingsPage(props: {
             <KeyDetails storageKey="ui.web_style" />
           </label>
           <label>
-            Admin 椋庢牸
+            Admin 风格
             <select value={adminStyle} onChange={(e) => setAdminStyle(e.target.value as UiStyle)}>
               {UI_STYLES.map((s) => (
                 <option key={s.value} value={s.value}>
@@ -719,7 +719,7 @@ export function SettingsPage(props: {
         </div>
         <div className="nav">
           <button className="chip chip-primary" onClick={() => void saveUiStyles()} disabled={saving}>
-            {saving ? "淇濆瓨涓?.." : "淇濆瓨 UI 椋庢牸"}
+            {saving ? "保存中..." : "保存 UI 风格"}
           </button>
         </div>
 

@@ -117,6 +117,27 @@ html[data-sidebar="collapsed"] .app {
   grid-template-columns: var(--sidebar-w-collapsed) minmax(0, 1fr);
 }
 
+html[data-sidebar="collapsed"] .sidebar {
+  padding: 10px;
+}
+
+html[data-sidebar="collapsed"] .brand {
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 8px;
+}
+
+html[data-sidebar="collapsed"] .brand-left {
+  justify-content: center;
+}
+
+html[data-sidebar="collapsed"] .sidebar .iconbtn {
+  width: 36px;
+  height: 36px;
+}
+
 .sidebar {
   position: sticky;
   top: 0;
@@ -406,8 +427,9 @@ html.theme-transition-active {
 }
 
 html[data-sidebar="collapsed"] .sidebar .nav a {
-  grid-template-columns: 42px;
+  grid-template-columns: 36px;
   justify-content: center;
+  padding: 6px;
 }
 
 html[data-sidebar="collapsed"] .sidebar .lbl,
@@ -446,6 +468,21 @@ html[data-sidebar="collapsed"] .sidebar .meta {
 }
 
 html[data-sidebar="collapsed"] .sidebar .me .me-text {
+  display: none;
+}
+
+html[data-sidebar="collapsed"] .sidebar .me {
+  justify-content: center;
+  padding: 6px;
+}
+
+html[data-sidebar="collapsed"] .sidebar .btn-site {
+  display: grid;
+  place-items: center;
+  padding: 8px;
+}
+
+html[data-sidebar="collapsed"] .sidebar .btn-site .btn-label {
   display: none;
 }
 
