@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bitlog Demo (Brutal) - 标签</title>
+    <link rel="stylesheet" href="../_shared/base.css" />
+    <link rel="stylesheet" href="./theme.css" />
+  </head>
+  <body data-page="tags">
+    <header class="topbar" role="banner">
+      <div class="container topbar-inner">
+        <a class="brand" href="./index.html" aria-label="回到首页">
+          <span class="logo" aria-hidden="true"></span>
+          <strong>Bitlog</strong>
+        </a>
+
+        <div class="search" role="search">
+          <div class="searchbox">
+            <input type="search" placeholder="搜索文章（Ctrl/Cmd+F 聚焦）" />
+            <span class="kbd">Ctrl/Cmd+F</span>
+          </div>
+        </div>
+
+        <div class="right">
+          <nav class="nav" data-nav aria-label="导航">
+            <a href="./index.html" data-page="home" aria-current="false">首页</a>
+            <a href="./categories.html" data-page="categories" aria-current="false">分类</a>
+            <a href="./tags.html" data-page="tags" aria-current="false">标签</a>
+            <a href="./about.html" data-page="about" aria-current="false">关于</a>
+          </nav>
+          <button class="iconbtn" type="button" title="主题（Demo）" onclick="alert('Demo button')">☼</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="page">
+      <div class="container">
+        <section class="banner" aria-label="页头">
+          <div class="banner-row">
+            <div class="breadcrumb" aria-label="面包屑">
+              <span class="crumb">标签</span>
+              <span class="crumb">Bitlog</span>
+              <span class="hint">按标签浏览</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="content" aria-label="内容">
+          <section class="card" aria-label="标签列表">
+            <h2><span class="h2-ico" aria-hidden="true"></span> 全部标签</h2>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap">
+              <a class="chip" href="#tag-workers">Workers</a>
+              <a class="chip" href="#tag-d1">D1</a>
+              <a class="chip" href="#tag-cache">Cache</a>
+              <a class="chip" href="#tag-md">Markdown</a>
+              <a class="chip" href="#tag-css">CSS</a>
+              <a class="chip" href="#tag-auth">Auth</a>
+            </div>
+
+            <div style="height: 14px"></div>
+            <h2 id="tag-workers"><span class="h2-ico" aria-hidden="true"></span> 标签：Workers</h2>
+            <div class="post-list">
+              <a class="post-item" href="./post.html">
+                <div class="meta"><span>2026/02/21</span><span>•</span><span>教程</span></div>
+                <div class="post-title" style="font-size: 16px; margin: 10px 0 0">部署 Bitlog：Worker 路由与绑定</div>
+              </a>
+              <a class="post-item" href="./post.html">
+                <div class="meta"><span>2026/02/19</span><span>•</span><span>性能</span></div>
+                <div class="post-title" style="font-size: 16px; margin: 10px 0 0">边缘缓存如何减少重复请求</div>
+              </a>
+            </div>
+          </section>
+
+          <aside class="stack" aria-label="侧栏">
+            <section class="card" aria-label="提示">
+              <h2><span class="h2-ico" aria-hidden="true"></span> 小技巧</h2>
+              <div class="muted">标签页可以支持：搜索标签、按字母分组、或显示文章数。</div>
+              <div style="height: 12px"></div>
+              <button class="btn primary" type="button" onclick="location.href='./index.html'">返回首页</button>
+            </section>
+          </aside>
+        </section>
+      </div>
+    </main>
+
+    <footer class="footer" role="contentinfo">
+      <div class="container footer-inner">
+        <span>© 2026 Bitlog Demo</span>
+        <span style="display: flex; gap: 12px; flex-wrap: wrap">
+          <a href="./about.html">About</a>
+          <a href="./categories.html">Categories</a>
+          <a href="./index.html">Home</a>
+        </span>
+      </div>
+    </footer>
+
+    <script src="../_shared/app.js"></script>
+  </body>
+</html>
+

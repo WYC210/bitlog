@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bitlog Demo (Terminal) - 分类</title>
+    <link rel="stylesheet" href="../_shared/base.css" />
+    <link rel="stylesheet" href="./theme.css" />
+  </head>
+  <body data-page="categories">
+    <header class="topbar" role="banner">
+      <div class="container topbar-inner">
+        <a class="brand" href="./index.html" aria-label="HOME">
+          <span class="logo" aria-hidden="true"></span>
+          <strong>Bitlog</strong>
+        </a>
+
+        <div class="search" role="search">
+          <div class="searchbox">
+            <input type="search" placeholder="SEARCH_ARTICLES (Ctrl/Cmd+F)" />
+            <span class="kbd">Ctrl/Cmd+F</span>
+          </div>
+        </div>
+
+        <div class="right">
+          <nav class="nav" data-nav aria-label="NAV">
+            <a href="./index.html" data-page="home" aria-current="false">HOME</a>
+            <a href="./categories.html" data-page="categories" aria-current="false">CATEGORIES</a>
+            <a href="./tags.html" data-page="tags" aria-current="false">TAGS</a>
+            <a href="./about.html" data-page="about" aria-current="false">ABOUT</a>
+          </nav>
+          <button class="iconbtn" type="button" title="THEME (DEMO)" onclick="alert('Demo button')">☼</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="page">
+      <div class="container">
+        <section class="banner" aria-label="HEADER">
+          <div class="banner-row">
+            <div class="breadcrumb" aria-label="BREADCRUMB">
+              <span class="crumb">CATEGORIES</span>
+              <span class="crumb">BITLOG</span>
+              <span class="hint">BROWSE</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="content" aria-label="CONTENT">
+          <section class="card" aria-label="CATEGORY_LIST">
+            <h2><span class="h2-ico" aria-hidden="true"></span> ALL_CATEGORIES</h2>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap">
+              <a class="chip" href="#cat-tutorial">TUTORIAL(12)</a>
+              <a class="chip" href="#cat-notes">NOTES(22)</a>
+              <a class="chip" href="#cat-sec">SECURITY(5)</a>
+              <a class="chip" href="#cat-perf">PERF(8)</a>
+            </div>
+
+            <div style="height: 14px"></div>
+            <h2 id="cat-tutorial"><span class="h2-ico" aria-hidden="true"></span> TUTORIAL</h2>
+            <div class="post-list">
+              <a class="post-item" href="./post.html">
+                <div class="meta"><span>2026/02/21</span><span>•</span><span>WORKERS</span></div>
+                <div class="post-title" style="font-size: 16px; margin: 10px 0 0">DEPLOY_BITLOG</div>
+              </a>
+              <a class="post-item" href="./post.html">
+                <div class="meta"><span>2026/02/10</span><span>•</span><span>MARKDOWN</span></div>
+                <div class="post-title" style="font-size: 16px; margin: 10px 0 0">TOC_STRATEGY</div>
+              </a>
+            </div>
+          </section>
+
+          <aside class="stack" aria-label="SIDEBAR">
+            <section class="card" aria-label="NOTE">
+              <h2><span class="h2-ico" aria-hidden="true"></span> NOTE</h2>
+              <div class="muted">REAL DATA comes from DB or index. UI ONLY.</div>
+              <div style="height: 12px"></div>
+              <button class="btn primary" type="button" onclick="location.href='./index.html'">BACK_HOME</button>
+            </section>
+          </aside>
+        </section>
+      </div>
+    </main>
+
+    <footer class="footer" role="contentinfo">
+      <div class="container footer-inner">
+        <span>© 2026 BITLOG DEMO</span>
+        <span style="display: flex; gap: 12px; flex-wrap: wrap">
+          <a href="./about.html">ABOUT</a>
+          <a href="./tags.html">TAGS</a>
+          <a href="./index.html">HOME</a>
+        </span>
+      </div>
+    </footer>
+
+    <script src="../_shared/app.js"></script>
+  </body>
+</html>
+

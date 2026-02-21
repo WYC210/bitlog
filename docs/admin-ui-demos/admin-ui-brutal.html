@@ -1,0 +1,578 @@
+<!doctype html>
+<html lang="zh-CN" data-sidebar="expanded">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bitlog Admin UI Demo - Brutal</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+
+        --bg: #0b0b12;
+        --panel: rgba(255, 255, 255, 0.035);
+        --panel2: rgba(255, 255, 255, 0.03);
+        --border: rgba(255, 255, 255, 0.22);
+        --text: rgba(255, 255, 255, 0.95);
+        --muted: rgba(255, 255, 255, 0.8);
+        --muted2: rgba(255, 255, 255, 0.62);
+        --accent: #ff2d55;
+        --warn: #ffd400;
+        --danger: #ef4444;
+        --shadow: 10px 10px 0 rgba(0, 0, 0, 0.55);
+        --focus: 0 0 0 3px rgba(255, 45, 85, 0.22);
+
+        --sidebar-w: 240px;
+        --sidebar-w-collapsed: 72px;
+        --topbar-h: 56px;
+        --r: 10px;
+      }
+
+      body {
+        margin: 0;
+        background: radial-gradient(900px 700px at 20% -10%, rgba(255, 45, 85, 0.16), transparent 55%),
+          radial-gradient(900px 700px at 110% 0%, rgba(255, 214, 0, 0.11), transparent 55%), var(--bg);
+        color: var(--text);
+      }
+
+      .app {
+        min-height: 100dvh;
+        display: grid;
+        grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
+      }
+      html[data-sidebar="collapsed"] .app {
+        grid-template-columns: var(--sidebar-w-collapsed) minmax(0, 1fr);
+      }
+
+      .sidebar {
+        position: sticky;
+        top: 0;
+        height: 100dvh;
+        padding: 12px;
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        gap: 10px;
+        border-right: 2px solid var(--border);
+        background: rgba(0, 0, 0, 0.18);
+      }
+
+      .card {
+        border: 2px solid var(--border);
+        border-radius: var(--r);
+        background: var(--panel2);
+        box-shadow: var(--shadow);
+        padding: 14px;
+        min-width: 0;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 10px 10px;
+        border-radius: var(--r);
+        border: 2px solid var(--border);
+        background: var(--panel2);
+        box-shadow: var(--shadow);
+      }
+      .brand-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+      }
+      .logo {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, rgba(255, 45, 85, 0.95), rgba(255, 214, 0, 0.85));
+        box-shadow: 14px 14px 0 rgba(0, 0, 0, 0.45);
+        flex: 0 0 auto;
+      }
+      .brand-title {
+        min-width: 0;
+        display: grid;
+        gap: 2px;
+      }
+      .brand-title strong {
+        font-size: 14px;
+        letter-spacing: 0.2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .brand-title span {
+        font-size: 12px;
+        color: var(--muted2);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      html[data-sidebar="collapsed"] .brand-title {
+        display: none;
+      }
+
+      .iconbtn,
+      .btn {
+        border: 2px solid var(--border);
+        background: var(--panel2);
+        color: var(--text);
+        border-radius: 10px;
+        cursor: pointer;
+        box-shadow: var(--shadow);
+      }
+      .iconbtn {
+        width: 38px;
+        height: 38px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+      }
+      .btn {
+        padding: 10px 12px;
+        font-size: 13px;
+      }
+      .iconbtn:focus-visible,
+      .btn:focus-visible {
+        outline: none;
+        box-shadow: var(--shadow), var(--focus);
+      }
+      .btn.primary {
+        background: rgba(255, 45, 85, 0.16);
+        border-color: rgba(255, 45, 85, 0.65);
+      }
+
+      .nav {
+        display: grid;
+        gap: 8px;
+      }
+      .nav a {
+        text-decoration: none;
+        color: var(--text);
+        display: grid;
+        grid-template-columns: 42px 1fr auto;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 10px;
+        border-radius: 12px;
+        border: 2px solid transparent;
+        background: rgba(255, 255, 255, 0.02);
+        box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.45);
+      }
+      .nav a:hover {
+        transform: translate(-1px, -1px);
+      }
+      .nav a[aria-current="page"] {
+        border-color: rgba(255, 45, 85, 0.6);
+        background: rgba(255, 45, 85, 0.13);
+      }
+      .ico {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: grid;
+        place-items: center;
+        background: rgba(255, 255, 255, 0.03);
+        border: 2px solid rgba(255, 255, 255, 0.2);
+      }
+      .lbl {
+        font-weight: 900;
+        font-size: 13px;
+        letter-spacing: 0.2px;
+      }
+      .sub,
+      .meta {
+        font-size: 12px;
+        color: var(--muted2);
+      }
+      html[data-sidebar="collapsed"] .nav a {
+        grid-template-columns: 42px;
+        justify-content: center;
+      }
+      html[data-sidebar="collapsed"] .lbl,
+      html[data-sidebar="collapsed"] .sub,
+      html[data-sidebar="collapsed"] .meta {
+        display: none;
+      }
+
+      .sidebar-footer {
+        display: grid;
+        gap: 10px;
+        padding-top: 6px;
+        border-top: 2px solid rgba(255, 255, 255, 0.14);
+      }
+      .me {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 10px 10px;
+        border-radius: 12px;
+        border: 2px solid rgba(255, 255, 255, 0.22);
+        background: rgba(255, 255, 255, 0.03);
+        box-shadow: var(--shadow);
+      }
+      .me strong {
+        font-size: 13px;
+      }
+      .me small {
+        display: block;
+        margin-top: 2px;
+        font-size: 12px;
+        color: var(--muted2);
+      }
+      html[data-sidebar="collapsed"] .me .me-text {
+        display: none;
+      }
+
+      .main {
+        min-width: 0;
+        padding: 16px;
+        display: grid;
+        grid-template-rows: var(--topbar-h) 1fr;
+        gap: 14px;
+      }
+      .topbar {
+        height: var(--topbar-h);
+        border: 2px solid var(--border);
+        border-radius: var(--r);
+        background: var(--panel2);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 12px;
+        box-shadow: var(--shadow);
+      }
+      .title {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        min-width: 0;
+      }
+      .title h1 {
+        margin: 0;
+        font-size: 14px;
+        white-space: nowrap;
+      }
+      .crumb {
+        font-size: 12px;
+        color: var(--muted2);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .content {
+        display: grid;
+        grid-template-columns: 1.05fr 0.95fr;
+        gap: 14px;
+        align-items: start;
+      }
+      @media (max-width: 980px) {
+        .content {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .muted {
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.5;
+      }
+      .row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 10px;
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        border-radius: 999px;
+        border: 2px solid rgba(255, 255, 255, 0.22);
+        background: rgba(255, 255, 255, 0.03);
+        font-size: 12px;
+        color: var(--muted);
+        box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.45);
+      }
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: var(--accent);
+        box-shadow: 0 0 0 3px rgba(255, 45, 85, 0.14);
+      }
+
+      .table {
+        width: 100%;
+        border-collapse: collapse;
+        overflow: hidden;
+        border-radius: 12px;
+        border: 2px solid rgba(255, 255, 255, 0.22);
+      }
+      .table th,
+      .table td {
+        padding: 10px 10px;
+        font-size: 13px;
+        border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        text-align: left;
+      }
+      .table th {
+        color: var(--muted2);
+        font-weight: 900;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.25px;
+      }
+
+      .grid2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      @media (max-width: 860px) {
+        .grid2 {
+          grid-template-columns: 1fr;
+        }
+      }
+      label {
+        display: grid;
+        gap: 7px;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0.3px;
+        text-transform: uppercase;
+      }
+      input,
+      textarea {
+        border: 2px solid rgba(255, 255, 255, 0.22);
+        background: rgba(255, 255, 255, 0.03);
+        color: var(--text);
+        border-radius: 10px;
+        padding: 10px 12px;
+        font-size: 14px;
+        outline: none;
+        width: 100%;
+        box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.45);
+      }
+      textarea {
+        min-height: 140px;
+        resize: vertical;
+      }
+      input:focus-visible,
+      textarea:focus-visible {
+        box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.45), var(--focus);
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="app">
+      <aside class="sidebar" aria-label="侧边栏导航">
+        <div class="brand">
+          <div class="brand-left">
+            <div class="logo" aria-hidden="true"></div>
+            <div class="brand-title">
+              <strong>Bitlog Admin</strong>
+              <span>Brutal（强对比）</span>
+            </div>
+          </div>
+          <button class="iconbtn" id="btnCollapse" type="button" aria-label="折叠/展开侧边栏" title="折叠/展开">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 4h7v16H3z" />
+              <path d="M14 4h7v16h-7z" />
+            </svg>
+          </button>
+        </div>
+
+        <nav class="nav" aria-label="主菜单">
+          <a href="#posts" data-page="posts" aria-current="page">
+            <span class="ico" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 4h16v6H4z" />
+                <path d="M4 14h16v6H4z" />
+              </svg>
+            </span>
+            <span>
+              <div class="lbl">文章</div>
+              <div class="sub">列表 / 编辑</div>
+            </span>
+            <span class="meta">N</span>
+          </a>
+          <a href="#new" data-page="new">
+            <span class="ico" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 5v14" />
+                <path d="M5 12h14" />
+              </svg>
+            </span>
+            <span>
+              <div class="lbl">新建</div>
+              <div class="sub">快速发文</div>
+            </span>
+            <span class="meta">⌘N</span>
+          </a>
+          <a href="#settings" data-page="settings">
+            <span class="ico" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" />
+                <path
+                  d="M19.4 15a7.7 7.7 0 0 0 .1-1l2-1.1-2-3.5-2.3.4a7.7 7.7 0 0 0-1.7-1l-.7-2.2H9.2l-.7 2.2a7.7 7.7 0 0 0-1.7 1L4.5 9.4l-2 3.5L4.5 14a7.7 7.7 0 0 0 .1 1l-2 1.1 2 3.5 2.3-.4a7.7 7.7 0 0 0 1.7 1l.7 2.2h5.6l.7-2.2a7.7 7.7 0 0 0 1.7-1l2.3.4 2-3.5-2-1.1Z"
+                />
+              </svg>
+            </span>
+            <span>
+              <div class="lbl">设置</div>
+              <div class="sub">站点 / 工具</div>
+            </span>
+            <span class="meta">S</span>
+          </a>
+          <a href="#account" data-page="account">
+            <span class="ico" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21a8 8 0 1 0-16 0" />
+                <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z" />
+              </svg>
+            </span>
+            <span>
+              <div class="lbl">账号</div>
+              <div class="sub">安全 / 偏好</div>
+            </span>
+            <span class="meta">@</span>
+          </a>
+        </nav>
+
+        <div class="sidebar-footer">
+          <div class="me">
+            <div class="me-text">
+              <strong>@admin</strong>
+              <small>Free plan • Brutal</small>
+            </div>
+            <button class="iconbtn" type="button" aria-label="退出登录" title="退出登录">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M10 17l5-5-5-5" />
+                <path d="M15 12H3" />
+                <path d="M21 3v18" />
+              </svg>
+            </button>
+          </div>
+          <button class="btn" type="button" onclick="alert('Demo: 前往站点')">前往站点</button>
+        </div>
+      </aside>
+
+      <main class="main">
+        <header class="topbar" aria-label="页面头部">
+          <div class="title">
+            <h1 id="pageTitle">文章</h1>
+            <div class="crumb" id="crumb">内容管理 / Posts</div>
+          </div>
+          <div class="actions">
+            <button class="btn primary" type="button">新建文章</button>
+          </div>
+        </header>
+
+        <section class="content" aria-label="演示内容">
+          <div class="card">
+            <h2 style="margin: 0 0 10px; font-size: 14px">内容区（示例）</h2>
+            <div class="muted">用于比较强对比、粗边框、硬阴影、偏海报风的层级。</div>
+            <div class="row">
+              <span class="pill"><span class="dot"></span> 保存状态：未保存</span>
+              <button class="btn" type="button">预览</button>
+              <button class="btn primary" type="button">保存</button>
+            </div>
+            <div style="height: 12px"></div>
+            <table class="table" aria-label="文章列表">
+              <thead>
+                <tr>
+                  <th>标题</th>
+                  <th>状态</th>
+                  <th>更新时间</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>如何用 Cloudflare Worker 部署 Bitlog</td>
+                  <td><span class="pill"><span class="dot"></span> Published</span></td>
+                  <td>2026‑02‑21</td>
+                </tr>
+                <tr>
+                  <td>PBKDF2 限制与密码策略</td>
+                  <td>
+                    <span class="pill" style="border-color: rgba(255, 212, 0, 0.6)"
+                      ><span class="dot" style="background: var(--warn)"></span> Draft</span
+                    >
+                  </td>
+                  <td>2026‑02‑20</td>
+                </tr>
+                <tr>
+                  <td>缓存策略与边缘命中</td>
+                  <td><span class="pill"><span class="dot"></span> Scheduled</span></td>
+                  <td>2026‑02‑19</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="card">
+            <h2 style="margin: 0 0 10px; font-size: 14px">设置 / 账号（示例）</h2>
+            <div class="muted">模拟分区设置：右侧卡片更适合做成“分区 + 二级导航”。</div>
+            <div style="height: 12px"></div>
+            <div class="grid2">
+              <label>站点域名<input value="https://wyc.indevs.in" /></label>
+              <label>时区<input value="Asia/Shanghai" /></label>
+            </div>
+            <div style="height: 12px"></div>
+            <label>
+              嵌入白名单（每行一个）
+              <textarea>github.com
+www.youtube.com
+player.bilibili.com</textarea>
+            </label>
+            <div class="row">
+              <button class="btn" type="button">校验</button>
+              <button class="btn primary" type="button">保存此分区</button>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      const html = document.documentElement;
+      const btnCollapse = document.getElementById("btnCollapse");
+      btnCollapse.addEventListener("click", () => {
+        html.setAttribute("data-sidebar", html.getAttribute("data-sidebar") === "collapsed" ? "expanded" : "collapsed");
+      });
+
+      const title = document.getElementById("pageTitle");
+      const crumb = document.getElementById("crumb");
+      const links = Array.from(document.querySelectorAll(".nav a"));
+      const meta = {
+        posts: { t: "文章", c: "内容管理 / Posts" },
+        new: { t: "新建文章", c: "内容管理 / New Post" },
+        settings: { t: "设置", c: "系统 / Settings" },
+        account: { t: "账号", c: "个人 / Account" }
+      };
+      function activate(page) {
+        links.forEach((a) => a.setAttribute("aria-current", a.dataset.page === page ? "page" : "false"));
+        title.textContent = (meta[page] && meta[page].t) || "Bitlog Admin";
+        crumb.textContent = (meta[page] && meta[page].c) || "";
+      }
+      function syncFromHash() {
+        const h = (location.hash || "#posts").replace("#", "");
+        const page = h === "posts" || h === "new" || h === "settings" || h === "account" ? h : "posts";
+        activate(page);
+      }
+      window.addEventListener("hashchange", syncFromHash);
+      syncFromHash();
+    </script>
+  </body>
+</html>
+

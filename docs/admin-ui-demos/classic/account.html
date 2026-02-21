@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="zh-CN" data-sidebar="expanded">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Admin Demo (Classic) - 账号</title>
+    <link rel="stylesheet" href="../_shared/base.css" />
+    <link rel="stylesheet" href="./theme.css" />
+  </head>
+  <body data-page="account">
+    <div class="app">
+      <aside class="sidebar" aria-label="侧边栏导航">
+        <div class="brand">
+          <div class="brand-left">
+            <div class="logo" aria-hidden="true"></div>
+            <div class="brand-title">
+              <strong>Bitlog Admin</strong>
+              <span>Classic • Demos</span>
+            </div>
+          </div>
+          <button class="iconbtn" id="btnCollapse" type="button" aria-label="折叠/展开侧边栏" title="折叠/展开">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 4h7v16H3z" />
+              <path d="M14 4h7v16h-7z" />
+            </svg>
+          </button>
+        </div>
+
+        <nav class="nav" data-nav aria-label="主菜单">
+          <a href="./posts.html" data-page="posts" aria-current="false">
+            <span class="ico" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 4h16v6H4z" />
+                <path d="M4 14h16v6H4z" />
+              </svg>
+            </span>
+            <span><div class="lbl">文章</div><div class="sub">列表 / 编辑</div></span>
+            <span class="meta">N</span>
+          </a>
+          <a href="./editor.html#new" data-page="new" aria-current="false">
+            <span class="ico" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 5v14" />
+                <path d="M5 12h14" />
+              </svg>
+            </span>
+            <span><div class="lbl">新建</div><div class="sub">快速发文</div></span>
+            <span class="meta">⌘N</span>
+          </a>
+          <a href="./settings.html" data-page="settings" aria-current="false">
+            <span class="ico" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" />
+                <path
+                  d="M19.4 15a7.7 7.7 0 0 0 .1-1l2-1.1-2-3.5-2.3.4a7.7 7.7 0 0 0-1.7-1l-.7-2.2H9.2l-.7 2.2a7.7 7.7 0 0 0-1.7 1L4.5 9.4l-2 3.5L4.5 14a7.7 7.7 0 0 0 .1 1l-2 1.1 2 3.5 2.3-.4a7.7 7.7 0 0 0 1.7 1l.7 2.2h5.6l.7-2.2a7.7 7.7 0 0 0 1.7-1l2.3.4 2-3.5-2-1.1Z"
+                />
+              </svg>
+            </span>
+            <span><div class="lbl">设置</div><div class="sub">站点 / 工具</div></span>
+            <span class="meta">S</span>
+          </a>
+          <a href="./account.html" data-page="account" aria-current="false">
+            <span class="ico" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21a8 8 0 1 0-16 0" />
+                <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z" />
+              </svg>
+            </span>
+            <span><div class="lbl">账号</div><div class="sub">安全 / 偏好</div></span>
+            <span class="meta">@</span>
+          </a>
+        </nav>
+
+        <div class="sidebar-footer">
+          <div class="me">
+            <div class="me-text">
+              <strong>@admin</strong>
+              <small>账号 • Demo</small>
+            </div>
+            <button class="iconbtn" type="button" aria-label="退出登录" title="退出登录" onclick="location.href='./login.html'">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M10 17l5-5-5-5" />
+                <path d="M15 12H3" />
+                <path d="M21 3v18" />
+              </svg>
+            </button>
+          </div>
+          <button class="btn" type="button" onclick="alert('Demo: 保存偏好')">保存偏好</button>
+        </div>
+      </aside>
+
+      <main class="main">
+        <header class="topbar" aria-label="页面头部">
+          <div class="title">
+            <h1>账号</h1>
+            <div class="crumb">个人 / Account</div>
+          </div>
+          <div class="actions">
+            <div class="segmented" aria-label="风格切换">
+              <a class="is-active" href="../classic/account.html">Classic</a>
+              <a href="../terminal/account.html">Terminal</a>
+              <a href="../glass/account.html">Glass</a>
+              <a href="../brutal/account.html">Brutal</a>
+            </div>
+          </div>
+        </header>
+
+        <section class="content" aria-label="页面内容">
+          <div class="card">
+            <h2>安全</h2>
+            <div class="muted">改密码成功后通常需要重新登录（demo 仅展示 UI）。</div>
+            <div style="height: 12px"></div>
+            <div class="grid2">
+              <label class="field">旧密码<input class="input" type="password" value="••••••••" /></label>
+              <label class="field">新密码（≥ 6）<input class="input" type="password" placeholder="输入新密码…" /></label>
+            </div>
+            <div class="row">
+              <span class="pill" style="border-color: color-mix(in srgb, var(--danger) 40%, transparent)">
+                <span class="dot" style="background: var(--danger)"></span> 不要重复使用旧密码
+              </span>
+              <button class="btn primary" type="button">更新密码</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2>偏好</h2>
+            <div class="muted">这里展示“编辑器布局”和“快捷键覆盖”的分区式 UI。</div>
+            <div style="height: 12px"></div>
+            <div class="toolbar">
+              <div class="toolbar-left">
+                <button class="chip primary" type="button">分栏</button>
+                <button class="chip" type="button">写作</button>
+                <button class="chip" type="button">预览</button>
+              </div>
+              <div class="toolbar-left">
+                <button class="btn" type="button">恢复默认</button>
+                <button class="btn primary" type="button">保存</button>
+              </div>
+            </div>
+            <label class="field">
+              快捷键（JSON）
+              <textarea class="textarea">{ "contexts": { "admin.global": { "newPost": "mod+n" } } }</textarea>
+            </label>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="../_shared/app.js"></script>
+  </body>
+</html>
+

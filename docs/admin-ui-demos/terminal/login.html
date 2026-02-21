@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Admin Demo (Terminal) - 登录</title>
+    <link rel="stylesheet" href="../_shared/base.css" />
+    <link rel="stylesheet" href="./theme.css" />
+  </head>
+  <body>
+    <div class="center-wrap">
+      <div class="card login-card">
+        <div style="display: flex; align-items: center; gap: 10px">
+          <div class="logo" aria-hidden="true"></div>
+          <div>
+            <div style="font-weight: 900; letter-spacing: 0.2px">BITLOG_ADMIN</div>
+            <div class="muted" style="font-size: 12px">Terminal • Login Demo</div>
+          </div>
+        </div>
+
+        <div style="height: 14px"></div>
+        <label class="field">USERNAME<input class="input" value="admin" /></label>
+        <div style="height: 10px"></div>
+        <label class="field">PASSWORD<input class="input" type="password" value="••••••••" /></label>
+        <div style="height: 12px"></div>
+        <div class="row" style="margin-top: 0">
+          <span class="pill"><span class="dot"></span> SESSION=COOKIE</span>
+          <span class="kbd">Enter</span>
+        </div>
+        <div style="height: 12px"></div>
+        <button class="btn primary" style="width: 100%" type="button" onclick="location.href='./posts.html'">LOGIN</button>
+
+        <div style="height: 14px"></div>
+        <div class="muted" style="font-size: 12px">SWITCH_STYLE:</div>
+        <div style="height: 6px"></div>
+        <div class="segmented" aria-label="风格切换">
+          <a href="../classic/login.html">Classic</a>
+          <a class="is-active" href="../terminal/login.html">Terminal</a>
+          <a href="../glass/login.html">Glass</a>
+          <a href="../brutal/login.html">Brutal</a>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
+

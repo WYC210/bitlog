@@ -1,0 +1,76 @@
+:root {
+  --bg: #0b0b12;
+  --panel: rgba(255, 255, 255, 0.035);
+  --panel2: rgba(255, 255, 255, 0.03);
+  --border: rgba(255, 255, 255, 0.22);
+  --text: rgba(255, 255, 255, 0.95);
+  --muted: rgba(255, 255, 255, 0.8);
+  --muted2: rgba(255, 255, 255, 0.62);
+  --accent: #ff2d55;
+  --warn: #ffd60a;
+  --danger: #ff453a;
+  --shadow: 10px 10px 0 rgba(0, 0, 0, 0.55);
+  --border-w: 2px;
+  --radius: 10px;
+  --radius-sm: 10px;
+  --focus: 0 0 0 3px rgba(255, 45, 85, 0.22);
+
+  --sidebar-bg: linear-gradient(180deg, rgba(255, 45, 85, 0.06), rgba(11, 11, 18, 0.18));
+  --sidebar-divider: rgba(255, 255, 255, 0.18);
+  --topbar-bg: rgba(255, 255, 255, 0.03);
+  --brand-bg: rgba(255, 255, 255, 0.03);
+  --control-bg: rgba(255, 255, 255, 0.03);
+  --control-bg-hover: rgba(255, 255, 255, 0.06);
+  --control-border-hover: rgba(255, 255, 255, 0.3);
+  --nav-bg-hover: rgba(255, 255, 255, 0.04);
+  --nav-border-hover: rgba(255, 255, 255, 0.2);
+  --ico-bg: rgba(255, 255, 255, 0.04);
+  --ico-border: rgba(255, 255, 255, 0.18);
+  --me-bg: rgba(255, 255, 255, 0.03);
+  --me-border: rgba(255, 255, 255, 0.2);
+  --pill-bg: rgba(255, 255, 255, 0.03);
+  --pill-border: rgba(255, 255, 255, 0.22);
+  --table-border: rgba(255, 255, 255, 0.22);
+  --table-divider: rgba(255, 255, 255, 0.12);
+  --table-row-hover: rgba(255, 255, 255, 0.04);
+  --segmented-bg: rgba(255, 255, 255, 0.03);
+  --segmented-divider: rgba(255, 255, 255, 0.16);
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+}
+
+body {
+  background: radial-gradient(900px 700px at 20% -10%, rgba(255, 45, 85, 0.16), transparent 55%),
+    radial-gradient(900px 700px at 110% 0%, rgba(255, 214, 0, 0.11), transparent 55%),
+    var(--bg);
+}
+
+.logo {
+  background: linear-gradient(135deg, rgba(255, 45, 85, 0.95), rgba(255, 214, 0, 0.85));
+  box-shadow: 14px 14px 0 rgba(0, 0, 0, 0.45);
+  border-radius: 8px;
+}
+
+.btn,
+.chip,
+.iconbtn,
+.input,
+.select,
+.textarea,
+.brand,
+.topbar,
+.card,
+.me,
+.table,
+.kpi,
+.segmented {
+  box-shadow: var(--shadow);
+}
+
+.nav a {
+  box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.45);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.nav a:hover {
+  transform: translate(-1px, -1px);
+}

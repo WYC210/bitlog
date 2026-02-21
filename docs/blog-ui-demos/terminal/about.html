@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bitlog Demo (Terminal) - 关于</title>
+    <link rel="stylesheet" href="../_shared/base.css" />
+    <link rel="stylesheet" href="./theme.css" />
+  </head>
+  <body data-page="about">
+    <header class="topbar" role="banner">
+      <div class="container topbar-inner">
+        <a class="brand" href="./index.html" aria-label="HOME">
+          <span class="logo" aria-hidden="true"></span>
+          <strong>Bitlog</strong>
+        </a>
+
+        <div class="search" role="search">
+          <div class="searchbox">
+            <input type="search" placeholder="SEARCH_ARTICLES (Ctrl/Cmd+F)" />
+            <span class="kbd">Ctrl/Cmd+F</span>
+          </div>
+        </div>
+
+        <div class="right">
+          <nav class="nav" data-nav aria-label="NAV">
+            <a href="./index.html" data-page="home" aria-current="false">HOME</a>
+            <a href="./categories.html" data-page="categories" aria-current="false">CATEGORIES</a>
+            <a href="./tags.html" data-page="tags" aria-current="false">TAGS</a>
+            <a href="./about.html" data-page="about" aria-current="false">ABOUT</a>
+          </nav>
+          <button class="iconbtn" type="button" title="THEME (DEMO)" onclick="alert('Demo button')">☼</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="page">
+      <div class="container">
+        <section class="banner" aria-label="HEADER">
+          <div class="banner-row">
+            <div class="breadcrumb" aria-label="BREADCRUMB">
+              <span class="crumb">ABOUT</span>
+              <span class="crumb">BITLOG</span>
+              <span class="hint">PROFILE + LINKS</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="content" aria-label="CONTENT">
+          <article class="card prose" aria-label="ARTICLE">
+            <h1>ABOUT</h1>
+            <p>FOCUS: WORKERS / FRONTEND / CONTENT SYSTEMS.</p>
+
+            <h2>STACK</h2>
+            <ul>
+              <li>WEB: TYPESCRIPT / HONO</li>
+              <li>EDGE: WORKERS / D1 / R2</li>
+              <li>DX: CI/CD / OBSERVABILITY</li>
+            </ul>
+
+            <h2>TIMELINE</h2>
+            <ul>
+              <li><strong>2026</strong>: IMPROVE DEPLOY + UX</li>
+              <li><strong>2024</strong>: BUILD EDGE ARCH PRACTICE</li>
+            </ul>
+          </article>
+
+          <aside class="stack" aria-label="SIDEBAR">
+            <section class="card" aria-label="LINKS">
+              <h2><span class="h2-ico" aria-hidden="true"></span> LINKS</h2>
+              <div style="display: grid; gap: 10px">
+                <a class="btn" href="#" onclick="alert('Demo link')">GITHUB</a>
+                <a class="btn" href="#" onclick="alert('Demo link')">RSS</a>
+                <a class="btn primary" href="./index.html">BACK_HOME</a>
+              </div>
+            </section>
+          </aside>
+        </section>
+      </div>
+    </main>
+
+    <footer class="footer" role="contentinfo">
+      <div class="container footer-inner">
+        <span>© 2026 BITLOG DEMO</span>
+        <span style="display: flex; gap: 12px; flex-wrap: wrap">
+          <a href="./tags.html">TAGS</a>
+          <a href="./categories.html">CATEGORIES</a>
+          <a href="./index.html">HOME</a>
+        </span>
+      </div>
+    </footer>
+
+    <script src="../_shared/app.js"></script>
+  </body>
+</html>
+

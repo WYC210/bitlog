@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bitlog Demo (Brutal) - 关于</title>
+    <link rel="stylesheet" href="../_shared/base.css" />
+    <link rel="stylesheet" href="./theme.css" />
+  </head>
+  <body data-page="about">
+    <header class="topbar" role="banner">
+      <div class="container topbar-inner">
+        <a class="brand" href="./index.html" aria-label="回到首页">
+          <span class="logo" aria-hidden="true"></span>
+          <strong>Bitlog</strong>
+        </a>
+
+        <div class="search" role="search">
+          <div class="searchbox">
+            <input type="search" placeholder="搜索文章（Ctrl/Cmd+F 聚焦）" />
+            <span class="kbd">Ctrl/Cmd+F</span>
+          </div>
+        </div>
+
+        <div class="right">
+          <nav class="nav" data-nav aria-label="导航">
+            <a href="./index.html" data-page="home" aria-current="false">首页</a>
+            <a href="./categories.html" data-page="categories" aria-current="false">分类</a>
+            <a href="./tags.html" data-page="tags" aria-current="false">标签</a>
+            <a href="./about.html" data-page="about" aria-current="false">关于</a>
+          </nav>
+          <button class="iconbtn" type="button" title="主题（Demo）" onclick="alert('Demo button')">☼</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="page">
+      <div class="container">
+        <section class="banner" aria-label="页头">
+          <div class="banner-row">
+            <div class="breadcrumb" aria-label="面包屑">
+              <span class="crumb">关于我</span>
+              <span class="crumb">Bitlog</span>
+              <span class="hint">简介与链接</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="content" aria-label="内容">
+          <article class="card prose" aria-label="正文">
+            <h1>关于我</h1>
+            <p>专注于 Cloudflare Workers、前端工程化与内容系统。希望把“写作体验”做得像代码编辑一样顺滑。</p>
+
+            <h2>技能栈</h2>
+            <ul>
+              <li>Web：TypeScript / React / Hono</li>
+              <li>Edge：Workers / KV / D1 / R2</li>
+              <li>DX：CI/CD / 质量与可观测性</li>
+            </ul>
+
+            <h2>时间线</h2>
+            <ul>
+              <li><strong>2026</strong>：打磨 Bitlog 的可部署性与体验</li>
+              <li><strong>2024</strong>：沉淀一套“内容系统 + 边缘架构”实践</li>
+            </ul>
+          </article>
+
+          <aside class="stack" aria-label="侧栏">
+            <section class="card" aria-label="链接">
+              <h2><span class="h2-ico" aria-hidden="true"></span> 链接</h2>
+              <div style="display: grid; gap: 10px">
+                <a class="btn" href="#" onclick="alert('Demo link')">GitHub</a>
+                <a class="btn" href="#" onclick="alert('Demo link')">RSS</a>
+                <a class="btn primary" href="./index.html">返回首页</a>
+              </div>
+            </section>
+          </aside>
+        </section>
+      </div>
+    </main>
+
+    <footer class="footer" role="contentinfo">
+      <div class="container footer-inner">
+        <span>© 2026 Bitlog Demo</span>
+        <span style="display: flex; gap: 12px; flex-wrap: wrap">
+          <a href="./tags.html">Tags</a>
+          <a href="./categories.html">Categories</a>
+          <a href="./index.html">Home</a>
+        </span>
+      </div>
+    </footer>
+
+    <script src="../_shared/app.js"></script>
+  </body>
+</html>
+

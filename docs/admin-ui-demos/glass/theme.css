@@ -1,0 +1,59 @@
+:root {
+  --bg: #050816;
+  --panel: rgba(255, 255, 255, 0.08);
+  --panel2: rgba(255, 255, 255, 0.06);
+  --border: rgba(255, 255, 255, 0.16);
+  --text: rgba(255, 255, 255, 0.92);
+  --muted: rgba(255, 255, 255, 0.74);
+  --muted2: rgba(255, 255, 255, 0.58);
+  --accent: #7c3aed;
+  --warn: #fbbf24;
+  --danger: #fb7185;
+  --shadow: 0 30px 90px rgba(0, 0, 0, 0.55);
+  --border-w: 1px;
+  --radius: 16px;
+  --radius-sm: 14px;
+  --focus: 0 0 0 3px rgba(124, 58, 237, 0.24);
+
+  --sidebar-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(5, 8, 22, 0.18));
+  --sidebar-divider: rgba(255, 255, 255, 0.14);
+  --topbar-bg: rgba(255, 255, 255, 0.07);
+  --brand-bg: rgba(255, 255, 255, 0.07);
+  --control-bg: rgba(255, 255, 255, 0.06);
+  --control-bg-hover: rgba(255, 255, 255, 0.1);
+  --control-border-hover: rgba(255, 255, 255, 0.26);
+  --nav-bg-hover: rgba(255, 255, 255, 0.08);
+  --nav-border-hover: rgba(255, 255, 255, 0.18);
+  --ico-bg: rgba(255, 255, 255, 0.06);
+  --ico-border: rgba(255, 255, 255, 0.16);
+  --me-bg: rgba(255, 255, 255, 0.06);
+  --me-border: rgba(255, 255, 255, 0.16);
+  --pill-bg: rgba(255, 255, 255, 0.05);
+  --pill-border: rgba(255, 255, 255, 0.16);
+  --table-border: rgba(255, 255, 255, 0.16);
+  --table-divider: rgba(255, 255, 255, 0.1);
+  --table-row-hover: rgba(255, 255, 255, 0.04);
+  --segmented-bg: rgba(255, 255, 255, 0.05);
+  --segmented-divider: rgba(255, 255, 255, 0.14);
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+}
+
+body {
+  background: radial-gradient(900px 600px at 20% -10%, rgba(124, 58, 237, 0.28), transparent 55%),
+    radial-gradient(800px 600px at 110% 0%, rgba(56, 189, 248, 0.22), transparent 55%),
+    radial-gradient(900px 600px at 70% 120%, rgba(34, 197, 94, 0.14), transparent 55%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 40%),
+    var(--bg);
+}
+
+.sidebar,
+.topbar,
+.card {
+  backdrop-filter: blur(14px);
+}
+
+.logo {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.95), rgba(56, 189, 248, 0.75));
+  box-shadow: 0 16px 70px rgba(124, 58, 237, 0.25);
+  border-radius: 14px;
+}

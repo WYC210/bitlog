@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bitlog Demo (Brutal) - 文章</title>
+    <link rel="stylesheet" href="../_shared/base.css" />
+    <link rel="stylesheet" href="./theme.css" />
+  </head>
+  <body data-page="post">
+    <header class="topbar" role="banner">
+      <div class="container topbar-inner">
+        <a class="brand" href="./index.html" aria-label="回到首页">
+          <span class="logo" aria-hidden="true"></span>
+          <strong>Bitlog</strong>
+        </a>
+
+        <div class="search" role="search">
+          <div class="searchbox">
+            <input type="search" placeholder="搜索文章（Ctrl/Cmd+F 聚焦）" />
+            <span class="kbd">Ctrl/Cmd+F</span>
+          </div>
+        </div>
+
+        <div class="right">
+          <nav class="nav" data-nav aria-label="导航">
+            <a href="./index.html" data-page="home" aria-current="false">首页</a>
+            <a href="./categories.html" data-page="categories" aria-current="false">分类</a>
+            <a href="./tags.html" data-page="tags" aria-current="false">标签</a>
+            <a href="./about.html" data-page="about" aria-current="false">关于</a>
+          </nav>
+          <button class="iconbtn" type="button" title="主题（Demo）" onclick="alert('Demo button')">☼</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="page">
+      <div class="container">
+        <section class="banner" aria-label="页头">
+          <div class="banner-row">
+            <div class="breadcrumb" aria-label="面包屑">
+              <span class="crumb">2026/02/21</span>
+              <span class="crumb">教程</span>
+              <span class="hint">阅读 6 分钟（Demo）</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="content" aria-label="内容">
+          <article class="card prose" aria-label="文章正文">
+            <h1>用 Cloudflare Worker 部署 Bitlog：从 0 到上线</h1>
+            <p>本文用“静态 demo 内容”模拟真实文章页：标题层级、代码块、引用、列表与链接等。</p>
+
+            <h2>1. 前置准备</h2>
+            <p>你需要准备 Cloudflare 账户、GitHub 账户，以及一个可用域名。部署完成后建议先访问 workers.dev 域名确认服务可用。</p>
+
+            <h2>2. 数据库迁移</h2>
+            <p>本地调试时，如果遇到 <code>no such table: settings</code>，通常说明你还没把 migrations 应用到本地 D1。</p>
+            <pre><code>wrangler d1 migrations apply bitlog --local --cwd apps/api -c wrangler.toml</code></pre>
+
+            <h2>3. 常见问题</h2>
+            <ul>
+              <li>域名不生效：用 <code>nslookup</code> / <code>dig</code> 验证</li>
+              <li>PBKDF2 迭代次数过高会触发 Workers 上限</li>
+              <li>使用 <code>PASSWORD_PEPPER</code> 增强口令安全性</li>
+            </ul>
+          </article>
+
+          <aside class="stack" aria-label="侧栏">
+            <section class="card" aria-label="分类与标签">
+              <h2><span class="h2-ico" aria-hidden="true"></span> 关联</h2>
+              <div class="muted">分类</div>
+              <div style="height: 8px"></div>
+              <a class="chip" href="./categories.html">教程</a>
+              <div style="height: 12px"></div>
+              <div class="muted">标签</div>
+              <div style="height: 8px"></div>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap">
+                <a class="chip" href="./tags.html">Workers</a>
+                <a class="chip" href="./tags.html">D1</a>
+                <a class="chip" href="./tags.html">Deploy</a>
+              </div>
+              <div style="height: 14px"></div>
+              <button class="btn" type="button" onclick="location.href='./index.html'">返回首页</button>
+            </section>
+          </aside>
+        </section>
+      </div>
+    </main>
+
+    <footer class="footer" role="contentinfo">
+      <div class="container footer-inner">
+        <span>© 2026 Bitlog Demo</span>
+        <span style="display: flex; gap: 12px; flex-wrap: wrap">
+          <a href="./about.html">About</a>
+          <a href="./tags.html">Tags</a>
+          <a href="./categories.html">Categories</a>
+        </span>
+      </div>
+    </footer>
+
+    <script src="../_shared/app.js"></script>
+  </body>
+</html>
+

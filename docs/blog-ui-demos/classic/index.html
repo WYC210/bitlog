@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bitlog Demo (Classic) - 首页</title>
+    <link rel="stylesheet" href="../_shared/base.css" />
+    <link rel="stylesheet" href="./theme.css" />
+  </head>
+  <body data-page="home">
+    <header class="topbar" role="banner">
+      <div class="container topbar-inner">
+        <a class="brand" href="./index.html" aria-label="回到首页">
+          <span class="logo" aria-hidden="true"></span>
+          <strong>Bitlog</strong>
+        </a>
+
+        <div class="search" role="search">
+          <div class="searchbox">
+            <input type="search" placeholder="搜索文章（Ctrl/Cmd+F 聚焦）" />
+            <span class="kbd">Ctrl/Cmd+F</span>
+          </div>
+        </div>
+
+        <div class="right">
+          <nav class="nav" data-nav aria-label="导航">
+            <a href="./index.html" data-page="home" aria-current="false">首页</a>
+            <a href="./categories.html" data-page="categories" aria-current="false">分类</a>
+            <a href="./tags.html" data-page="tags" aria-current="false">标签</a>
+            <a href="./about.html" data-page="about" aria-current="false">关于</a>
+          </nav>
+          <button class="iconbtn" type="button" title="主题（Demo）" onclick="alert('Demo button')">☼</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="page">
+      <div class="container">
+        <section class="banner" aria-label="页头">
+          <div class="banner-row">
+            <div class="breadcrumb" aria-label="面包屑">
+              <span class="crumb">Articles</span>
+              <span class="crumb">Bitlog</span>
+              <span class="hint">最近更新</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="content" aria-label="内容">
+          <div class="stack" aria-label="文章列表">
+            <a class="post-item" href="./post.html" aria-label="打开文章">
+              <div class="meta">
+                <span>2026/02/21</span>
+                <span>•</span>
+                <span class="pill"><span class="dot"></span> 教程</span>
+              </div>
+              <h2 class="post-title">markdown 用法示例</h2>
+              <p class="post-summary">
+                bitlog markdown 示例文档：用于一次性展示你项目里 “当前已支持” 的 markdown / gfm / 自定义短代码能力……
+              </p>
+            </a>
+
+            <a class="post-item" href="./post.html" aria-label="打开文章">
+              <div class="meta">
+                <span>2026/02/20</span>
+                <span>•</span>
+                <span class="pill"><span class="dot"></span> 教程</span>
+              </div>
+              <h2 class="post-title">bitlog 在 workers 部署教程</h2>
+              <p class="post-summary">前期准备、Secrets、D1 迁移、DNS 生效判断、常见报错排查与缓存策略。</p>
+            </a>
+          </div>
+
+          <aside class="stack" aria-label="侧栏">
+            <section class="card" aria-label="分类">
+              <h2><span class="h2-ico" aria-hidden="true"></span> 分类</h2>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap">
+                <a class="chip" href="./categories.html">教程</a>
+                <a class="chip" href="./categories.html">随笔</a>
+                <a class="chip" href="./categories.html">安全</a>
+              </div>
+            </section>
+
+            <section class="card" aria-label="标签">
+              <h2><span class="h2-ico" aria-hidden="true"></span> 标签</h2>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap">
+                <a class="chip" href="./tags.html">Workers</a>
+                <a class="chip" href="./tags.html">D1</a>
+                <a class="chip" href="./tags.html">Markdown</a>
+              </div>
+            </section>
+          </aside>
+        </section>
+
+        <div class="tips">Tips：可使用分类/标签过滤，或搜索缩小范围（Demo）。</div>
+      </div>
+    </main>
+
+    <footer class="footer" role="contentinfo">
+      <div class="container footer-inner">
+        <span>© 2026 Bitlog Demo</span>
+        <span style="display: flex; gap: 12px; flex-wrap: wrap">
+          <a href="./about.html">About</a>
+          <a href="./tags.html">Tags</a>
+          <a href="./categories.html">Categories</a>
+        </span>
+      </div>
+    </footer>
+
+    <script src="../_shared/app.js"></script>
+  </body>
+</html>
+
