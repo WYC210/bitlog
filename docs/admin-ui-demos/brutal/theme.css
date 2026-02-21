@@ -74,3 +74,45 @@ body {
 .nav a:hover {
   transform: translate(-1px, -1px);
 }
+
+html[data-theme="light"] {
+  --bg: #fff7fb;
+  --panel: rgba(255, 255, 255, 0.86);
+  --panel2: rgba(255, 255, 255, 0.78);
+  --border: rgba(15, 23, 42, 0.24);
+  --text: rgba(15, 23, 42, 0.92);
+  --muted: rgba(15, 23, 42, 0.72);
+  --muted2: rgba(15, 23, 42, 0.56);
+  --accent: #ff2d55;
+  --warn: #b45309;
+  --danger: #dc2626;
+  --shadow: 10px 10px 0 rgba(15, 23, 42, 0.18);
+  --focus: 0 0 0 3px rgba(255, 45, 85, 0.22);
+
+  --sidebar-bg: linear-gradient(180deg, rgba(255, 45, 85, 0.08), rgba(255, 255, 255, 0.72));
+  --sidebar-divider: rgba(15, 23, 42, 0.18);
+  --topbar-bg: rgba(255, 255, 255, 0.78);
+  --brand-bg: rgba(255, 255, 255, 0.78);
+  --control-bg: rgba(255, 255, 255, 0.86);
+  --control-bg-hover: rgba(255, 255, 255, 0.96);
+  --control-border-hover: rgba(15, 23, 42, 0.3);
+  --nav-bg-hover: rgba(2, 6, 23, 0.03);
+  --nav-border-hover: rgba(15, 23, 42, 0.2);
+  --ico-bg: rgba(2, 6, 23, 0.03);
+  --ico-border: rgba(15, 23, 42, 0.18);
+  --me-bg: rgba(2, 6, 23, 0.03);
+  --me-border: rgba(15, 23, 42, 0.2);
+  --pill-bg: rgba(2, 6, 23, 0.03);
+  --pill-border: rgba(15, 23, 42, 0.22);
+  --table-border: rgba(15, 23, 42, 0.22);
+  --table-divider: rgba(15, 23, 42, 0.12);
+  --table-row-hover: rgba(2, 6, 23, 0.03);
+  --segmented-bg: rgba(2, 6, 23, 0.03);
+  --segmented-divider: rgba(15, 23, 42, 0.16);
+}
+
+html[data-theme="light"] body {
+  background: radial-gradient(900px 700px at 20% -10%, rgba(255, 45, 85, 0.14), transparent 55%),
+    radial-gradient(900px 700px at 110% 0%, rgba(255, 214, 0, 0.12), transparent 55%),
+    var(--bg);
+}
