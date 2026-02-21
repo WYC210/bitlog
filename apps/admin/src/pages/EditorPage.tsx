@@ -1,6 +1,15 @@
 ﻿import React, { useCallback, useEffect, useRef, useState } from "react";
-import type { AdminPostDetail, AdminPrefs, ApiError, SiteConfig } from "../api";
-import { createAdminPost, getAdminPost, renderAdminMarkdown, updateAdminPost, updateAdminPrefs, uploadAdminImage } from "../api";
+import type { AdminPostDetail, AdminPrefs, ApiError, PublicCategory, PublicTag, SiteConfig } from "../api";
+import {
+  createAdminPost,
+  getAdminPost,
+  listPublicCategories,
+  listPublicTags,
+  renderAdminMarkdown,
+  updateAdminPost,
+  updateAdminPrefs,
+  uploadAdminImage
+} from "../api";
 import { utcMsToZonedInput, zonedInputToUtcMs } from "../tz";
 import type { MarkdownEditorHandle } from "../components/MarkdownEditor";
 import { MarkdownEditor } from "../components/MarkdownEditor";
@@ -58,6 +67,8 @@ export function EditorPage(props: {
   });
   const toolboxDragTargetRef = useRef<ToolboxDock>(toolboxDragTarget);
   const toolboxPointerIdRef = useRef<number | null>(null);
+  const toolboxRailRef = useRef<HTMLElement | null>(null);
+  const [toolboxRailExpanded, setToolboxRailExpanded] = useState(false);
 
   const [previewHtml, setPreviewHtml] = useState<string>("");
   const [previewing, setPreviewing] = useState(false);
@@ -65,6 +76,139 @@ export function EditorPage(props: {
   const [autoPreview, setAutoPreview] = useState(true);
   const previewRef = useRef<HTMLDivElement | null>(null);
   const previewSeq = useRef(0);
+
+  const CATEGORY_PAGE_SIZE = 10;
+  const TAG_PAGE_SIZE = 10;
+
+  const categoryBoxRef = useRef<HTMLDivElement | null>(null);
+  const categoryInputRef = useRef<HTMLInputElement | null>(null);
+  const [categoryOpen, setCategoryOpen] = useState(false);
+  const [categoryItems, setCategoryItems] = useState<PublicCategory[]>([]);
+  const [categoryNextCursor, setCategoryNextCursor] = useState<string | null>(null);
+  const [categoryHasMore, setCategoryHasMore] = useState(true);
+  const [categoryLoading, setCategoryLoading] = useState(false);
+
+  const tagsBoxRef = useRef<HTMLDivElement | null>(null);
+  const tagsInputRef = useRef<HTMLInputElement | null>(null);
+  const [tagsOpen, setTagsOpen] = useState(false);
+  const [tagsItems, setTagsItems] = useState<PublicTag[]>([]);
+  const [tagsNextCursor, setTagsNextCursor] = useState<string | null>(null);
+  const [tagsHasMore, setTagsHasMore] = useState(true);
+  const [tagsLoading, setTagsLoading] = useState(false);
+
+  const loadMoreCategories = useCallback(async () => {
+    if (categoryLoading || !categoryHasMore) return;
+    setCategoryLoading(true);
+    try {
+      const r = await listPublicCategories({ limit: CATEGORY_PAGE_SIZE, cursor: categoryNextCursor });
+      setCategoryItems((prev) => {
+        const map = new Map(prev.map((x) => [x.id, x] as const));
+        for (const item of r.categories ?? []) map.set(item.id, item);
+        return Array.from(map.values());
+      });
+      setCategoryNextCursor(r.nextCursor ?? null);
+      setCategoryHasMore(!!r.nextCursor);
+    } catch {
+      setCategoryHasMore(false);
+    } finally {
+      setCategoryLoading(false);
+    }
+  }, [CATEGORY_PAGE_SIZE, categoryHasMore, categoryLoading, categoryNextCursor]);
+
+  const loadMoreTags = useCallback(async () => {
+    if (tagsLoading || !tagsHasMore) return;
+    setTagsLoading(true);
+    try {
+      const r = await listPublicTags({ limit: TAG_PAGE_SIZE, cursor: tagsNextCursor });
+      setTagsItems((prev) => {
+        const map = new Map(prev.map((x) => [x.id, x] as const));
+        for (const item of r.tags ?? []) map.set(item.id, item);
+        return Array.from(map.values());
+      });
+      setTagsNextCursor(r.nextCursor ?? null);
+      setTagsHasMore(!!r.nextCursor);
+    } catch {
+      setTagsHasMore(false);
+    } finally {
+      setTagsLoading(false);
+    }
+  }, [TAG_PAGE_SIZE, tagsHasMore, tagsLoading, tagsNextCursor]);
+
+  useEffect(() => {
+    if (!categoryOpen) return;
+    if (categoryItems.length > 0 || categoryLoading || !categoryHasMore) return;
+    loadMoreCategories();
+  }, [categoryHasMore, categoryItems.length, categoryLoading, categoryOpen, loadMoreCategories]);
+
+  useEffect(() => {
+    if (!tagsOpen) return;
+    if (tagsItems.length > 0 || tagsLoading || !tagsHasMore) return;
+    loadMoreTags();
+  }, [loadMoreTags, tagsHasMore, tagsItems.length, tagsLoading, tagsOpen]);
+
+  useEffect(() => {
+    function onPointerDown(e: PointerEvent) {
+      const t = e.target as any;
+      if (categoryOpen && categoryBoxRef.current && t && !categoryBoxRef.current.contains(t)) setCategoryOpen(false);
+      if (tagsOpen && tagsBoxRef.current && t && !tagsBoxRef.current.contains(t)) setTagsOpen(false);
+    }
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key !== "Escape") return;
+      if (categoryOpen) setCategoryOpen(false);
+      if (tagsOpen) setTagsOpen(false);
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [categoryOpen, tagsOpen]);
+
+  function normalizeTagList(items: string[]): string {
+    return items.map((s) => String(s ?? "").trim()).filter(Boolean).join(", ");
+  }
+
+  function parseTagTokens(value: string): string[] {
+    return String(value ?? "")
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean);
+  }
+
+  function getTokenAtCursor(value: string, cursor: number): { start: number; end: number; token: string } {
+    const s = String(value ?? "");
+    const i = Math.max(0, Math.min(s.length, cursor));
+    const prevComma = s.lastIndexOf(",", i - 1);
+    const nextComma = s.indexOf(",", i);
+    const start = prevComma === -1 ? 0 : prevComma + 1;
+    const end = nextComma === -1 ? s.length : nextComma;
+    const token = s.slice(start, end).trim();
+    return { start, end, token };
+  }
+
+  function replaceToken(value: string, cursor: number, nextToken: string): { nextValue: string; nextCursor: number } {
+    const s = String(value ?? "");
+    const { start, end } = getTokenAtCursor(s, cursor);
+    const before = s.slice(0, start);
+    const after = s.slice(end);
+    const leading = before.replace(/\s*$/, "");
+    const trailing = after.replace(/^\s*/, "");
+
+    const insert = String(nextToken ?? "").trim();
+    let out = leading;
+    if (out.length > 0 && !out.endsWith(",")) out += ",";
+    if (out.length > 0) out += " ";
+    out += insert;
+    if (trailing.length > 0) {
+      out += ",";
+      out += " ";
+      out += trailing.replace(/^,?\s*/, "");
+    }
+
+    const normalized = normalizeTagList(parseTagTokens(out));
+    return { nextValue: normalized, nextCursor: normalized.length };
+  }
 
   const tz = props.cfg?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
 
@@ -461,12 +605,13 @@ export function EditorPage(props: {
   const topPreview = toolboxDragging && toolboxDragTarget === "top" && toolboxDock !== "top";
   const railOpen = toolboxDock === "left" || railPreview;
   const topOpen = toolboxDock === "top" || topPreview;
+  const railExpanded = railOpen && toolboxDock === "left" && toolboxRailExpanded && !toolboxDragging;
 
   return (
     <div
       className={`grid grid--editor layout--${layout}${markdownFocused ? " focus-md" : ""}${
         railOpen ? " toolbox-left" : ""
-      }`}
+      }${railExpanded ? " toolbox-rail-expanded" : ""}`}
     >
       {toast && (
         <div className={`toast toast-${toast.type}`}>{toast.msg}</div>
@@ -478,6 +623,21 @@ export function EditorPage(props: {
               className={`toolbox toolbox-rail${toolboxDock === "left" ? " is-active" : ""}${railPreview ? " is-preview" : ""}`}
               aria-label="编辑工具栏（侧边）"
               aria-hidden={!railOpen}
+              ref={toolboxRailRef as any}
+              onMouseEnter={() => setToolboxRailExpanded(true)}
+              onMouseLeave={() => {
+                const el = toolboxRailRef.current;
+                if (el && el.contains(document.activeElement)) return;
+                setToolboxRailExpanded(false);
+              }}
+              onFocusCapture={() => setToolboxRailExpanded(true)}
+              onBlurCapture={(e) => {
+                const el = toolboxRailRef.current;
+                if (!el) return;
+                const next = e.relatedTarget as Node | null;
+                if (next && el.contains(next)) return;
+                setToolboxRailExpanded(false);
+              }}
             >
               {renderToolboxHandle()}
               <div className="toolbox-rail-scroll">{renderToolboxActions()}</div>
@@ -526,11 +686,119 @@ export function EditorPage(props: {
             <div className="row">
               <label>
                 分类（只允许 1 个）
-                <input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="例如：教学 / 编程" />
+                <div className="combo" ref={categoryBoxRef}>
+                  <input
+                    ref={categoryInputRef}
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    placeholder="例如：教学 / 编程"
+                    onFocus={() => setCategoryOpen(true)}
+                    onClick={() => setCategoryOpen(true)}
+                  />
+                  {categoryOpen && (
+                    <div
+                      className="combo-popover"
+                      role="listbox"
+                      onScroll={(e) => {
+                        const el = e.currentTarget;
+                        if (el.scrollTop + el.clientHeight >= el.scrollHeight - 40) loadMoreCategories();
+                      }}
+                    >
+                      {(category.trim()
+                        ? categoryItems.filter((c) => c.name.toLowerCase().includes(category.trim().toLowerCase()))
+                        : categoryItems
+                      ).map((c) => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          className="combo-item"
+                          role="option"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            setCategory(c.name);
+                            setCategoryOpen(false);
+                            categoryInputRef.current?.focus();
+                          }}
+                        >
+                          <span className="combo-main">{c.name}</span>
+                          <span className="combo-sub">{c.slug}</span>
+                        </button>
+                      ))}
+                      {categoryLoading && <div className="combo-hint">加载中...</div>}
+                      {!categoryLoading && categoryHasMore && <div className="combo-hint">下滑加载更多...</div>}
+                      {!categoryLoading && !categoryHasMore && categoryItems.length === 0 && (
+                        <div className="combo-hint">暂无分类（你可以直接手动输入创建）</div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </label>
               <label>
                 标签（逗号分隔）
-                <input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="例如：教程, SQL, Edge" />
+                <div className="combo" ref={tagsBoxRef}>
+                  <input
+                    ref={tagsInputRef}
+                    value={tags}
+                    onChange={(e) => setTags(e.target.value)}
+                    placeholder="例如：教程, SQL, Edge"
+                    onFocus={() => setTagsOpen(true)}
+                    onClick={() => setTagsOpen(true)}
+                  />
+                  {tagsOpen && (
+                    <div
+                      className="combo-popover"
+                      role="listbox"
+                      onScroll={(e) => {
+                        const el = e.currentTarget;
+                        if (el.scrollTop + el.clientHeight >= el.scrollHeight - 40) loadMoreTags();
+                      }}
+                    >
+                      {(() => {
+                        const selected = new Set(parseTagTokens(tags).map((t) => t.toLowerCase()));
+                        const cursor = tagsInputRef.current?.selectionStart ?? tags.length;
+                        const { token } = getTokenAtCursor(tags, cursor);
+                        const q = token.trim().toLowerCase();
+                        const list = (q ? tagsItems.filter((t) => t.name.toLowerCase().includes(q)) : tagsItems).filter(
+                          (t) => !selected.has(t.name.toLowerCase())
+                        );
+                        return list.map((t) => (
+                          <button
+                            key={t.id}
+                            type="button"
+                            className="combo-item"
+                            role="option"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              const cur = tagsInputRef.current?.selectionStart ?? tags.length;
+                              const next = replaceToken(tags, cur, t.name);
+                              setTags(next.nextValue);
+                              setTagsOpen(true);
+                              requestAnimationFrame(() => {
+                                tagsInputRef.current?.focus();
+                                try {
+                                  tagsInputRef.current?.setSelectionRange(next.nextCursor, next.nextCursor);
+                                } catch {
+                                  // ignore
+                                }
+                              });
+                            }}
+                          >
+                            <span className="combo-main">{t.name}</span>
+                            <span className="combo-sub">{t.slug}</span>
+                          </button>
+                        ));
+                      })()}
+                      {tagsLoading && <div className="combo-hint">加载中...</div>}
+                      {!tagsLoading && tagsHasMore && <div className="combo-hint">下滑加载更多...</div>}
+                      {!tagsLoading && !tagsHasMore && tagsItems.length === 0 && (
+                        <div className="combo-hint">暂无标签（你可以直接手动输入创建）</div>
+                      )}
+                      {!tagsLoading && tagsItems.length > 0 && (
+                        <div className="combo-hint">提示：可继续手动输入（逗号分隔）</div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </label>
             </div>
             <div className="row">

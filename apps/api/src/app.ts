@@ -518,15 +518,41 @@ export function createApiApp(bindings: ApiBindings) {
   });
 
   app.get("/api/categories", async (c) => {
+    const url = new URL(c.req.url);
+    const limitRaw = url.searchParams.get("limit");
+    const cursorRaw = url.searchParams.get("cursor");
+    const paged = limitRaw !== null || cursorRaw !== null;
+    const limit = Math.max(
+      1,
+      Math.min(1000, Number.isFinite(Number(limitRaw)) ? Math.trunc(Number(limitRaw)) : 1000)
+    );
+
+    let cursor: { name: string; id: string } | null = null;
+    if (cursorRaw) {
+      try {
+        let b64 = cursorRaw.replace(/-/g, "+").replace(/_/g, "/");
+        const pad = (4 - (b64.length % 4)) % 4;
+        if (pad) b64 += "=".repeat(pad);
+        const json = atob(b64);
+        const parsed = JSON.parse(json) as any;
+        const name = String(parsed?.name ?? "");
+        const id = String(parsed?.id ?? "");
+        if (name && id) cursor = { name, id };
+      } catch {
+        cursor = null;
+      }
+    }
+
     const maybeCached = await getCachedResponse(
       c.req.raw,
       bindings.db,
-      `categories`
+      paged ? `categories:${limit}:${cursorRaw ?? ""}` : `categories`
     );
     if (maybeCached) return maybeCached;
 
     const now = nowMs();
-    const rows = await bindings.db.query<{ id: string; slug: string; name: string }>(
+    const fetchLimit = paged ? limit + 1 : 1000000;
+    const allRows = await bindings.db.query<{ id: string; slug: string; name: string }>(
       sql`SELECT c.id, c.slug, c.name
           FROM categories c
           WHERE EXISTS (
@@ -537,19 +563,71 @@ export function createApiApp(bindings: ApiBindings) {
               AND p.publish_at IS NOT NULL
               AND p.publish_at <= ${now}
           )
-          ORDER BY c.name ASC`
+          AND (
+            ${cursor?.name ?? null} IS NULL
+            OR c.name > ${cursor?.name ?? null}
+            OR (c.name = ${cursor?.name ?? null} AND c.id > ${cursor?.id ?? null})
+          )
+          ORDER BY c.name ASC, c.id ASC
+          LIMIT ${fetchLimit}`
     );
-    const response = c.json({ ok: true, categories: rows });
-    await putCachedResponse(c.req.raw, response, bindings.db, `categories`);
+
+    const hasMore = paged && allRows.length > limit;
+    const rows = hasMore ? allRows.slice(0, limit) : allRows;
+
+    let nextCursor: string | null = null;
+    if (hasMore && rows.length > 0) {
+      const last = rows[rows.length - 1]!;
+      const payload = JSON.stringify({ name: last.name, id: last.id });
+      nextCursor = btoa(payload).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+    }
+
+    const response = c.json(paged ? { ok: true, categories: rows, nextCursor } : { ok: true, categories: rows });
+    await putCachedResponse(
+      c.req.raw,
+      response,
+      bindings.db,
+      paged ? `categories:${limit}:${cursorRaw ?? ""}` : `categories`
+    );
     return response;
   });
 
   app.get("/api/tags", async (c) => {
-    const maybeCached = await getCachedResponse(c.req.raw, bindings.db, `tags`);
+    const url = new URL(c.req.url);
+    const limitRaw = url.searchParams.get("limit");
+    const cursorRaw = url.searchParams.get("cursor");
+    const paged = limitRaw !== null || cursorRaw !== null;
+    const limit = Math.max(
+      1,
+      Math.min(1000, Number.isFinite(Number(limitRaw)) ? Math.trunc(Number(limitRaw)) : 1000)
+    );
+
+    let cursor: { name: string; id: string } | null = null;
+    if (cursorRaw) {
+      try {
+        let b64 = cursorRaw.replace(/-/g, "+").replace(/_/g, "/");
+        const pad = (4 - (b64.length % 4)) % 4;
+        if (pad) b64 += "=".repeat(pad);
+        const json = atob(b64);
+        const parsed = JSON.parse(json) as any;
+        const name = String(parsed?.name ?? "");
+        const id = String(parsed?.id ?? "");
+        if (name && id) cursor = { name, id };
+      } catch {
+        cursor = null;
+      }
+    }
+
+    const maybeCached = await getCachedResponse(
+      c.req.raw,
+      bindings.db,
+      paged ? `tags:${limit}:${cursorRaw ?? ""}` : `tags`
+    );
     if (maybeCached) return maybeCached;
 
     const now = nowMs();
-    const rows = await bindings.db.query<{ id: string; slug: string; name: string }>(
+    const fetchLimit = paged ? limit + 1 : 1000000;
+    const allRows = await bindings.db.query<{ id: string; slug: string; name: string }>(
       sql`SELECT t.id, t.slug, t.name
           FROM tags t
           WHERE EXISTS (
@@ -561,10 +639,32 @@ export function createApiApp(bindings: ApiBindings) {
               AND p.publish_at IS NOT NULL
               AND p.publish_at <= ${now}
           )
-          ORDER BY t.name ASC`
+          AND (
+            ${cursor?.name ?? null} IS NULL
+            OR t.name > ${cursor?.name ?? null}
+            OR (t.name = ${cursor?.name ?? null} AND t.id > ${cursor?.id ?? null})
+          )
+          ORDER BY t.name ASC, t.id ASC
+          LIMIT ${fetchLimit}`
     );
-    const response = c.json({ ok: true, tags: rows });
-    await putCachedResponse(c.req.raw, response, bindings.db, `tags`);
+
+    const hasMore = paged && allRows.length > limit;
+    const rows = hasMore ? allRows.slice(0, limit) : allRows;
+
+    let nextCursor: string | null = null;
+    if (hasMore && rows.length > 0) {
+      const last = rows[rows.length - 1]!;
+      const payload = JSON.stringify({ name: last.name, id: last.id });
+      nextCursor = btoa(payload).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+    }
+
+    const response = c.json(paged ? { ok: true, tags: rows, nextCursor } : { ok: true, tags: rows });
+    await putCachedResponse(
+      c.req.raw,
+      response,
+      bindings.db,
+      paged ? `tags:${limit}:${cursorRaw ?? ""}` : `tags`
+    );
     return response;
   });
 

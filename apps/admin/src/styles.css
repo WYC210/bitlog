@@ -347,6 +347,64 @@ textarea::placeholder {
   color: var(--muted-2);
 }
 
+.combo {
+  position: relative;
+  width: 100%;
+}
+
+.combo-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  max-height: 240px;
+  overflow: auto;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(15, 20, 34, 0.98);
+  border-radius: 12px;
+  padding: 6px;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.55);
+  z-index: 80;
+}
+
+.combo-item {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  border-radius: 10px;
+  padding: 9px 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.combo-item:hover,
+.combo-item:focus-visible {
+  background: rgba(255, 255, 255, 0.06);
+  outline: none;
+}
+
+.combo-main {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.combo-sub {
+  font-size: 12px;
+  color: var(--muted-2);
+}
+
+.combo-hint {
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--muted-2);
+}
+
 input[type="file"] {
   padding: 8px 12px;
   cursor: pointer;
@@ -400,9 +458,18 @@ select option {
   grid-template-columns: var(--toolbox-rail-w-collapsed) minmax(0, 1fr) minmax(0, 1fr);
 }
 
+.grid--editor.toolbox-left.toolbox-rail-expanded {
+  grid-template-columns: var(--toolbox-rail-w-expanded) minmax(0, 1fr) minmax(0, 1fr);
+}
+
 .grid--editor.toolbox-left.layout--write,
 .grid--editor.toolbox-left.layout--preview {
   grid-template-columns: var(--toolbox-rail-w-collapsed) minmax(0, 1fr);
+}
+
+.grid--editor.toolbox-left.toolbox-rail-expanded.layout--write,
+.grid--editor.toolbox-left.toolbox-rail-expanded.layout--preview {
+  grid-template-columns: var(--toolbox-rail-w-expanded) minmax(0, 1fr);
 }
 
 .editor-meta {
@@ -466,6 +533,9 @@ select option {
     grid-template-columns: 1fr;
   }
   .grid--editor.toolbox-left {
+    grid-template-columns: var(--toolbox-rail-w-collapsed, 52px) minmax(0, 1fr);
+  }
+  .grid--editor.toolbox-left.toolbox-rail-expanded {
     grid-template-columns: var(--toolbox-rail-w-collapsed, 52px) minmax(0, 1fr);
   }
 }
@@ -594,6 +664,8 @@ select option {
   justify-content: center;
   width: 26px;
   height: 26px;
+  position: relative;
+  z-index: 5;
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: rgba(255, 255, 255, 0.45);
@@ -706,6 +778,10 @@ select option {
   transition: opacity 160ms ease, transform 180ms ease;
 }
 
+.grid--editor.toolbox-rail-expanded .toolbox-rail {
+  width: var(--toolbox-rail-w-expanded, 132px);
+}
+
 .toolbox-rail.is-active,
 .toolbox-rail.is-preview {
   opacity: 1;
@@ -725,6 +801,8 @@ select option {
   overflow: auto;
   min-height: 0;
   padding: 4px;
+  position: relative;
+  z-index: 1;
   border-radius: 10px;
   transition: background 160ms ease, box-shadow 160ms ease;
 }
@@ -771,6 +849,17 @@ select option {
   transition: max-width 180ms ease, opacity 160ms ease, transform 180ms ease;
 }
 
+.grid--editor.toolbox-rail-expanded .toolbox-rail .toolbox-label {
+  max-width: 160px;
+  opacity: 1;
+  transform: none;
+}
+
+.grid--editor.toolbox-rail-expanded .toolbox-rail .toolbox-btn {
+  justify-content: flex-start;
+  padding: 8px 10px;
+}
+
 .toolbox-rail.is-active:hover,
 .toolbox-rail.is-active:focus-within {
   /* overflow visible so expanded panel floats over editor without affecting grid */
@@ -785,11 +874,24 @@ select option {
   left: 0;
   top: 0;
   width: var(--toolbox-rail-w-expanded, 132px);
+  z-index: 2;
   background: linear-gradient(160deg, rgba(15, 22, 45, 0.97), rgba(10, 16, 35, 0.95));
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 12px;
   padding: 8px;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+
+.grid--editor.toolbox-rail-expanded .toolbox-rail.is-active:hover .toolbox-rail-scroll,
+.grid--editor.toolbox-rail-expanded .toolbox-rail.is-active:focus-within .toolbox-rail-scroll {
+  position: relative;
+  left: auto;
+  top: auto;
+  width: auto;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 4px;
 }
 
 .toolbox-rail.is-active:hover .toolbox-btn,

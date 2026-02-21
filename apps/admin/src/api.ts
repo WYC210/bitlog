@@ -113,6 +113,34 @@ export async function getConfig(): Promise<SiteConfig> {
   return r.config;
 }
 
+export type PublicCategory = { id: string; slug: string; name: string };
+export async function listPublicCategories(params?: {
+  limit?: number;
+  cursor?: string | null;
+}): Promise<{ categories: PublicCategory[]; nextCursor: string | null }> {
+  const usp = new URLSearchParams();
+  if (params?.limit) usp.set("limit", String(params.limit));
+  if (params?.cursor) usp.set("cursor", params.cursor);
+  const r = await apiJson<{ ok: true; categories: PublicCategory[]; nextCursor?: string | null }>(
+    `/api/categories${usp.toString() ? `?${usp.toString()}` : ""}`
+  );
+  return { categories: r.categories ?? [], nextCursor: (r as any).nextCursor ?? null };
+}
+
+export type PublicTag = { id: string; slug: string; name: string };
+export async function listPublicTags(params?: {
+  limit?: number;
+  cursor?: string | null;
+}): Promise<{ tags: PublicTag[]; nextCursor: string | null }> {
+  const usp = new URLSearchParams();
+  if (params?.limit) usp.set("limit", String(params.limit));
+  if (params?.cursor) usp.set("cursor", params.cursor);
+  const r = await apiJson<{ ok: true; tags: PublicTag[]; nextCursor?: string | null }>(
+    `/api/tags${usp.toString() ? `?${usp.toString()}` : ""}`
+  );
+  return { tags: r.tags ?? [], nextCursor: (r as any).nextCursor ?? null };
+}
+
 export async function adminMe(): Promise<{ adminId: string; username: string }> {
   const r = await apiJson<{ ok: true; user: { adminId: string; username: string } }>("/api/admin/me");
   return r.user;
