@@ -16,6 +16,8 @@ type SiteConfig = {
   embedAllowlistHosts: string[];
   cacheTtlSeconds: number;
   cacheVersion: number;
+  webStyle: "current" | "classic" | "glass" | "brutal" | "terminal";
+  adminStyle: "current" | "classic" | "glass" | "brutal" | "terminal";
   shortcutsJson: string | null;
   footerCopyrightUrl: string | null;
   footerIcpText: string | null;
@@ -449,6 +451,7 @@ export function createWebApp() {
         "{{YEAR}}": escapeHtml(year),
         "{{SITE_FOOTER}}": footer,
         "{{CACHE_VERSION}}": escapeHtml(cacheVersionForRequest(cfg, c.req.url)),
+        "{{UI_WEB_STYLE}}": escapeHtml(String(cfg.webStyle ?? "current")),
         "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? "")
       });
 
@@ -539,6 +542,7 @@ export function createWebApp() {
         "{{TAGS}}": renderChipsWithActive(tags as any, "/articles?tag=", tag),
         "{{SITE_FOOTER}}": footer,
         "{{CACHE_VERSION}}": escapeHtml(cacheVersionForRequest(cfg, c.req.url)),
+        "{{UI_WEB_STYLE}}": escapeHtml(String(cfg.webStyle ?? "current")),
         "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? "")
       });
 
@@ -633,6 +637,7 @@ export function createWebApp() {
       const html = replaceAll((await loadTemplates(c.env, c.req.url)).page, {
         "{{PAGE_TITLE}}": escapeHtml(cfg.title ? `${cfg.title} · 项目` : "项目"),
         "{{CACHE_VERSION}}": escapeHtml(cacheVersionForRequest(cfg, c.req.url)),
+        "{{UI_WEB_STYLE}}": escapeHtml(String(cfg.webStyle ?? "current")),
         "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? ""),
         "{{PAGE_ID}}": "projects",
         "{{SEARCH_VALUE}}": "",
@@ -664,6 +669,7 @@ ${filter}
       const html = replaceAll((await loadTemplates(c.env, c.req.url)).page, {
         "{{PAGE_TITLE}}": escapeHtml(cfg.title ? `${cfg.title} · 关于我` : "关于我"),
         "{{CACHE_VERSION}}": escapeHtml(cacheVersionForRequest(cfg, c.req.url)),
+        "{{UI_WEB_STYLE}}": escapeHtml(String(cfg.webStyle ?? "current")),
         "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? ""),
         "{{PAGE_ID}}": "about",
         "{{SEARCH_VALUE}}": "",
@@ -750,6 +756,7 @@ ${filter}
       const html = replaceAll((await loadTemplates(c.env, c.req.url)).page, {
         "{{PAGE_TITLE}}": escapeHtml(cfg.title ? `${cfg.title} · 工具中心` : "工具中心"),
         "{{CACHE_VERSION}}": escapeHtml(cacheVersionForRequest(cfg, c.req.url)),
+        "{{UI_WEB_STYLE}}": escapeHtml(String(cfg.webStyle ?? "current")),
         "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? ""),
         "{{PAGE_ID}}": "tools",
         "{{SEARCH_VALUE}}": "",
@@ -786,6 +793,7 @@ ${filter}
       const html = replaceAll((await loadTemplates(c.env, c.req.url)).page, {
         "{{PAGE_TITLE}}": escapeHtml(cfg.title ? `${cfg.title} · 工具未找到` : "工具未找到"),
         "{{CACHE_VERSION}}": escapeHtml(cacheVersionForRequest(cfg, c.req.url)),
+        "{{UI_WEB_STYLE}}": escapeHtml(String(cfg.webStyle ?? "current")),
         "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? ""),
         "{{PAGE_ID}}": "tools",
         "{{SEARCH_VALUE}}": "",
@@ -822,6 +830,7 @@ ${filter}
     const html = replaceAll((await loadTemplates(c.env, c.req.url)).page, {
       "{{PAGE_TITLE}}": escapeHtml(cfg.title ? `${cfg.title} · ${tool.title}` : tool.title),
       "{{CACHE_VERSION}}": escapeHtml(cacheVersionForRequest(cfg, c.req.url)),
+      "{{UI_WEB_STYLE}}": escapeHtml(String(cfg.webStyle ?? "current")),
       "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? ""),
       "{{PAGE_ID}}": "tools",
       "{{SEARCH_VALUE}}": "",
@@ -905,6 +914,7 @@ ${filter}
         "{{POST_CONTENT}}": post.content_html ?? "",
         "{{SITE_FOOTER}}": footer,
         "{{CACHE_VERSION}}": escapeHtml(cacheVersionForRequest(cfg, c.req.url)),
+        "{{UI_WEB_STYLE}}": escapeHtml(String(cfg.webStyle ?? "current")),
         "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? "")
       });
 

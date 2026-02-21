@@ -9,11 +9,15 @@ export interface SiteConfig {
   embedAllowlistHosts: Set<string>;
   cacheTtlSeconds: number;
   cacheVersion: number;
+  webStyle: UiStyle;
+  adminStyle: UiStyle;
   shortcutsJson: string | null;
   footerCopyrightUrl: string | null;
   footerIcpText: string | null;
   footerIcpLink: string | null;
 }
+
+export type UiStyle = "current" | "classic" | "glass" | "brutal" | "terminal";
 
 const KEY_TITLE = "site.title";
 const KEY_DESCRIPTION = "site.description";
@@ -22,14 +26,26 @@ const KEY_TIMEZONE = "site.timezone";
 const KEY_EMBED_ALLOWLIST = "site.embed_allowlist";
 const KEY_CACHE_TTL = "site.cache_public_ttl_seconds";
 const KEY_CACHE_VERSION = "site.cache_version";
+const KEY_UI_WEB_STYLE = "ui.web_style";
+const KEY_UI_ADMIN_STYLE = "ui.admin_style";
 const KEY_SHORTCUTS = "site.shortcuts_json";
 const KEY_FOOTER_COPYRIGHT_URL = "site.footer_copyright_url";
 const KEY_FOOTER_ICP_TEXT = "site.footer_icp_text";
 const KEY_FOOTER_ICP_LINK = "site.footer_icp_link";
 
+function parseUiStyle(input: string | null | undefined): UiStyle | null {
+  const s = String(input ?? "").trim().toLowerCase();
+  if (s === "current") return "current";
+  if (s === "classic") return "classic";
+  if (s === "glass") return "glass";
+  if (s === "brutal") return "brutal";
+  if (s === "terminal") return "terminal";
+  return null;
+}
+
 export async function getSiteConfig(db: Db): Promise<SiteConfig> {
   const rows = await db.query<{ key: string; value: string }>(
-    sql`SELECT key, value FROM settings WHERE key IN (${KEY_TITLE}, ${KEY_DESCRIPTION}, ${KEY_BASE_URL}, ${KEY_TIMEZONE}, ${KEY_EMBED_ALLOWLIST}, ${KEY_CACHE_TTL}, ${KEY_CACHE_VERSION}, ${KEY_SHORTCUTS}, ${KEY_FOOTER_COPYRIGHT_URL}, ${KEY_FOOTER_ICP_TEXT}, ${KEY_FOOTER_ICP_LINK})`
+    sql`SELECT key, value FROM settings WHERE key IN (${KEY_TITLE}, ${KEY_DESCRIPTION}, ${KEY_BASE_URL}, ${KEY_TIMEZONE}, ${KEY_EMBED_ALLOWLIST}, ${KEY_CACHE_TTL}, ${KEY_CACHE_VERSION}, ${KEY_UI_WEB_STYLE}, ${KEY_UI_ADMIN_STYLE}, ${KEY_SHORTCUTS}, ${KEY_FOOTER_COPYRIGHT_URL}, ${KEY_FOOTER_ICP_TEXT}, ${KEY_FOOTER_ICP_LINK})`
   );
   const map = new Map(rows.map((r) => [r.key, r.value]));
 
@@ -41,6 +57,9 @@ export async function getSiteConfig(db: Db): Promise<SiteConfig> {
   const cacheVersion = Number.isFinite(version) && version > 0 ? version : 1;
 
   const embedAllowlistHosts = parseEmbedAllowlist(map.get(KEY_EMBED_ALLOWLIST) ?? null);
+
+  const webStyle = parseUiStyle(map.get(KEY_UI_WEB_STYLE) ?? null) ?? "current";
+  const adminStyle = parseUiStyle(map.get(KEY_UI_ADMIN_STYLE) ?? null) ?? "current";
 
   const timezone = map.get(KEY_TIMEZONE) ?? null;
   const title = map.get(KEY_TITLE) ?? null;
@@ -58,6 +77,8 @@ export async function getSiteConfig(db: Db): Promise<SiteConfig> {
     embedAllowlistHosts,
     cacheTtlSeconds,
     cacheVersion,
+    webStyle,
+    adminStyle,
     shortcutsJson,
     footerCopyrightUrl,
     footerIcpText,
@@ -119,6 +140,16 @@ function normalizeSettingValue(key: string, value: unknown): string {
   if (key === KEY_SHORTCUTS) {
     if (typeof value === "string") return value;
     return JSON.stringify(value ?? {});
+  }
+  if (key === KEY_UI_WEB_STYLE) {
+    const style = parseUiStyle(typeof value === "string" ? value : String(value ?? ""));
+    if (!style) throw new Error("Invalid ui.web_style (allowed: current/classic/glass/brutal/terminal)");
+    return style;
+  }
+  if (key === KEY_UI_ADMIN_STYLE) {
+    const style = parseUiStyle(typeof value === "string" ? value : String(value ?? ""));
+    if (!style) throw new Error("Invalid ui.admin_style (allowed: current/classic/glass/brutal/terminal)");
+    return style;
   }
 
   if (typeof value === "string") return value;

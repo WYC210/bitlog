@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import type { AdminToolItem, ApiError, ProjectsConfigAdminView, SiteConfig, ToolGroup, ToolKind } from "../api";
+import type { AdminToolItem, ApiError, ProjectsConfigAdminView, SiteConfig, ToolGroup, ToolKind, UiStyle } from "../api";
 import { CodeEditor } from "../components/CodeEditor";
 import {
   apiJson,
@@ -33,6 +33,8 @@ export function SettingsPage(props: {
   const [footerCopyrightUrl, setFooterCopyrightUrl] = useState(props.cfg?.footerCopyrightUrl ?? "");
   const [footerIcpText, setFooterIcpText] = useState(props.cfg?.footerIcpText ?? "");
   const [footerIcpLink, setFooterIcpLink] = useState(props.cfg?.footerIcpLink ?? "https://beian.miit.gov.cn/");
+  const [webStyle, setWebStyle] = useState<UiStyle>(props.cfg?.webStyle ?? "current");
+  const [adminStyle, setAdminStyle] = useState<UiStyle>(props.cfg?.adminStyle ?? "current");
   const [autoSummaryEnabled, setAutoSummaryEnabled] = useState(false);
   const [pwOld, setPwOld] = useState("");
   const [pwNew, setPwNew] = useState("");
@@ -77,6 +79,14 @@ export function SettingsPage(props: {
     clientCode: "",
     enabled: true
   });
+
+  const UI_STYLES: Array<{ value: UiStyle; label: string }> = [
+    { value: "current", label: "current（默认）" },
+    { value: "classic", label: "classic" },
+    { value: "glass", label: "glass" },
+    { value: "brutal", label: "brutal" },
+    { value: "terminal", label: "terminal" }
+  ];
 
   function KeyDetails(props: { storageKey: string }) {
     const [copied, setCopied] = useState(false);
@@ -190,6 +200,8 @@ export function SettingsPage(props: {
     setFooterCopyrightUrl(props.cfg.footerCopyrightUrl ?? "");
     setFooterIcpText(props.cfg.footerIcpText ?? "");
     setFooterIcpLink(props.cfg.footerIcpLink ?? "https://beian.miit.gov.cn/");
+    setWebStyle(props.cfg.webStyle ?? "current");
+    setAdminStyle(props.cfg.adminStyle ?? "current");
   }, [props.cfg]);
 
   useEffect(() => {
@@ -265,6 +277,31 @@ export function SettingsPage(props: {
       .filter(Boolean)
       .map((h) => h.replace(/^https?:\/\//, "").split("/")[0]!)
       .filter(Boolean);
+  }
+
+  async function saveUiStyles() {
+    props.onError("");
+    setSaving(true);
+    try {
+      await updateSettings({
+        "ui.web_style": webStyle,
+        "ui.admin_style": adminStyle
+      });
+      const newCfg = await getConfig();
+      props.onCfg(newCfg);
+      try {
+        document.documentElement.setAttribute("data-ui-style", newCfg.adminStyle ?? "current");
+        localStorage.setItem("ui-admin-style-last", newCfg.adminStyle ?? "current");
+      } catch {
+        // ignore
+      }
+      alert("已保存（cache_version 已递增）");
+    } catch (e) {
+      const err = e as ApiError;
+      props.onError(err.message || "保存失败");
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function saveSiteCoreSettings() {
@@ -654,6 +691,38 @@ export function SettingsPage(props: {
             {saving ? "保存中..." : "保存基础设置"}
           </button>
         </div>
+        <div style={{ height: 16 }} />
+        <h3 style={{ margin: "6px 0 4px" }}>UI 椋庢牸</h3>
+        <div className="row">
+          <label>
+            Web 椋庢牸
+            <select value={webStyle} onChange={(e) => setWebStyle(e.target.value as UiStyle)}>
+              {UI_STYLES.map((s) => (
+                <option key={s.value} value={s.value}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+            <KeyDetails storageKey="ui.web_style" />
+          </label>
+          <label>
+            Admin 椋庢牸
+            <select value={adminStyle} onChange={(e) => setAdminStyle(e.target.value as UiStyle)}>
+              {UI_STYLES.map((s) => (
+                <option key={s.value} value={s.value}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+            <KeyDetails storageKey="ui.admin_style" />
+          </label>
+        </div>
+        <div className="nav">
+          <button className="chip chip-primary" onClick={() => void saveUiStyles()} disabled={saving}>
+            {saving ? "淇濆瓨涓?.." : "淇濆瓨 UI 椋庢牸"}
+          </button>
+        </div>
+
         <div style={{ height: 16 }} />
         <label>
           <h3 style={{ margin: "6px 0 4px" }}>嵌入域名白名单</h3>

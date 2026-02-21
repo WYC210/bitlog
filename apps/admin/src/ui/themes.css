@@ -1,0 +1,534 @@
+/* Bitlog Admin themes (site-level: data-ui-style)
+   - Hooks: html[data-ui-style="<style>"][data-theme="light|dark"]
+   - Styles: current / classic / glass / brutal / terminal
+*/
+
+/* ---------------- Current (default) ---------------- */
+html[data-ui-style="current"] {
+  --bg: #080e1f;
+  --text: rgba(255, 255, 255, 0.93);
+  --muted: rgba(255, 255, 255, 0.7);
+  --muted2: rgba(255, 255, 255, 0.52);
+  --border: rgba(255, 255, 255, 0.1);
+  --panel: rgba(255, 255, 255, 0.055);
+  --panel2: rgba(255, 255, 255, 0.09);
+  --accent: #4b6bff;
+  --warn: #fbbf24;
+  --danger: #f87171;
+  --shadow: 0 18px 52px rgba(0, 0, 0, 0.45);
+  --focus: 0 0 0 3px rgba(75, 107, 255, 0.28);
+  --border-w: 1px;
+  --radius: 14px;
+  --radius-sm: 12px;
+
+  --sidebar-bg: linear-gradient(180deg, rgba(8, 14, 31, 0.8), rgba(8, 14, 31, 0.35));
+  --sidebar-divider: rgba(255, 255, 255, 0.08);
+  --topbar-bg: rgba(8, 14, 31, 0.55);
+  --brand-bg: rgba(255, 255, 255, 0.04);
+  --control-bg: rgba(255, 255, 255, 0.04);
+  --control-bg-hover: rgba(255, 255, 255, 0.07);
+  --control-border-hover: rgba(255, 255, 255, 0.18);
+  --nav-bg-hover: rgba(255, 255, 255, 0.05);
+  --nav-border-hover: rgba(255, 255, 255, 0.1);
+  --ico-bg: rgba(255, 255, 255, 0.05);
+  --ico-border: rgba(255, 255, 255, 0.12);
+  --me-bg: rgba(255, 255, 255, 0.03);
+  --me-border: rgba(255, 255, 255, 0.1);
+  --pill-bg: rgba(255, 255, 255, 0.03);
+  --pill-border: rgba(255, 255, 255, 0.12);
+  --table-border: rgba(255, 255, 255, 0.12);
+  --table-divider: rgba(255, 255, 255, 0.07);
+  --table-row-hover: rgba(255, 255, 255, 0.03);
+  --segmented-bg: rgba(255, 255, 255, 0.03);
+  --segmented-divider: rgba(255, 255, 255, 0.08);
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+}
+
+html[data-ui-style="current"] body {
+  background:
+    radial-gradient(900px 600px at 15% -5%, rgba(75, 107, 255, 0.22), transparent 55%),
+    radial-gradient(700px 500px at 88% -8%, rgba(99, 102, 241, 0.14), transparent 55%),
+    radial-gradient(800px 500px at 50% 105%, rgba(14, 116, 144, 0.08), transparent 60%),
+    var(--bg);
+}
+
+html[data-ui-style="current"] .logo {
+  background: linear-gradient(135deg, rgba(75, 107, 255, 0.95), rgba(125, 162, 255, 0.7));
+  box-shadow: 0 16px 70px rgba(75, 107, 255, 0.25);
+  border-radius: 14px;
+}
+
+html[data-ui-style="current"][data-theme="light"] {
+  --bg: #f8fafc;
+  --text: rgba(15, 23, 42, 0.92);
+  --muted: rgba(15, 23, 42, 0.68);
+  --muted2: rgba(15, 23, 42, 0.54);
+  --border: rgba(15, 23, 42, 0.12);
+  --panel: rgba(255, 255, 255, 0.86);
+  --panel2: rgba(255, 255, 255, 0.74);
+  --accent: #4b6bff;
+  --warn: #d97706;
+  --danger: #dc2626;
+  --shadow: 0 18px 52px rgba(15, 23, 42, 0.14);
+  --focus: 0 0 0 3px rgba(75, 107, 255, 0.22);
+
+  --sidebar-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.75), rgba(248, 250, 252, 0.75));
+  --sidebar-divider: rgba(15, 23, 42, 0.08);
+  --topbar-bg: rgba(255, 255, 255, 0.72);
+  --brand-bg: rgba(255, 255, 255, 0.72);
+  --control-bg: rgba(255, 255, 255, 0.78);
+  --control-bg-hover: rgba(255, 255, 255, 0.96);
+  --control-border-hover: rgba(15, 23, 42, 0.18);
+  --nav-bg-hover: rgba(2, 6, 23, 0.04);
+  --nav-border-hover: rgba(2, 6, 23, 0.08);
+  --ico-bg: rgba(2, 6, 23, 0.04);
+  --ico-border: rgba(15, 23, 42, 0.12);
+  --me-bg: rgba(2, 6, 23, 0.03);
+  --me-border: rgba(15, 23, 42, 0.1);
+  --pill-bg: rgba(2, 6, 23, 0.03);
+  --pill-border: rgba(15, 23, 42, 0.12);
+  --table-border: rgba(15, 23, 42, 0.12);
+  --table-divider: rgba(15, 23, 42, 0.08);
+  --table-row-hover: rgba(2, 6, 23, 0.03);
+  --segmented-bg: rgba(2, 6, 23, 0.03);
+  --segmented-divider: rgba(15, 23, 42, 0.1);
+}
+
+html[data-ui-style="current"][data-theme="light"] body {
+  background:
+    radial-gradient(900px 600px at 15% -5%, rgba(75, 107, 255, 0.18), transparent 55%),
+    radial-gradient(700px 500px at 88% -8%, rgba(99, 102, 241, 0.12), transparent 55%),
+    radial-gradient(800px 500px at 50% 105%, rgba(14, 116, 144, 0.06), transparent 60%),
+    var(--bg);
+}
+
+/* ---------------- Classic ---------------- */
+html[data-ui-style="classic"] {
+  --bg: #020617;
+  --panel: rgba(15, 23, 42, 0.86);
+  --panel2: rgba(255, 255, 255, 0.04);
+  --border: rgba(255, 255, 255, 0.12);
+  --text: rgba(248, 250, 252, 0.92);
+  --muted: rgba(248, 250, 252, 0.7);
+  --muted2: rgba(248, 250, 252, 0.55);
+  --accent: #22c55e;
+  --warn: #f59e0b;
+  --danger: #ef4444;
+  --shadow: 0 18px 48px rgba(0, 0, 0, 0.55);
+  --focus: 0 0 0 3px rgba(34, 197, 94, 0.22);
+  --border-w: 1px;
+  --radius: 14px;
+  --radius-sm: 12px;
+
+  --sidebar-bg: linear-gradient(180deg, rgba(15, 23, 42, 0.78), rgba(2, 6, 23, 0.2));
+  --sidebar-divider: rgba(255, 255, 255, 0.1);
+  --topbar-bg: rgba(15, 23, 42, 0.46);
+  --brand-bg: rgba(15, 23, 42, 0.46);
+  --control-bg: rgba(15, 23, 42, 0.4);
+  --control-bg-hover: rgba(15, 23, 42, 0.56);
+  --control-border-hover: rgba(255, 255, 255, 0.2);
+  --nav-bg-hover: rgba(255, 255, 255, 0.06);
+  --nav-border-hover: rgba(255, 255, 255, 0.1);
+  --ico-bg: rgba(255, 255, 255, 0.05);
+  --ico-border: rgba(255, 255, 255, 0.12);
+  --me-bg: rgba(15, 23, 42, 0.36);
+  --me-border: rgba(255, 255, 255, 0.12);
+  --pill-bg: rgba(15, 23, 42, 0.34);
+  --pill-border: rgba(255, 255, 255, 0.12);
+  --table-border: rgba(255, 255, 255, 0.12);
+  --table-divider: rgba(255, 255, 255, 0.08);
+  --table-row-hover: rgba(255, 255, 255, 0.03);
+  --segmented-bg: rgba(15, 23, 42, 0.34);
+  --segmented-divider: rgba(255, 255, 255, 0.1);
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+}
+
+html[data-ui-style="classic"] body {
+  background: radial-gradient(1200px 700px at 20% -20%, rgba(34, 197, 94, 0.14), transparent 55%),
+    radial-gradient(900px 600px at 110% 10%, rgba(56, 189, 248, 0.14), transparent 55%), var(--bg);
+}
+
+html[data-ui-style="classic"][data-theme="light"] {
+  --bg: #f8fafc;
+  --panel: rgba(255, 255, 255, 0.86);
+  --panel2: rgba(255, 255, 255, 0.74);
+  --border: rgba(15, 23, 42, 0.12);
+  --text: rgba(15, 23, 42, 0.92);
+  --muted: rgba(15, 23, 42, 0.68);
+  --muted2: rgba(15, 23, 42, 0.54);
+  --accent: #22c55e;
+  --warn: #d97706;
+  --danger: #dc2626;
+  --shadow: 0 18px 48px rgba(15, 23, 42, 0.1);
+  --focus: 0 0 0 3px rgba(34, 197, 94, 0.22);
+
+  --sidebar-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(248, 250, 252, 0.72));
+  --sidebar-divider: rgba(15, 23, 42, 0.08);
+  --topbar-bg: rgba(255, 255, 255, 0.72);
+  --brand-bg: rgba(255, 255, 255, 0.72);
+  --control-bg: rgba(255, 255, 255, 0.78);
+  --control-bg-hover: rgba(255, 255, 255, 0.96);
+  --control-border-hover: rgba(15, 23, 42, 0.18);
+  --nav-bg-hover: rgba(2, 6, 23, 0.04);
+  --nav-border-hover: rgba(2, 6, 23, 0.08);
+  --ico-bg: rgba(2, 6, 23, 0.04);
+  --ico-border: rgba(15, 23, 42, 0.12);
+  --me-bg: rgba(2, 6, 23, 0.03);
+  --me-border: rgba(15, 23, 42, 0.1);
+  --pill-bg: rgba(2, 6, 23, 0.03);
+  --pill-border: rgba(15, 23, 42, 0.12);
+  --table-border: rgba(15, 23, 42, 0.12);
+  --table-divider: rgba(15, 23, 42, 0.08);
+  --table-row-hover: rgba(2, 6, 23, 0.03);
+  --segmented-bg: rgba(2, 6, 23, 0.03);
+  --segmented-divider: rgba(15, 23, 42, 0.1);
+}
+
+html[data-ui-style="classic"][data-theme="light"] body {
+  background: radial-gradient(1200px 700px at 20% -20%, rgba(34, 197, 94, 0.14), transparent 55%),
+    radial-gradient(900px 600px at 110% 10%, rgba(56, 189, 248, 0.12), transparent 55%), var(--bg);
+}
+
+/* ---------------- Glass ---------------- */
+html[data-ui-style="glass"] {
+  --bg: #050816;
+  --panel: rgba(255, 255, 255, 0.08);
+  --panel2: rgba(255, 255, 255, 0.06);
+  --border: rgba(255, 255, 255, 0.16);
+  --text: rgba(255, 255, 255, 0.92);
+  --muted: rgba(255, 255, 255, 0.74);
+  --muted2: rgba(255, 255, 255, 0.58);
+  --accent: #7c3aed;
+  --warn: #fbbf24;
+  --danger: #fb7185;
+  --shadow: 0 30px 90px rgba(0, 0, 0, 0.55);
+  --border-w: 1px;
+  --radius: 16px;
+  --radius-sm: 14px;
+  --focus: 0 0 0 3px rgba(124, 58, 237, 0.24);
+
+  --sidebar-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(5, 8, 22, 0.18));
+  --sidebar-divider: rgba(255, 255, 255, 0.14);
+  --topbar-bg: rgba(255, 255, 255, 0.07);
+  --brand-bg: rgba(255, 255, 255, 0.07);
+  --control-bg: rgba(255, 255, 255, 0.06);
+  --control-bg-hover: rgba(255, 255, 255, 0.1);
+  --control-border-hover: rgba(255, 255, 255, 0.26);
+  --nav-bg-hover: rgba(255, 255, 255, 0.08);
+  --nav-border-hover: rgba(255, 255, 255, 0.18);
+  --ico-bg: rgba(255, 255, 255, 0.06);
+  --ico-border: rgba(255, 255, 255, 0.16);
+  --me-bg: rgba(255, 255, 255, 0.06);
+  --me-border: rgba(255, 255, 255, 0.16);
+  --pill-bg: rgba(255, 255, 255, 0.05);
+  --pill-border: rgba(255, 255, 255, 0.16);
+  --table-border: rgba(255, 255, 255, 0.16);
+  --table-divider: rgba(255, 255, 255, 0.1);
+  --table-row-hover: rgba(255, 255, 255, 0.04);
+  --segmented-bg: rgba(255, 255, 255, 0.05);
+  --segmented-divider: rgba(255, 255, 255, 0.14);
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+}
+
+html[data-ui-style="glass"] body {
+  background: radial-gradient(900px 600px at 20% -10%, rgba(124, 58, 237, 0.28), transparent 55%),
+    radial-gradient(800px 600px at 110% 0%, rgba(56, 189, 248, 0.22), transparent 55%),
+    radial-gradient(900px 600px at 70% 120%, rgba(34, 197, 94, 0.14), transparent 55%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 40%),
+    var(--bg);
+}
+
+html[data-ui-style="glass"] .sidebar,
+html[data-ui-style="glass"] .topbar,
+html[data-ui-style="glass"] .card {
+  backdrop-filter: blur(14px);
+}
+
+html[data-ui-style="glass"] .logo {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.95), rgba(56, 189, 248, 0.75));
+  box-shadow: 0 16px 70px rgba(124, 58, 237, 0.25);
+  border-radius: 14px;
+}
+
+html[data-ui-style="glass"][data-theme="light"] {
+  --bg: #f6f7ff;
+  --panel: rgba(255, 255, 255, 0.72);
+  --panel2: rgba(255, 255, 255, 0.6);
+  --border: rgba(15, 23, 42, 0.12);
+  --text: rgba(15, 23, 42, 0.92);
+  --muted: rgba(15, 23, 42, 0.68);
+  --muted2: rgba(15, 23, 42, 0.54);
+  --accent: #7c3aed;
+  --warn: #d97706;
+  --danger: #e11d48;
+  --shadow: 0 30px 90px rgba(15, 23, 42, 0.14);
+  --focus: 0 0 0 3px rgba(124, 58, 237, 0.22);
+
+  --sidebar-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(246, 247, 255, 0.72));
+  --sidebar-divider: rgba(15, 23, 42, 0.08);
+  --topbar-bg: rgba(255, 255, 255, 0.62);
+  --brand-bg: rgba(255, 255, 255, 0.62);
+  --control-bg: rgba(255, 255, 255, 0.66);
+  --control-bg-hover: rgba(255, 255, 255, 0.92);
+  --control-border-hover: rgba(15, 23, 42, 0.18);
+  --nav-bg-hover: rgba(2, 6, 23, 0.04);
+  --nav-border-hover: rgba(2, 6, 23, 0.08);
+  --ico-bg: rgba(2, 6, 23, 0.04);
+  --ico-border: rgba(15, 23, 42, 0.12);
+  --me-bg: rgba(2, 6, 23, 0.03);
+  --me-border: rgba(15, 23, 42, 0.1);
+  --pill-bg: rgba(2, 6, 23, 0.03);
+  --pill-border: rgba(15, 23, 42, 0.12);
+  --table-border: rgba(15, 23, 42, 0.12);
+  --table-divider: rgba(15, 23, 42, 0.08);
+  --table-row-hover: rgba(2, 6, 23, 0.03);
+  --segmented-bg: rgba(2, 6, 23, 0.03);
+  --segmented-divider: rgba(15, 23, 42, 0.1);
+}
+
+html[data-ui-style="glass"][data-theme="light"] body {
+  background: radial-gradient(900px 600px at 20% -10%, rgba(124, 58, 237, 0.22), transparent 55%),
+    radial-gradient(800px 600px at 110% 0%, rgba(56, 189, 248, 0.18), transparent 55%),
+    radial-gradient(900px 600px at 70% 120%, rgba(34, 197, 94, 0.1), transparent 55%),
+    linear-gradient(180deg, rgba(2, 6, 23, 0.02), transparent 40%),
+    var(--bg);
+}
+
+/* ---------------- Brutal ---------------- */
+html[data-ui-style="brutal"] {
+  --bg: #0b0b12;
+  --panel: rgba(255, 255, 255, 0.035);
+  --panel2: rgba(255, 255, 255, 0.03);
+  --border: rgba(255, 255, 255, 0.22);
+  --text: rgba(255, 255, 255, 0.95);
+  --muted: rgba(255, 255, 255, 0.8);
+  --muted2: rgba(255, 255, 255, 0.62);
+  --accent: #ff2d55;
+  --warn: #ffd60a;
+  --danger: #ff453a;
+  --shadow: 10px 10px 0 rgba(0, 0, 0, 0.55);
+  --border-w: 2px;
+  --radius: 10px;
+  --radius-sm: 10px;
+  --focus: 0 0 0 3px rgba(255, 45, 85, 0.22);
+
+  --sidebar-bg: linear-gradient(180deg, rgba(255, 45, 85, 0.06), rgba(11, 11, 18, 0.18));
+  --sidebar-divider: rgba(255, 255, 255, 0.18);
+  --topbar-bg: rgba(255, 255, 255, 0.03);
+  --brand-bg: rgba(255, 255, 255, 0.03);
+  --control-bg: rgba(255, 255, 255, 0.03);
+  --control-bg-hover: rgba(255, 255, 255, 0.06);
+  --control-border-hover: rgba(255, 255, 255, 0.3);
+  --nav-bg-hover: rgba(255, 255, 255, 0.04);
+  --nav-border-hover: rgba(255, 255, 255, 0.2);
+  --ico-bg: rgba(255, 255, 255, 0.04);
+  --ico-border: rgba(255, 255, 255, 0.18);
+  --me-bg: rgba(255, 255, 255, 0.03);
+  --me-border: rgba(255, 255, 255, 0.2);
+  --pill-bg: rgba(255, 255, 255, 0.03);
+  --pill-border: rgba(255, 255, 255, 0.22);
+  --table-border: rgba(255, 255, 255, 0.22);
+  --table-divider: rgba(255, 255, 255, 0.12);
+  --table-row-hover: rgba(255, 255, 255, 0.04);
+  --segmented-bg: rgba(255, 255, 255, 0.03);
+  --segmented-divider: rgba(255, 255, 255, 0.16);
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+}
+
+html[data-ui-style="brutal"] body {
+  background: radial-gradient(900px 700px at 20% -10%, rgba(255, 45, 85, 0.16), transparent 55%),
+    radial-gradient(900px 700px at 110% 0%, rgba(255, 214, 0, 0.11), transparent 55%),
+    var(--bg);
+}
+
+html[data-ui-style="brutal"] .logo {
+  background: linear-gradient(135deg, rgba(255, 45, 85, 0.95), rgba(255, 214, 0, 0.85));
+  box-shadow: 14px 14px 0 rgba(0, 0, 0, 0.45);
+  border-radius: 8px;
+}
+
+html[data-ui-style="brutal"] .btn,
+html[data-ui-style="brutal"] .chip,
+html[data-ui-style="brutal"] .iconbtn,
+html[data-ui-style="brutal"] .input,
+html[data-ui-style="brutal"] .select,
+html[data-ui-style="brutal"] .textarea,
+html[data-ui-style="brutal"] .brand,
+html[data-ui-style="brutal"] .topbar,
+html[data-ui-style="brutal"] .card,
+html[data-ui-style="brutal"] .me,
+html[data-ui-style="brutal"] .table,
+html[data-ui-style="brutal"] .kpi,
+html[data-ui-style="brutal"] .segmented {
+  box-shadow: var(--shadow);
+}
+
+html[data-ui-style="brutal"] .nav a {
+  box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.45);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+html[data-ui-style="brutal"] .nav a:hover {
+  transform: translate(-1px, -1px);
+}
+
+html[data-ui-style="brutal"][data-theme="light"] {
+  --bg: #fff7fb;
+  --panel: rgba(255, 255, 255, 0.86);
+  --panel2: rgba(255, 255, 255, 0.78);
+  --border: rgba(15, 23, 42, 0.24);
+  --text: rgba(15, 23, 42, 0.92);
+  --muted: rgba(15, 23, 42, 0.72);
+  --muted2: rgba(15, 23, 42, 0.56);
+  --accent: #ff2d55;
+  --warn: #b45309;
+  --danger: #dc2626;
+  --shadow: 10px 10px 0 rgba(15, 23, 42, 0.18);
+  --focus: 0 0 0 3px rgba(255, 45, 85, 0.22);
+
+  --sidebar-bg: linear-gradient(180deg, rgba(255, 45, 85, 0.08), rgba(255, 255, 255, 0.72));
+  --sidebar-divider: rgba(15, 23, 42, 0.18);
+  --topbar-bg: rgba(255, 255, 255, 0.78);
+  --brand-bg: rgba(255, 255, 255, 0.78);
+  --control-bg: rgba(255, 255, 255, 0.86);
+  --control-bg-hover: rgba(255, 255, 255, 0.96);
+  --control-border-hover: rgba(15, 23, 42, 0.3);
+  --nav-bg-hover: rgba(2, 6, 23, 0.03);
+  --nav-border-hover: rgba(15, 23, 42, 0.2);
+  --ico-bg: rgba(2, 6, 23, 0.03);
+  --ico-border: rgba(15, 23, 42, 0.18);
+  --me-bg: rgba(2, 6, 23, 0.03);
+  --me-border: rgba(15, 23, 42, 0.2);
+  --pill-bg: rgba(2, 6, 23, 0.03);
+  --pill-border: rgba(15, 23, 42, 0.22);
+  --table-border: rgba(15, 23, 42, 0.22);
+  --table-divider: rgba(15, 23, 42, 0.12);
+  --table-row-hover: rgba(2, 6, 23, 0.03);
+  --segmented-bg: rgba(2, 6, 23, 0.03);
+  --segmented-divider: rgba(15, 23, 42, 0.16);
+}
+
+html[data-ui-style="brutal"][data-theme="light"] body {
+  background: radial-gradient(900px 700px at 20% -10%, rgba(255, 45, 85, 0.14), transparent 55%),
+    radial-gradient(900px 700px at 110% 0%, rgba(255, 214, 0, 0.12), transparent 55%),
+    var(--bg);
+}
+
+/* ---------------- Terminal ---------------- */
+html[data-ui-style="terminal"] {
+  --bg: #070a07;
+  --panel: rgba(0, 0, 0, 0.72);
+  --panel2: rgba(0, 255, 106, 0.03);
+  --border: rgba(0, 255, 106, 0.22);
+  --text: rgba(228, 255, 236, 0.92);
+  --muted: rgba(228, 255, 236, 0.72);
+  --muted2: rgba(228, 255, 236, 0.56);
+  --accent: #00ff6a;
+  --warn: #ffd60a;
+  --danger: #ff375f;
+  --shadow: 0 18px 50px rgba(0, 0, 0, 0.75);
+  --border-w: 1px;
+  --radius: 14px;
+  --radius-sm: 12px;
+  --focus: 0 0 0 3px rgba(0, 255, 106, 0.22);
+
+  --sidebar-bg: linear-gradient(180deg, rgba(0, 255, 106, 0.08), rgba(0, 0, 0, 0.2));
+  --sidebar-divider: rgba(0, 255, 106, 0.18);
+  --topbar-bg: rgba(0, 255, 106, 0.04);
+  --brand-bg: rgba(0, 255, 106, 0.04);
+  --control-bg: rgba(0, 255, 106, 0.035);
+  --control-bg-hover: rgba(0, 255, 106, 0.06);
+  --control-border-hover: rgba(0, 255, 106, 0.34);
+  --nav-bg-hover: rgba(0, 255, 106, 0.05);
+  --nav-border-hover: rgba(0, 255, 106, 0.22);
+  --ico-bg: rgba(0, 255, 106, 0.05);
+  --ico-border: rgba(0, 255, 106, 0.22);
+  --me-bg: rgba(0, 255, 106, 0.03);
+  --me-border: rgba(0, 255, 106, 0.2);
+  --pill-bg: rgba(0, 255, 106, 0.03);
+  --pill-border: rgba(0, 255, 106, 0.18);
+  --table-border: rgba(0, 255, 106, 0.2);
+  --table-divider: rgba(0, 255, 106, 0.12);
+  --table-row-hover: rgba(0, 255, 106, 0.03);
+  --segmented-bg: rgba(0, 255, 106, 0.03);
+  --segmented-divider: rgba(0, 255, 106, 0.16);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+html[data-ui-style="terminal"] body {
+  background: radial-gradient(1000px 700px at 20% -20%, rgba(0, 255, 106, 0.12), transparent 55%),
+    radial-gradient(900px 500px at 110% 10%, rgba(0, 255, 255, 0.08), transparent 55%),
+    repeating-linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.03),
+      rgba(255, 255, 255, 0.03) 1px,
+      transparent 1px,
+      transparent 4px
+    ),
+    var(--bg);
+}
+
+html[data-ui-style="terminal"] .logo {
+  background: linear-gradient(135deg, rgba(0, 255, 106, 0.95), rgba(0, 255, 255, 0.55));
+  box-shadow: 0 0 0 2px rgba(0, 255, 106, 0.12), 0 0 30px rgba(0, 255, 106, 0.22);
+}
+
+html[data-ui-style="terminal"] .topbar .title h1 {
+  text-shadow: 0 0 12px rgba(0, 255, 106, 0.2);
+}
+
+html[data-ui-style="terminal"] .btn.primary,
+html[data-ui-style="terminal"] .chip.primary {
+  text-shadow: 0 0 14px rgba(0, 255, 106, 0.22);
+}
+
+html[data-ui-style="terminal"][data-theme="light"] {
+  --bg: #f2fff6;
+  --panel: rgba(255, 255, 255, 0.78);
+  --panel2: rgba(255, 255, 255, 0.72);
+  --border: rgba(22, 163, 74, 0.24);
+  --text: rgba(5, 46, 22, 0.92);
+  --muted: rgba(5, 46, 22, 0.72);
+  --muted2: rgba(5, 46, 22, 0.56);
+  --accent: #16a34a;
+  --warn: #b45309;
+  --danger: #dc2626;
+  --shadow: 0 18px 50px rgba(15, 23, 42, 0.12);
+  --focus: 0 0 0 3px rgba(22, 163, 74, 0.22);
+
+  --sidebar-bg: linear-gradient(180deg, rgba(22, 163, 74, 0.1), rgba(255, 255, 255, 0.72));
+  --sidebar-divider: rgba(22, 163, 74, 0.18);
+  --topbar-bg: rgba(255, 255, 255, 0.76);
+  --brand-bg: rgba(255, 255, 255, 0.76);
+  --control-bg: rgba(22, 163, 74, 0.06);
+  --control-bg-hover: rgba(22, 163, 74, 0.1);
+  --control-border-hover: rgba(22, 163, 74, 0.3);
+  --nav-bg-hover: rgba(22, 163, 74, 0.08);
+  --nav-border-hover: rgba(22, 163, 74, 0.22);
+  --ico-bg: rgba(22, 163, 74, 0.06);
+  --ico-border: rgba(22, 163, 74, 0.22);
+  --me-bg: rgba(22, 163, 74, 0.05);
+  --me-border: rgba(22, 163, 74, 0.2);
+  --pill-bg: rgba(22, 163, 74, 0.05);
+  --pill-border: rgba(22, 163, 74, 0.18);
+  --table-border: rgba(22, 163, 74, 0.2);
+  --table-divider: rgba(22, 163, 74, 0.12);
+  --table-row-hover: rgba(22, 163, 74, 0.06);
+  --segmented-bg: rgba(22, 163, 74, 0.05);
+  --segmented-divider: rgba(22, 163, 74, 0.16);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+html[data-ui-style="terminal"][data-theme="light"] body {
+  background: radial-gradient(1000px 700px at 20% -20%, rgba(22, 163, 74, 0.14), transparent 55%),
+    radial-gradient(900px 500px at 110% 10%, rgba(14, 165, 233, 0.1), transparent 55%),
+    repeating-linear-gradient(
+      180deg,
+      rgba(2, 6, 23, 0.02),
+      rgba(2, 6, 23, 0.02) 1px,
+      transparent 1px,
+      transparent 4px
+    ),
+    var(--bg);
+}
+

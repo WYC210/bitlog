@@ -1,5 +1,7 @@
 export type ApiError = { message: string; status: number };
 
+export type UiStyle = "current" | "classic" | "glass" | "brutal" | "terminal";
+
 export async function apiJson<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
     credentials: "include",
@@ -27,6 +29,8 @@ export type SiteConfig = {
   embedAllowlistHosts: string[];
   cacheTtlSeconds: number;
   cacheVersion: number;
+  webStyle: UiStyle;
+  adminStyle: UiStyle;
   shortcutsJson: string | null;
   footerCopyrightUrl: string | null;
   footerIcpText: string | null;

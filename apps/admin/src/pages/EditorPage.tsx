@@ -53,6 +53,7 @@ export function EditorPage(props: {
 
   const [layout, setLayout] = useState<AdminPrefs["editorLayout"]>(props.prefs?.editorLayout ?? "split");
   const [markdownFocused, setMarkdownFocused] = useState(false);
+  const sidebarPrevRef = useRef<"collapsed" | "expanded" | null>(null);
 
   const [toolboxDock, setToolboxDock] = useState<ToolboxDock>(() => {
     if (typeof window === "undefined") return "left";
@@ -220,6 +221,33 @@ export function EditorPage(props: {
   useEffect(() => {
     if (layout === "preview" && markdownFocused) setMarkdownFocused(false);
   }, [layout, markdownFocused]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const root = document.documentElement;
+    if (layout === "split") {
+      if (!sidebarPrevRef.current) {
+        sidebarPrevRef.current = root.getAttribute("data-sidebar") === "collapsed" ? "collapsed" : "expanded";
+      }
+      root.setAttribute("data-sidebar", "collapsed");
+      return;
+    }
+    if (!sidebarPrevRef.current) return;
+    const current = root.getAttribute("data-sidebar") === "collapsed" ? "collapsed" : "expanded";
+    if (current === "collapsed") root.setAttribute("data-sidebar", sidebarPrevRef.current);
+    sidebarPrevRef.current = null;
+  }, [layout]);
+
+  useEffect(() => {
+    return () => {
+      if (typeof document === "undefined") return;
+      if (!sidebarPrevRef.current) return;
+      const root = document.documentElement;
+      const current = root.getAttribute("data-sidebar") === "collapsed" ? "collapsed" : "expanded";
+      if (current === "collapsed") root.setAttribute("data-sidebar", sidebarPrevRef.current);
+      sidebarPrevRef.current = null;
+    };
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -673,21 +701,22 @@ export function EditorPage(props: {
           </div>
 
           <div className="editor-meta">
-            <div className="row">
-              <label>
+            <div className="grid2">
+              <label className="field">
                 标题
-                <input value={title} onChange={(e) => setTitle(e.target.value)} />
+                <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} />
               </label>
-              <label>
+              <label className="field">
                 摘要
-                <input value={summary} onChange={(e) => setSummary(e.target.value)} />
+                <input className="input" value={summary} onChange={(e) => setSummary(e.target.value)} />
               </label>
             </div>
-            <div className="row">
-              <label>
+            <div className="grid2">
+              <label className="field">
                 分类（只允许 1 个）
                 <div className="combo" ref={categoryBoxRef}>
                   <input
+                    className="input"
                     ref={categoryInputRef}
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
@@ -733,10 +762,11 @@ export function EditorPage(props: {
                   )}
                 </div>
               </label>
-              <label>
+              <label className="field">
                 标签（逗号分隔）
                 <div className="combo" ref={tagsBoxRef}>
                   <input
+                    className="input"
                     ref={tagsInputRef}
                     value={tags}
                     onChange={(e) => setTags(e.target.value)}
@@ -801,18 +831,19 @@ export function EditorPage(props: {
                 </div>
               </label>
             </div>
-            <div className="row">
-              <label>
+            <div className="grid2">
+              <label className="field">
                 状态
-                <select value={status} onChange={(e) => setStatus(e.target.value as any)}>
+                <select className="select" value={status} onChange={(e) => setStatus(e.target.value as any)}>
                   <option value="draft">草稿</option>
                   <option value="published">发布</option>
                   <option value="scheduled">定时</option>
                 </select>
               </label>
-              <label>
+              <label className="field">
                 发布时间（{tz}）
                 <input
+                  className="input"
                   type="datetime-local"
                   value={publishAtLocal}
                   onChange={(e) => setPublishAtLocal(e.target.value)}
@@ -820,9 +851,10 @@ export function EditorPage(props: {
                 />
               </label>
             </div>
-            <label>
+            <label className="field">
               图片上传（仅当 Worker 绑定 R2 时可用）
               <input
+                className="input"
                 type="file"
                 accept="image/png,image/jpeg,image/webp,image/gif"
                 disabled={uploading}
@@ -857,7 +889,7 @@ export function EditorPage(props: {
             ) : null}
           </div>
 
-          <label className="editor-md">
+          <label className="field editor-md">
             Markdown
             <MarkdownEditor
               ref={editorRef}

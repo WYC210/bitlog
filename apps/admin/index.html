@@ -1,13 +1,32 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="dark" data-ui-style="current" data-sidebar="expanded">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Bitlog Admin</title>
+    <script>
+      (function () {
+        try {
+          const t = localStorage.getItem("ui-theme");
+          if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+        } catch {}
+        try {
+          const s = localStorage.getItem("ui-admin-style-last");
+          if (s && /^(current|classic|glass|brutal|terminal)$/.test(s)) {
+            document.documentElement.setAttribute("data-ui-style", s);
+          }
+        } catch {}
+        try {
+          const sb = localStorage.getItem("ui-admin-sidebar");
+          if (sb === "collapsed" || sb === "expanded") {
+            document.documentElement.setAttribute("data-sidebar", sb);
+          }
+        } catch {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-

@@ -45,6 +45,12 @@
   - `[data-theme="dark"]` 覆盖 dark tokens
   - `[data-ui-style="glass"]` 覆盖 glass 风格 tokens（两套：light 与 dark 可分别覆盖）
 
+### 3.4 过渡动画一致性
+Web 端主题切换需要保留现有过渡体验：
+- 优先：使用 `document.startViewTransition` 的遮罩扩散过渡（并配合 ripple）。
+- 降级：添加 `html.theme-transition`，让颜色/背景/边框/阴影等走统一 transition（约 320ms）。
+- 无障碍：`prefers-reduced-motion: reduce` 时禁用动画。
+
 ## 4. Admin：改为 Demo 布局 + 5 风格切换
 目标：页面布局与 `docs/admin-ui-demos/*` 对齐，同时保留现有业务能力。
 
@@ -78,6 +84,12 @@ Admin 通过 `data-ui-style` 挂载主题：
 
 保存路径仍走现有 `updateSettings()` -> `/api/admin/settings`，并依赖 API 侧 `bumpCacheVersion()` 刷新 Web 端缓存版本。
 
+### 4.4 Admin 明暗模式与过渡动画
+Admin 也需要支持 `light/dark` 并带过渡动画，策略与 Web 对齐：
+- 交互：提供一个主题按钮（位置建议放在 topbar actions）。
+- 存储：站点级仍以 `settings` 为准；为减少首次闪烁，允许用 localStorage 做启动兜底。
+- 动画：同样优先 View Transitions + ripple，降级为 CSS transition，遵循 `prefers-reduced-motion`。
+
 ## 5. 风险与规避
 - 风险：Admin 是静态资源，站点级配置变更后首次打开可能闪烁（先默认 current，后应用配置）。
   - 规避：在 Admin 启动时先读取 localStorage 的上次应用值，随后以 `/api/config` 覆盖并写回 localStorage。
@@ -85,4 +97,3 @@ Admin 通过 `data-ui-style` 挂载主题：
   - 规避：Web 皮肤文件只允许覆盖 CSS 变量与非布局属性；在 code review / diff 上严格把关。
 - 风险：demo token 与现有 web token 命名不一致导致主题还原度不足。
   - 规避：以“变量映射表”方式逐步补齐（先覆盖全局背景/文字/卡片/按钮四大类，必要时再补局部修饰）。
-

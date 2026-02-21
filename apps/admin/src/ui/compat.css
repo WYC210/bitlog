@@ -1,0 +1,78 @@
+/* Compatibility layer for existing React pages/components.
+   Keep this small and delete as pages migrate fully to demo markup.
+*/
+
+.grid {
+  display: grid;
+  gap: 14px;
+}
+
+.nav {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.card label:not(.field) {
+  display: grid;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+select,
+textarea {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 14px;
+  outline: none;
+  border: var(--border-w) solid var(--border);
+  background: var(--control-bg);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  transition: border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
+}
+
+textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--border));
+}
+
+.content-full {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+.chip-primary {
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.btn-ghost {
+  background: transparent;
+}
+
+.btn-secondary {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.danger {
+  color: color-mix(in srgb, var(--danger) 75%, var(--text));
+}
+
+.card.danger {
+  border-color: color-mix(in srgb, var(--danger) 45%, var(--border));
+}
