@@ -88,35 +88,6 @@ export function SettingsPage(props: {
     { value: "terminal", label: "terminal" }
   ];
 
-  function KeyDetails(props: { storageKey: string }) {
-    const [copied, setCopied] = useState(false);
-    const k = String(props.storageKey ?? "").trim();
-    if (!k) return null;
-    return (
-      <details className="muted" style={{ marginTop: 6 }}>
-        <summary style={{ cursor: "pointer" }}>高级：内部键（点开查看/复制）</summary>
-        <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 8, flexWrap: "wrap" }}>
-          <code style={{ padding: "4px 8px", borderRadius: 8, background: "rgba(255,255,255,0.06)" }}>{k}</code>
-          <button
-            className="chip"
-            type="button"
-            onClick={() => {
-              try {
-                void navigator.clipboard?.writeText(k);
-                setCopied(true);
-                setTimeout(() => setCopied(false), 1200);
-              } catch {
-                // ignore
-              }
-            }}
-          >
-            {copied ? "已复制" : "复制"}
-          </button>
-        </div>
-      </details>
-    );
-  }
-
   async function formatJs(code: string): Promise<string> {
     const prettierMod = (await import("prettier/standalone")) as any;
     const babelMod = (await import("prettier/plugins/babel")) as any;
@@ -595,7 +566,6 @@ export function SettingsPage(props: {
 
         <label>
           <div style={{ fontWeight: 700 }}>技能专长（JSON）</div>
-          <KeyDetails storageKey={ABOUT_KEY_TECH_STACK} />
           <CodeEditor
             value={aboutTechStackJson}
             onChange={(v) => setAboutTechStackJson(v)}
@@ -607,7 +577,6 @@ export function SettingsPage(props: {
         <div style={{ height: 10 }} />
         <label>
           <div style={{ fontWeight: 700 }}>旅行足迹（地点列表 JSON）</div>
-          <KeyDetails storageKey={ABOUT_KEY_VISITED_PLACES} />
           <CodeEditor
             value={aboutVisitedPlacesJson}
             onChange={(v) => setAboutVisitedPlacesJson(v)}
@@ -619,7 +588,6 @@ export function SettingsPage(props: {
         <div style={{ height: 10 }} />
         <label>
           <div style={{ fontWeight: 700 }}>工作经历（JSON）</div>
-          <KeyDetails storageKey={ABOUT_KEY_TIMELINE} />
           <CodeEditor
             value={aboutTimelineJson}
             onChange={(v) => setAboutTimelineJson(v)}
@@ -638,7 +606,6 @@ export function SettingsPage(props: {
           <label>
             站点域名（必填）
             <input value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} placeholder="https://example.com" />
-            <KeyDetails storageKey="site.base_url" />
           </label>
           <label>
             时区
@@ -656,7 +623,6 @@ export function SettingsPage(props: {
               <option value="America/New_York" />
               <option value="Europe/London" />
             </datalist>
-            <KeyDetails storageKey="site.timezone" />
           </label>
         </div>
         <div style={{ height: 10 }} />
@@ -664,7 +630,6 @@ export function SettingsPage(props: {
           <label>
             缓存 TTL（秒，1-3600）
             <input value={cacheTtl} onChange={(e) => setCacheTtl(e.target.value)} />
-            <KeyDetails storageKey="site.cache_public_ttl_seconds" />
           </label>
           <label>
             （占位）
@@ -679,7 +644,6 @@ export function SettingsPage(props: {
               <option value="1">启用</option>
               <option value="0">关闭</option>
             </select>
-            <KeyDetails storageKey={POSTS_KEY_AUTO_SUMMARY} />
           </label>
           <label>
             （占位）
@@ -703,7 +667,6 @@ export function SettingsPage(props: {
                 </option>
               ))}
             </select>
-            <KeyDetails storageKey="ui.web_style" />
           </label>
           <label>
             Admin 风格
@@ -714,7 +677,6 @@ export function SettingsPage(props: {
                 </option>
               ))}
             </select>
-            <KeyDetails storageKey="ui.admin_style" />
           </label>
         </div>
         <div className="nav">
@@ -732,7 +694,6 @@ export function SettingsPage(props: {
             onChange={(e) => setEmbedAllowlist(e.target.value)}
             placeholder={"github.com\nwww.youtube.com\nplayer.bilibili.com"}
           />
-          <KeyDetails storageKey="site.embed_allowlist" />
         </label>
         <div className="nav">
           <button className="chip chip-primary" onClick={() => void saveEmbedAllowlist()} disabled={saving}>
@@ -748,7 +709,6 @@ export function SettingsPage(props: {
             onChange={(e) => setShortcuts(e.target.value)}
             placeholder={`{\n  \"global\": { \"focusSearch\": \"ctrl+f\", \"goHome\": \"ctrl+h\" },\n  \"contexts\": { \"articles\": { \"back\": \"g b\", \"forward\": \"g n\" } }\n}`}
           />
-          <KeyDetails storageKey="site.shortcuts_json" />
         </label>
         <div className="nav">
           <button className="chip chip-primary" onClick={() => void saveShortcuts()} disabled={saving}>
@@ -767,12 +727,10 @@ export function SettingsPage(props: {
               onChange={(e) => setFooterCopyrightUrl(e.target.value)}
               placeholder="https://example.com"
             />
-            <KeyDetails storageKey="site.footer_copyright_url" />
           </label>
           <label>
             ICP 备案号（可选）
             <input value={footerIcpText} onChange={(e) => setFooterIcpText(e.target.value)} placeholder="冀ICP备2023042333号-1" />
-            <KeyDetails storageKey="site.footer_icp_text" />
           </label>
         </div>
         <div style={{ height: 10 }} />
@@ -784,7 +742,6 @@ export function SettingsPage(props: {
               onChange={(e) => setFooterIcpLink(e.target.value)}
               placeholder="https://beian.miit.gov.cn/"
             />
-            <KeyDetails storageKey="site.footer_icp_link" />
           </label>
           <label>
             （占位）

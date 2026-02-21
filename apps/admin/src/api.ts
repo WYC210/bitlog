@@ -113,7 +113,8 @@ export async function reorderAdminTools(ids: string[]) {
 }
 
 export async function getConfig(): Promise<SiteConfig> {
-  const r = await apiJson<{ ok: true; config: SiteConfig }>("/api/config");
+  // Avoid browser HTTP cache; config is also cached server-side via cache_version.
+  const r = await apiJson<{ ok: true; config: SiteConfig }>("/api/config", { cache: "no-store" });
   return r.config;
 }
 

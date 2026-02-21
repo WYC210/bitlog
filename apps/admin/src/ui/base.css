@@ -380,18 +380,19 @@ html.theme-transition-active {
 
 .sidebar .nav {
   display: grid;
-  gap: 8px;
+  gap: 6px;
+  align-content: start;
 }
 
 .sidebar .nav a {
   text-decoration: none;
   color: var(--text);
   display: grid;
-  grid-template-columns: 42px 1fr auto;
+  grid-template-columns: 40px 1fr auto;
   align-items: center;
-  gap: 10px;
-  padding: 10px 10px;
-  border-radius: 14px;
+  gap: 8px;
+  padding: 8px 8px;
+  border-radius: 12px;
   border: var(--border-w) solid transparent;
 }
 
@@ -406,8 +407,8 @@ html.theme-transition-active {
 }
 
 .ico {
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   border-radius: 12px;
   display: grid;
   place-items: center;
@@ -427,7 +428,7 @@ html.theme-transition-active {
 }
 
 html[data-sidebar="collapsed"] .sidebar .nav a {
-  grid-template-columns: 36px;
+  grid-template-columns: 34px;
   justify-content: center;
   padding: 6px;
 }
@@ -501,11 +502,16 @@ html[data-sidebar="collapsed"] .sidebar .btn-site .btn-label {
 
 .row {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
+  align-items: flex-start;
+  justify-content: flex-start;
   margin-top: 10px;
+}
+
+.row > label {
+  flex: 1 1 360px;
+  min-width: 260px;
 }
 
 .pill {
