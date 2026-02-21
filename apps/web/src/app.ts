@@ -375,18 +375,30 @@ function buildTocFromHtml(contentHtml: string): { tocHtml: string; tocInlineLink
 }
 
 function extractHeadings(html: string): Array<{ level: 2 | 3; id: string; text: string }> {
-  const out: Array<{ level: 2 | 3; id: string; text: string }> = [];
-  const re = /<(h2|h3)\b[^>]*\bid\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/\1>/gi;
+  // Normalize heading depth like the old blog:
+  // - find the minimum heading depth in the article (h1..h6)
+  // - treat that as TOC level 2 ("section"), everything deeper as level 3 ("subsection")
+  // This allows authoring with `#` as the first content heading while keeping the current 2-level TOC UI.
+  const raw: Array<{ depth: number; id: string; text: string }> = [];
+  const re = /<(h[1-6])\b[^>]*\bid\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/\1>/gi;
   let m: RegExpExecArray | null = null;
   while ((m = re.exec(html))) {
-    const level = m[1]?.toLowerCase() === "h2" ? 2 : 3;
+    const tag = String(m[1] ?? "").toLowerCase();
+    const depth = parseInt(tag.slice(1), 10);
+    if (!Number.isFinite(depth) || depth < 1 || depth > 6) continue;
     const id = String(m[2] ?? "").trim();
     const inner = String(m[3] ?? "");
     const text = inner.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
     if (!id || !text) continue;
-    out.push({ level, id, text } as any);
+    raw.push({ depth, id, text });
   }
-  return out;
+  if (raw.length === 0) return [];
+
+  const minDepth = Math.min(...raw.map((h) => h.depth));
+  return raw.map((h) => {
+    const relative = h.depth - minDepth;
+    return { level: relative <= 0 ? 2 : 3, id: h.id, text: h.text };
+  });
 }
 
 function groupByH2(headings: Array<{ level: 2 | 3; id: string; text: string }>) {
