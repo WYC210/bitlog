@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import type { AdminToolItem, ApiError, ProjectsConfigAdminView, SiteConfig, ToolGroup, ToolKind, UiStyle } from "../api";
 import { CodeEditor } from "../components/CodeEditor";
+import { SelectBox } from "../components/SelectBox";
 import {
   apiJson,
   createAdminTool,
@@ -640,10 +641,14 @@ export function SettingsPage(props: {
         <div className="row">
           <label>
             自动生成摘要（摘要为空时自动从正文截取前 150 字）
-            <select value={autoSummaryEnabled ? "1" : "0"} onChange={(e) => setAutoSummaryEnabled(e.target.value === "1")}>
-              <option value="1">启用</option>
-              <option value="0">关闭</option>
-            </select>
+            <SelectBox
+              value={autoSummaryEnabled ? "1" : "0"}
+              options={[
+                { value: "1", label: "启用" },
+                { value: "0", label: "关闭" }
+              ]}
+              onChange={(v) => setAutoSummaryEnabled(v === "1")}
+            />
           </label>
           <label>
             （占位）
@@ -660,23 +665,19 @@ export function SettingsPage(props: {
         <div className="row">
           <label>
             Web 风格
-            <select value={webStyle} onChange={(e) => setWebStyle(e.target.value as UiStyle)}>
-              {UI_STYLES.map((s) => (
-                <option key={s.value} value={s.value}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
+            <SelectBox
+              value={webStyle}
+              options={UI_STYLES.map((s) => ({ value: s.value, label: s.label }))}
+              onChange={(v) => setWebStyle(v as UiStyle)}
+            />
           </label>
           <label>
             Admin 风格
-            <select value={adminStyle} onChange={(e) => setAdminStyle(e.target.value as UiStyle)}>
-              {UI_STYLES.map((s) => (
-                <option key={s.value} value={s.value}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
+            <SelectBox
+              value={adminStyle}
+              options={UI_STYLES.map((s) => ({ value: s.value, label: s.label }))}
+              onChange={(v) => setAdminStyle(v as UiStyle)}
+            />
           </label>
         </div>
         <div className="nav">
@@ -762,10 +763,14 @@ export function SettingsPage(props: {
         <div className="row">
           <label>
             GitHub 启用
-            <select value={ghEnabled ? "1" : "0"} onChange={(e) => setGhEnabled(e.target.value === "1")}>
-              <option value="1">启用</option>
-              <option value="0">禁用</option>
-            </select>
+            <SelectBox
+              value={ghEnabled ? "1" : "0"}
+              options={[
+                { value: "1", label: "启用" },
+                { value: "0", label: "禁用" }
+              ]}
+              onChange={(v) => setGhEnabled(v === "1")}
+            />
           </label>
           <label>
             GitHub 用户名
@@ -785,10 +790,14 @@ export function SettingsPage(props: {
           </label>
           <label>
             GitHub Token 操作
-            <select value={ghClearToken ? "1" : "0"} onChange={(e) => setGhClearToken(e.target.value === "1")}>
-              <option value="0">不清空</option>
-              <option value="1">清空 Token</option>
-            </select>
+            <SelectBox
+              value={ghClearToken ? "1" : "0"}
+              options={[
+                { value: "0", label: "不清空" },
+                { value: "1", label: "清空 Token" }
+              ]}
+              onChange={(v) => setGhClearToken(v === "1")}
+            />
           </label>
         </div>
 
@@ -796,10 +805,14 @@ export function SettingsPage(props: {
         <div className="row">
           <label>
             Gitee 启用
-            <select value={gtEnabled ? "1" : "0"} onChange={(e) => setGtEnabled(e.target.value === "1")}>
-              <option value="1">启用</option>
-              <option value="0">禁用</option>
-            </select>
+            <SelectBox
+              value={gtEnabled ? "1" : "0"}
+              options={[
+                { value: "1", label: "启用" },
+                { value: "0", label: "禁用" }
+              ]}
+              onChange={(v) => setGtEnabled(v === "1")}
+            />
           </label>
           <label>
             Gitee 用户名
@@ -819,10 +832,14 @@ export function SettingsPage(props: {
           </label>
           <label>
             Gitee Token 操作
-            <select value={gtClearToken ? "1" : "0"} onChange={(e) => setGtClearToken(e.target.value === "1")}>
-              <option value="0">不清空</option>
-              <option value="1">清空 Token</option>
-            </select>
+            <SelectBox
+              value={gtClearToken ? "1" : "0"}
+              options={[
+                { value: "0", label: "不清空" },
+                { value: "1", label: "清空 Token" }
+              ]}
+              onChange={(v) => setGtClearToken(v === "1")}
+            />
           </label>
         </div>
 
@@ -830,10 +847,14 @@ export function SettingsPage(props: {
         <div className="row">
           <label>
             展示 fork
-            <select value={includeForks ? "1" : "0"} onChange={(e) => setIncludeForks(e.target.value === "1")}>
-              <option value="0">不展示</option>
-              <option value="1">展示</option>
-            </select>
+            <SelectBox
+              value={includeForks ? "1" : "0"}
+              options={[
+                { value: "0", label: "不展示" },
+                { value: "1", label: "展示" }
+              ]}
+              onChange={(v) => setIncludeForks(v === "1")}
+            />
           </label>
           <label>
             每个平台最多展示（1-100）
@@ -907,25 +928,27 @@ export function SettingsPage(props: {
                   <div className="row">
                     <label>
                       分组
-                      <select
+                      <SelectBox
                         value={String(toolDraft.groupKey ?? "utils")}
-                        onChange={(e) => setToolDraft({ ...toolDraft, groupKey: e.target.value as ToolGroup })}
-                      >
-                        <option value="utils">通用（utils）</option>
-                        <option value="apis">API（apis）</option>
-                        <option value="games">游戏（games）</option>
-                        <option value="other">其他（other）</option>
-                      </select>
+                        options={[
+                          { value: "utils", label: "通用（utils）" },
+                          { value: "apis", label: "API（apis）" },
+                          { value: "games", label: "游戏（games）" },
+                          { value: "other", label: "其他（other）" }
+                        ]}
+                        onChange={(v) => setToolDraft({ ...toolDraft, groupKey: v as ToolGroup })}
+                      />
                     </label>
                     <label>
                       类型
-                      <select
+                      <SelectBox
                         value={String(toolDraft.kind ?? "link")}
-                        onChange={(e) => setToolDraft({ ...toolDraft, kind: e.target.value as ToolKind })}
-                      >
-                        <option value="link">外链（link）</option>
-                        <option value="page">站内页（page）</option>
-                      </select>
+                        options={[
+                          { value: "link", label: "外链（link）" },
+                          { value: "page", label: "站内页（page）" }
+                        ]}
+                        onChange={(v) => setToolDraft({ ...toolDraft, kind: v as ToolKind })}
+                      />
                     </label>
                   </div>
                   <div style={{ height: 10 }} />
@@ -1005,19 +1028,27 @@ export function SettingsPage(props: {
         <div className="row">
           <label>
             分组
-            <select value={newTool.groupKey} onChange={(e) => setNewTool({ ...newTool, groupKey: e.target.value as ToolGroup })}>
-              <option value="utils">通用（utils）</option>
-              <option value="apis">API（apis）</option>
-              <option value="games">游戏（games）</option>
-              <option value="other">其他（other）</option>
-            </select>
+            <SelectBox
+              value={newTool.groupKey}
+              options={[
+                { value: "utils", label: "通用（utils）" },
+                { value: "apis", label: "API（apis）" },
+                { value: "games", label: "游戏（games）" },
+                { value: "other", label: "其他（other）" }
+              ]}
+              onChange={(v) => setNewTool({ ...newTool, groupKey: v as ToolGroup })}
+            />
           </label>
           <label>
             类型
-            <select value={newTool.kind} onChange={(e) => setNewTool({ ...newTool, kind: e.target.value as ToolKind })}>
-              <option value="link">外链（link）</option>
-              <option value="page">站内页（page）</option>
-            </select>
+            <SelectBox
+              value={newTool.kind}
+              options={[
+                { value: "link", label: "外链（link）" },
+                { value: "page", label: "站内页（page）" }
+              ]}
+              onChange={(v) => setNewTool({ ...newTool, kind: v as ToolKind })}
+            />
           </label>
         </div>
         <div style={{ height: 10 }} />

@@ -13,6 +13,7 @@ import {
 import { utcMsToZonedInput, zonedInputToUtcMs } from "../tz";
 import type { MarkdownEditorHandle } from "../components/MarkdownEditor";
 import { MarkdownEditor } from "../components/MarkdownEditor";
+import { SelectBox } from "../components/SelectBox";
 
 export function EditorPage(props: {
   id: string | "new";
@@ -835,11 +836,15 @@ export function EditorPage(props: {
             <div className="grid2">
               <label className="field">
                 状态
-                <select className="select" value={status} onChange={(e) => setStatus(e.target.value as any)}>
-                  <option value="draft">草稿</option>
-                  <option value="published">发布</option>
-                  <option value="scheduled">定时</option>
-                </select>
+                <SelectBox
+                  value={status}
+                  options={[
+                    { value: "draft", label: "草稿" },
+                    { value: "published", label: "发布" },
+                    { value: "scheduled", label: "定时" }
+                  ]}
+                  onChange={(v) => setStatus(v as any)}
+                />
               </label>
               <label className="field">
                 发布时间（{tz}）

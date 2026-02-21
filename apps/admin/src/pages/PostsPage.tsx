@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import type { AdminPostListItem, ApiError, SiteConfig } from "../api";
 import { deleteAdminPost, listAdminPosts } from "../api";
 import { formatMs } from "../format";
+import { SelectBox } from "../components/SelectBox";
 
 export function PostsPage(props: { cfg: SiteConfig | null; onError: (m: string) => void }) {
   const [posts, setPosts] = useState<AdminPostListItem[]>([]);
@@ -41,12 +42,16 @@ export function PostsPage(props: { cfg: SiteConfig | null; onError: (m: string) 
           </label>
           <label>
             状态
-            <select value={status} onChange={(e) => setStatus(e.target.value)}>
-              <option value="">全部</option>
-              <option value="draft">草稿</option>
-              <option value="published">已发布</option>
-              <option value="scheduled">定时</option>
-            </select>
+            <SelectBox
+              value={status}
+              options={[
+                { value: "", label: "全部" },
+                { value: "draft", label: "草稿" },
+                { value: "published", label: "已发布" },
+                { value: "scheduled", label: "定时" }
+              ]}
+              onChange={setStatus}
+            />
           </label>
         </div>
         <div style={{ height: 10 }} />

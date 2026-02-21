@@ -594,6 +594,114 @@ html[data-sidebar="collapsed"] .sidebar .btn-site .btn-label {
   transition: border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
 }
 
+.selectbox {
+  position: relative;
+  width: 100%;
+}
+
+.selectbox-trigger {
+  appearance: none;
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: pointer;
+  text-align: left;
+  user-select: none;
+}
+
+.selectbox-trigger:hover {
+  background: var(--control-bg-hover);
+  border-color: var(--control-border-hover);
+}
+
+.selectbox-trigger.is-open {
+  box-shadow: var(--focus);
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+}
+
+.selectbox-trigger.is-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.selectbox-value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.selectbox-icon {
+  color: var(--muted2);
+  flex: 0 0 auto;
+}
+
+.selectbox-trigger.is-open .selectbox-icon {
+  color: var(--text);
+}
+
+.selectbox-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  max-height: 280px;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  border: var(--border-w) solid color-mix(in srgb, var(--border) 70%, transparent);
+  background: color-mix(in srgb, var(--panel2) 92%, transparent);
+  border-radius: var(--radius);
+  padding: 6px;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(10px);
+  z-index: 250;
+}
+
+.selectbox-item {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  border-radius: 12px;
+  padding: 9px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.selectbox-item:hover {
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+}
+
+.selectbox-item:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+}
+
+.selectbox-item.is-selected {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+.selectbox-item.is-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.selectbox-check {
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text);
+  flex: 0 0 auto;
+}
+
 .textarea {
   min-height: 140px;
   resize: vertical;
