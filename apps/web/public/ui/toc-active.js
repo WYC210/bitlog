@@ -29,6 +29,16 @@
   const links = Array.from(tocRoot.querySelectorAll("a.toc-link[data-toc-id]"));
   const groups = Array.from(tocRoot.querySelectorAll(".toc-group[data-toc-group]"));
 
+  const groupMeta = groups
+    .map((el) => {
+      const id = String(el.getAttribute("data-toc-group") || "").trim();
+      const toggle = el.querySelector("button.toc-toggle");
+      return { el, id, toggle };
+    })
+    .filter((g) => g.id);
+  const groupById = new Map(groupMeta.map((g) => [g.id, g]));
+  const manual = new Map(); // groupId -> "open" | "closed"
+
   const items = links
     .map((link) => {
       const id = String(link.getAttribute("data-toc-id") || "").trim();
@@ -40,24 +50,62 @@
 
   if (items.length === 0) return;
 
+  const itemById = new Map(items.map((x) => [x.id, x]));
+
   let activeId = "";
-  let openGroup = "";
+
+  function syncToggle(groupId) {
+    const g = groupById.get(groupId);
+    if (!g || !g.toggle) return;
+    try {
+      g.toggle.setAttribute("aria-expanded", g.el.classList.contains("is-open") ? "true" : "false");
+    } catch {
+      // ignore
+    }
+  }
+
+  function setGroupOpen(groupId, open, reason) {
+    const g = groupById.get(groupId);
+    if (!g) return;
+    g.el.classList.toggle("is-open", !!open);
+    syncToggle(groupId);
+    if (reason === "manual") {
+      manual.set(groupId, open ? "open" : "closed");
+    }
+  }
+
+  function applyAutoOpen(groupId) {
+    if (!groupId) return;
+    for (const g of groupMeta) {
+      const pinned = manual.get(g.id) || "";
+      if (g.id === groupId) {
+        if (pinned !== "closed") setGroupOpen(g.id, true, "auto");
+      } else {
+        if (pinned !== "open") setGroupOpen(g.id, false, "auto");
+      }
+    }
+  }
 
   function setActive(nextId) {
     const id = String(nextId || "");
     if (!id || id === activeId) return;
     activeId = id;
-    const groupId = items.find((x) => x.id === id)?.group ?? "";
-    if (groupId && groupId !== openGroup) {
-      openGroup = groupId;
-      for (const g of groups) {
-        const gid = String(g.getAttribute("data-toc-group") || "").trim();
-        g.classList.toggle("is-open", gid === openGroup);
-      }
-    }
+    const groupId = itemById.get(id)?.group ?? "";
+    applyAutoOpen(groupId);
     for (const it of items) {
       it.link.classList.toggle("active", it.id === id);
     }
+  }
+
+  for (const g of groupMeta) {
+    if (!g.toggle) continue;
+    g.toggle.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const next = !g.el.classList.contains("is-open");
+      setGroupOpen(g.id, next, "manual");
+    });
+    syncToggle(g.id);
   }
 
   for (const it of items) {
@@ -116,14 +164,6 @@
   schedule();
 
   // Initialize: open group for first section.
-  if (!openGroup) {
-    const first = items.find((x) => x.group);
-    if (first?.group) {
-      openGroup = first.group;
-      for (const g of groups) {
-        const gid = String(g.getAttribute("data-toc-group") || "").trim();
-        g.classList.toggle("is-open", gid === openGroup);
-      }
-    }
-  }
+  const first = items.find((x) => x.group);
+  if (first?.group) applyAutoOpen(first.group);
 })();

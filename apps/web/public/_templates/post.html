@@ -128,10 +128,17 @@
     </main>
 
     {{SITE_FOOTER}}
+    <button class="scroll-to-top" id="scrollToTop" type="button" aria-label="返回顶部" title="返回顶部">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M12 19V5" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+        <path d="M5 12l7-7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+    </button>
     <script src="/ui/theme-toggle.js?__cv={{CACHE_VERSION}}"></script>
     <script src="/ui/search-suggest.js?__cv={{CACHE_VERSION}}"></script>
     <script src="/ui/code-copy.js?__cv={{CACHE_VERSION}}"></script>
     <script src="/ui/toc-active.js?__cv={{CACHE_VERSION}}"></script>
+    <script src="/ui/back-to-top.js?__cv={{CACHE_VERSION}}"></script>
     <script>
       window.__bitlogShortcutsText = {{SHORTCUTS_TEXT}};
     </script>

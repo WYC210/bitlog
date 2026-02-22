@@ -416,7 +416,8 @@ function buildTocFromHtml(contentHtml: string): { tocHtml: string; tocInlineLink
       const groupId = escapeHtml(g.h2.id);
       const h2Id = escapeHtml(g.h2.id);
       const h2Text = escapeHtml(normalizeTocText(g.h2.text));
-      const h2 = `<a class="toc-link toc-link-h2" data-level="2" data-toc-group="${groupId}" data-toc-id="${h2Id}" href="#${h2Id}"><span class="toc-badge" aria-hidden="true">${++sectionIndex}</span><span class="toc-text">${h2Text}</span></a>`;
+      const h2Link = `<a class="toc-link toc-link-h2" data-level="2" data-toc-group="${groupId}" data-toc-id="${h2Id}" href="#${h2Id}"><span class="toc-badge" aria-hidden="true">${++sectionIndex}</span><span class="toc-text">${h2Text}</span></a>`;
+      const toggleBtn = `<button class="toc-toggle" type="button" aria-label="展开/收起该章节" aria-expanded="false" data-toc-group="${groupId}"></button>`;
       const children = g.h3s
         .map((h3) => {
           const id = escapeHtml(h3.id);
@@ -424,7 +425,8 @@ function buildTocFromHtml(contentHtml: string): { tocHtml: string; tocInlineLink
           return `<a class="toc-link toc-link-h3" data-level="3" data-toc-group="${groupId}" data-toc-id="${id}" href="#${id}"><span class="toc-bullet" aria-hidden="true"></span><span class="toc-text">${text}</span></a>`;
         })
         .join("");
-      return `<div class="toc-group" data-toc-group="${groupId}">${h2}<div class="toc-children">${children}</div></div>`;
+      const head = `<div class="toc-group-head">${h2Link}${toggleBtn}</div>`;
+      return `<div class="toc-group" data-toc-group="${groupId}">${head}<div class="toc-children">${children}</div></div>`;
     })
     .join("");
 
