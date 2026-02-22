@@ -157,20 +157,41 @@ export async function ensureDefaultAdmin(db: Db, policy?: PasswordPolicy): Promi
   );
   if (existing.length > 0) return;
 
-  const id = randomId();
-  const now = Date.now();
-  const { hash, salt, iterations } = await hashPassword("123456", policy);
-  await db.execute(
-    sql`INSERT INTO admin_users
-        (id, username, password_hash, password_salt, password_iterations, created_at, updated_at)
-        VALUES (${id}, ${"admin"}, ${hash}, ${salt}, ${iterations}, ${now}, ${now})`
-  );
+  // NOTE: Intentionally does NOT auto-create a default admin user in production.
+  // Create an admin explicitly (e.g. bootstrap flow) to avoid a well-known default password.
+  throw new Error("Admin is not initialized (no admin_users). Create an admin user explicitly.");
 }
 
 export function decodeIterations(iterations: number): { iterations: number; peppered: boolean } {
   const n = Number(iterations);
   if (!Number.isFinite(n) || n === 0) return { iterations: DEFAULT_ITERATIONS, peppered: false };
   return { iterations: Math.abs(Math.trunc(n)), peppered: n < 0 };
+}
+
+export async function createAdminUser(
+  db: Db,
+  input: { username: string; password: string },
+  policy?: PasswordPolicy
+): Promise<{ id: string; username: string }> {
+  const username = String(input.username ?? "").trim();
+  const password = String(input.password ?? "");
+  if (!username) throw new Error("Invalid username");
+  if (!password) throw new Error("Invalid password");
+
+  const existing = await db.query<{ id: string }>(
+    sql`SELECT id FROM admin_users WHERE username = ${username} LIMIT 1`
+  );
+  if (existing[0]?.id) throw new Error("Username already exists");
+
+  const id = randomId();
+  const now = Date.now();
+  const { hash, salt, iterations } = await hashPassword(password, policy);
+  await db.execute(
+    sql`INSERT INTO admin_users
+        (id, username, password_hash, password_salt, password_iterations, created_at, updated_at)
+        VALUES (${id}, ${username}, ${hash}, ${salt}, ${iterations}, ${now}, ${now})`
+  );
+  return { id, username };
 }
 
 function encodeIterations(iterations: number, peppered: boolean): number {

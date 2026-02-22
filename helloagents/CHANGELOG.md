@@ -7,6 +7,8 @@
   - 影响: proposal/function-spec
 - **[样式同步]**: NewEchoes 样式同步预览（背景渐变与主题过渡）
   - 方案: [202602162047_newechoes_style_sync](history/2026-02/202602162047_newechoes_style_sync/)
+- **[编辑器预览]**: “聪明实时预览”（请求可取消/合并 + 触发条件收紧 + 429/5xx 退避）
+  - 方案: [202602220847_editor_preview_smart](history/2026-02/202602220847_editor_preview_smart/)
 
 ## [0.1.0] - 2026-02-05
 

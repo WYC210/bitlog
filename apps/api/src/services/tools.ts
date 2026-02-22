@@ -274,7 +274,25 @@ function normalizeKind(value: ToolKind | undefined | null): ToolKind {
 function normalizeUrl(value: string | null): string | null {
   const s = String(value ?? "").trim();
   if (!s) return null;
-  return s;
+  if (s.length > 2048) throw new Error("Invalid url");
+  if (/[\u0000-\u001f\u007f]/.test(s)) throw new Error("Invalid url");
+
+  // Allow site-relative paths.
+  if (s.startsWith("/")) {
+    if (s.startsWith("//")) throw new Error("Invalid url");
+    return s;
+  }
+
+  let url: URL;
+  try {
+    url = new URL(s);
+  } catch {
+    throw new Error("Invalid url");
+  }
+  const proto = url.protocol.toLowerCase();
+  if (proto !== "http:" && proto !== "https:") throw new Error("Invalid url");
+  if (url.username || url.password) throw new Error("Invalid url");
+  return url.toString();
 }
 
 function normalizeIcon(value: string | null): string | null {

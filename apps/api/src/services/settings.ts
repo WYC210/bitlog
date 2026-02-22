@@ -33,6 +33,13 @@ const KEY_FOOTER_COPYRIGHT_URL = "site.footer_copyright_url";
 const KEY_FOOTER_ICP_TEXT = "site.footer_icp_text";
 const KEY_FOOTER_ICP_LINK = "site.footer_icp_link";
 
+const SITE_CONFIG_CACHE_MS = 5_000;
+let siteConfigCache: { value: SiteConfig; expiresAt: number } | null = null;
+
+function cloneSiteConfig(cfg: SiteConfig): SiteConfig {
+  return { ...cfg, embedAllowlistHosts: new Set(cfg.embedAllowlistHosts) };
+}
+
 function parseUiStyle(input: string | null | undefined): UiStyle | null {
   const s = String(input ?? "").trim().toLowerCase();
   if (s === "current") return "current";
@@ -44,6 +51,11 @@ function parseUiStyle(input: string | null | undefined): UiStyle | null {
 }
 
 export async function getSiteConfig(db: Db): Promise<SiteConfig> {
+  const now = Date.now();
+  if (siteConfigCache && now < siteConfigCache.expiresAt) {
+    return cloneSiteConfig(siteConfigCache.value);
+  }
+
   const rows = await db.query<{ key: string; value: string }>(
     sql`SELECT key, value FROM settings WHERE key IN (${KEY_TITLE}, ${KEY_DESCRIPTION}, ${KEY_BASE_URL}, ${KEY_TIMEZONE}, ${KEY_EMBED_ALLOWLIST}, ${KEY_CACHE_TTL}, ${KEY_CACHE_VERSION}, ${KEY_UI_WEB_STYLE}, ${KEY_UI_ADMIN_STYLE}, ${KEY_SHORTCUTS}, ${KEY_FOOTER_COPYRIGHT_URL}, ${KEY_FOOTER_ICP_TEXT}, ${KEY_FOOTER_ICP_LINK})`
   );
@@ -69,7 +81,7 @@ export async function getSiteConfig(db: Db): Promise<SiteConfig> {
   const footerIcpText = map.get(KEY_FOOTER_ICP_TEXT) ?? null;
   const footerIcpLink = map.get(KEY_FOOTER_ICP_LINK) ?? null;
 
-  return {
+  const cfg: SiteConfig = {
     title,
     description,
     baseUrl,
@@ -84,9 +96,13 @@ export async function getSiteConfig(db: Db): Promise<SiteConfig> {
     footerIcpText,
     footerIcpLink
   };
+
+  siteConfigCache = { value: cfg, expiresAt: now + SITE_CONFIG_CACHE_MS };
+  return cloneSiteConfig(cfg);
 }
 
 export async function setSettings(db: Db, patch: Record<string, unknown>): Promise<void> {
+  siteConfigCache = null;
   const now = Date.now();
   for (const [key, raw] of Object.entries(patch)) {
     const value = normalizeSettingValue(key, raw);
@@ -99,6 +115,7 @@ export async function setSettings(db: Db, patch: Record<string, unknown>): Promi
 }
 
 export async function bumpCacheVersion(db: Db): Promise<void> {
+  siteConfigCache = null;
   const now = Date.now();
   const rows = await db.query<{ value: string }>(
     sql`SELECT value FROM settings WHERE key = ${KEY_CACHE_VERSION} LIMIT 1`

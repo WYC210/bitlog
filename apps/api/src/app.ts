@@ -6,7 +6,6 @@ import type { R2Bucket } from "@cloudflare/workers-types";
 import {
   CF_PBKDF2_MAX_ITERATIONS,
   decodeIterations,
-  ensureDefaultAdmin,
   hashPassword,
   verifyPassword
 } from "./lib/password.js";
@@ -15,7 +14,12 @@ import { randomId, randomToken, sha256Bytes, timingSafeEqual } from "./lib/crypt
 import { slugifyUnique } from "./lib/slug.js";
 import { renderPostContent } from "./lib/render.js";
 import { getSiteConfig, setSettings, bumpCacheVersion } from "./services/settings.js";
-import { rateLimitAdminLogin, rateLimitProxy, rateLimitSearch } from "./services/rate-limit.js";
+import {
+  rateLimitAdminLogin,
+  rateLimitAdminRender,
+  rateLimitProxy,
+  rateLimitSearch
+} from "./services/rate-limit.js";
 import { embedFromShortcode } from "./lib/embeds.js";
 import { getCachedResponse, putCachedResponse } from "./services/cache.js";
 import { uploadImageToR2, getR2ObjectByKey } from "./services/assets.js";
@@ -53,6 +57,21 @@ const POSTS_KEY_AUTO_SUMMARY = "posts.auto_summary";
 function parseLooseBool(v: string | null | undefined): boolean {
   const s = String(v ?? "").trim().toLowerCase();
   return s === "1" || s === "true" || s === "yes" || s === "on";
+}
+
+function parsePostStatus(value: unknown): PostStatus | null {
+  const s = String(value ?? "").trim().toLowerCase();
+  if (s === "draft") return "draft";
+  if (s === "published") return "published";
+  if (s === "scheduled") return "scheduled";
+  return null;
+}
+
+function toFiniteIntMs(value: number): number | null {
+  if (!Number.isFinite(value)) return null;
+  const ms = Math.trunc(value);
+  if (ms <= 0) return null;
+  return ms;
 }
 
 function getEffectivePasswordPolicy(input?: PasswordPolicy): { iterations: number; pepper?: string } {
@@ -106,6 +125,10 @@ function jsonError(message: string, status = 400, code?: string) {
   return { ok: false, error: { code: code ?? statusCodeName(status), message, status } } as const;
 }
 
+function cdataText(value: unknown): string {
+  return String(value ?? "").replaceAll("]]>", "]]]]><![CDATA[>");
+}
+
 async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -148,7 +171,7 @@ async function fetchGithubProjects(input: {
   token: string | null;
   includeForks: boolean;
   maxItems: number;
-}): Promise<ProjectItem[]> {
+}): Promise<{ projects: ProjectItem[]; error: { status: number; message: string; retryAfterSeconds?: number } | null }> {
   const perPage = Math.min(100, Math.max(1, input.maxItems));
   const url = new URL(`https://api.github.com/users/${encodeURIComponent(input.username)}/repos`);
   url.searchParams.set("per_page", String(perPage));
@@ -158,14 +181,35 @@ async function fetchGithubProjects(input: {
 
   const headers = new Headers({
     accept: "application/vnd.github+json",
+    "x-github-api-version": "2022-11-28",
     "user-agent": "bitlog"
   });
   if (input.token) headers.set("authorization", `Bearer ${input.token}`);
 
-  const res = await fetch(url.toString(), { headers });
-  if (!res.ok) return [];
+  const res = await fetchWithTimeout(url.toString(), { headers }, 10_000);
+  if (!res.ok) {
+    const remaining = Number(res.headers.get("x-ratelimit-remaining") ?? NaN);
+    const resetUnix = Number(res.headers.get("x-ratelimit-reset") ?? NaN);
+    const retryAfterSeconds =
+      Number.isFinite(resetUnix) && resetUnix > 0
+        ? Math.max(1, Math.ceil(resetUnix - Date.now() / 1000))
+        : undefined;
+
+    const body = (await res.json().catch(() => null)) as any;
+    const msg = body?.message ? String(body.message) : `HTTP ${res.status}`;
+    const extra =
+      res.status === 403 && remaining === 0
+        ? ` (GitHub API rate limit exceeded; try adding a Token)`
+        : "";
+    const error = {
+      status: res.status,
+      message: `${msg}${extra}`,
+      ...(typeof retryAfterSeconds === "number" ? { retryAfterSeconds } : {})
+    };
+    return { projects: [], error };
+  }
   const data = (await res.json().catch(() => null)) as any;
-  if (!Array.isArray(data)) return [];
+  if (!Array.isArray(data)) return { projects: [], error: { status: 502, message: "GitHub API returned invalid JSON" } };
 
   const out: ProjectItem[] = [];
   for (const r of data) {
@@ -192,7 +236,7 @@ async function fetchGithubProjects(input: {
     });
   }
   out.sort((a, b) => b.updatedAt - a.updatedAt);
-  return out.slice(0, input.maxItems);
+  return { projects: out.slice(0, input.maxItems), error: null };
 }
 
 async function fetchGiteeProjects(input: {
@@ -200,7 +244,7 @@ async function fetchGiteeProjects(input: {
   token: string | null;
   includeForks: boolean;
   maxItems: number;
-}): Promise<ProjectItem[]> {
+}): Promise<{ projects: ProjectItem[]; error: { status: number; message: string; retryAfterSeconds?: number } | null }> {
   const perPage = Math.min(100, Math.max(1, input.maxItems));
   const url = new URL(`https://gitee.com/api/v5/users/${encodeURIComponent(input.username)}/repos`);
   url.searchParams.set("per_page", String(perPage));
@@ -209,10 +253,14 @@ async function fetchGiteeProjects(input: {
   url.searchParams.set("type", "owner");
   if (input.token) url.searchParams.set("access_token", input.token);
 
-  const res = await fetch(url.toString(), { headers: { "user-agent": "bitlog" } });
-  if (!res.ok) return [];
+  const res = await fetchWithTimeout(url.toString(), { headers: { "user-agent": "bitlog" } }, 10_000);
+  if (!res.ok) {
+    const body = (await res.json().catch(() => null)) as any;
+    const msg = body?.message ? String(body.message) : `HTTP ${res.status}`;
+    return { projects: [], error: { status: res.status, message: msg } };
+  }
   const data = (await res.json().catch(() => null)) as any;
-  if (!Array.isArray(data)) return [];
+  if (!Array.isArray(data)) return { projects: [], error: { status: 502, message: "Gitee API returned invalid JSON" } };
 
   const out: ProjectItem[] = [];
   for (const r of data) {
@@ -239,7 +287,7 @@ async function fetchGiteeProjects(input: {
     });
   }
   out.sort((a, b) => b.updatedAt - a.updatedAt);
-  return out.slice(0, input.maxItems);
+  return { projects: out.slice(0, input.maxItems), error: null };
 }
 
 function getClientIp(request: Request): string {
@@ -264,14 +312,39 @@ function isSecureRequest(request: Request): boolean {
   }
 }
 
-function isSameOriginRequest(request: Request): boolean {
-  const origin = request.headers.get("origin");
-  if (!origin) return true;
+function isSameOriginRequest(
+  request: Request,
+  opts?: { requireOrigin?: boolean; requireSameSite?: boolean }
+): boolean {
+  const requireOrigin = !!opts?.requireOrigin;
+  const requireSameSite = !!opts?.requireSameSite;
+
+  let requestOrigin: string;
   try {
-    return origin === new URL(request.url).origin;
+    requestOrigin = new URL(request.url).origin;
   } catch {
     return false;
   }
+
+  const origin = request.headers.get("origin");
+  if (!origin) return !requireOrigin;
+  if (origin !== requestOrigin) return false;
+
+  if (requireSameSite) {
+    const fetchSite = request.headers.get("sec-fetch-site")?.toLowerCase();
+    if (fetchSite && fetchSite !== "same-origin" && fetchSite !== "same-site") return false;
+
+    const referer = request.headers.get("referer");
+    if (referer) {
+      try {
+        if (new URL(referer).origin !== requestOrigin) return false;
+      } catch {
+        return false;
+      }
+    }
+  }
+
+  return true;
 }
 
 function isIpAddress(value: string): boolean {
@@ -292,6 +365,67 @@ function isLikelyLocalOrUnknownIp(ip: string): boolean {
   if (s.startsWith("192.168.")) return true;
   if (/^172\.(1[6-9]|2\d|3[0-1])\./.test(s)) return true;
   return false;
+}
+
+function isPrivateOrReservedIpv4(ip: string): boolean {
+  const parts = ip.split(".");
+  if (parts.length !== 4) return true;
+  const octets = parts.map((p) => Number(p));
+  if (octets.some((n) => !Number.isInteger(n) || n < 0 || n > 255)) return true;
+
+  const [a, b] = octets as [number, number, number, number];
+  // Private, loopback, link-local, CGNAT, benchmark, multicast/reserved.
+  if (a === 0) return true;
+  if (a === 10) return true;
+  if (a === 127) return true;
+  if (a === 169 && b === 254) return true;
+  if (a === 172 && b >= 16 && b <= 31) return true;
+  if (a === 192 && b === 168) return true;
+  if (a === 100 && b >= 64 && b <= 127) return true; // 100.64.0.0/10
+  if (a === 198 && (b === 18 || b === 19)) return true; // 198.18.0.0/15
+  if (a >= 224) return true;
+  return false;
+}
+
+function normalizePortScanHost(input: string): { host: string; kind: "domain" | "ipv4" | "ipv6" } | null {
+  const trimmed = String(input ?? "").trim();
+  if (!trimmed) return null;
+
+  let host = trimmed;
+  try {
+    if (/^https?:\/\//i.test(trimmed)) host = new URL(trimmed).hostname;
+  } catch {
+    // ignore
+  }
+
+  host = host.trim();
+  if (!host) return null;
+  if (host.length > 253) return null;
+
+  const lower = host.toLowerCase();
+  if (lower === "localhost") return null;
+
+  // Basic IPv4 check.
+  const ipv4 =
+    /^(25[0-5]|2[0-4]\d|1?\d{1,2})\.(25[0-5]|2[0-4]\d|1?\d{1,2})\.(25[0-5]|2[0-4]\d|1?\d{1,2})\.(25[0-5]|2[0-4]\d|1?\d{1,2})$/;
+  if (ipv4.test(host)) return { host, kind: "ipv4" };
+
+  // IPv6 (very loose): accept a raw address without zone id/brackets; block obvious local ranges.
+  if (host.includes(":")) {
+    let v6 = host;
+    if (v6.startsWith("[") && v6.endsWith("]")) v6 = v6.slice(1, -1);
+    const s = v6.toLowerCase();
+    if (s === "::1") return null;
+    if (s.startsWith("fe80:")) return null; // link-local
+    if (s.startsWith("fc") || s.startsWith("fd")) return null; // ULA fc00::/7 (rough)
+    if (s.includes("%")) return null; // zone id
+    return { host: v6, kind: "ipv6" };
+  }
+
+  const domain = normalizeDomainInput(host);
+  if (!domain) return null;
+  if (domain === "localhost") return null;
+  return { host: domain, kind: "domain" };
 }
 
 function normalizeDomainInput(input: string): string | null {
@@ -330,6 +464,21 @@ function normalizePhoneInput(input: string): string | null {
 
   if (!/^\d{5,20}$/.test(digits)) return null;
   return digits;
+}
+
+function normalizePublicAssetKey(input: string): string | null {
+  const key = String(input ?? "").trim();
+  if (!key) return null;
+  if (key.length > 512) return null;
+  if (/[\u0000-\u001f\u007f]/.test(key)) return null;
+  if (key.includes("\\") || key.includes("%")) return null;
+  if (!key.startsWith("images/")) return null;
+  if (!/^[a-zA-Z0-9/_\-.]+$/.test(key)) return null;
+
+  const parts = key.split("/");
+  if (parts.some((p) => !p || p === "." || p === "..")) return null;
+
+  return key;
 }
 
 async function getSettingsValues(db: Db, keys: string[]): Promise<Map<string, string>> {
@@ -674,11 +823,11 @@ export function createApiApp(bindings: ApiBindings) {
     if (!platform) return c.json(jsonError("Invalid platform", 400), 400);
 
     const cfg = await getProjectsConfig(bindings.db);
-    const cacheKey = `projects:${platform}:${cfg.githubEnabled ? 1 : 0}:${cfg.giteeEnabled ? 1 : 0}:${cfg.githubUsername ?? ""}:${cfg.giteeUsername ?? ""}:${cfg.includeForks ? 1 : 0}:${cfg.maxItemsPerPlatform}`;
+    const cacheKey = `projects:${platform}:${cfg.githubEnabled ? 1 : 0}:${cfg.giteeEnabled ? 1 : 0}:${cfg.githubUsername ?? ""}:${cfg.giteeUsername ?? ""}:${cfg.githubToken ? 1 : 0}:${cfg.giteeToken ? 1 : 0}:${cfg.includeForks ? 1 : 0}:${cfg.maxItemsPerPlatform}`;
     const maybeCached = await getCachedResponse(c.req.raw, bindings.db, cacheKey);
     if (maybeCached) return maybeCached;
 
-    const tasks: Array<Promise<ProjectItem[]>> = [];
+    const tasks: Array<Promise<{ platform: ProjectsPlatform; projects: ProjectItem[]; error: { status: number; message: string; retryAfterSeconds?: number } | null }>> = [];
     if (platform !== "gitee" && cfg.githubEnabled && cfg.githubUsername) {
       tasks.push(
         fetchGithubProjects({
@@ -686,7 +835,7 @@ export function createApiApp(bindings: ApiBindings) {
           token: cfg.githubToken,
           includeForks: cfg.includeForks,
           maxItems: cfg.maxItemsPerPlatform
-        })
+        }).then((r) => ({ platform: "github" as const, ...r }))
       );
     }
     if (platform !== "github" && cfg.giteeEnabled && cfg.giteeUsername) {
@@ -696,23 +845,32 @@ export function createApiApp(bindings: ApiBindings) {
           token: cfg.giteeToken,
           includeForks: cfg.includeForks,
           maxItems: cfg.maxItemsPerPlatform
-        })
+        }).then((r) => ({ platform: "gitee" as const, ...r }))
       );
     }
 
-    const lists = await Promise.all(tasks);
+    const results = await Promise.all(tasks);
+    const errors: Partial<Record<ProjectsPlatform, { status: number; message: string; retryAfterSeconds?: number }>> = {};
+    const lists: ProjectItem[][] = [];
+    for (const r of results) {
+      if (r.error) errors[r.platform] = r.error;
+      lists.push(r.projects);
+    }
     const projects = lists.flat().sort((a, b) => b.updatedAt - a.updatedAt);
 
     const response = c.json({
       ok: true,
       projects,
+      errors: Object.keys(errors).length ? errors : undefined,
       accounts: {
         github: cfg.githubEnabled && cfg.githubUsername ? { username: cfg.githubUsername } : null,
         gitee: cfg.giteeEnabled && cfg.giteeUsername ? { username: cfg.giteeUsername } : null
       },
       config: { includeForks: cfg.includeForks, maxItemsPerPlatform: cfg.maxItemsPerPlatform }
     });
-    await putCachedResponse(c.req.raw, response, bindings.db, cacheKey);
+    if (!Object.keys(errors).length) {
+      await putCachedResponse(c.req.raw, response, bindings.db, cacheKey);
+    }
     return response;
   });
 
@@ -1160,8 +1318,13 @@ export function createApiApp(bindings: ApiBindings) {
     if (!limited.ok) return c.json(jsonError("Too many requests", 429), 429);
 
     const url = new URL(c.req.url);
-    const host = String(url.searchParams.get("host") ?? "").trim();
-    if (!host) return c.json(jsonError("Missing host", 400), 400);
+    const hostRaw = String(url.searchParams.get("host") ?? "").trim();
+    const parsedHost = normalizePortScanHost(hostRaw);
+    if (!parsedHost) return c.json(jsonError("Invalid host", 400), 400);
+    if (parsedHost.kind === "ipv4" && isPrivateOrReservedIpv4(parsedHost.host)) {
+      return c.json(jsonError("Invalid host", 400), 400);
+    }
+    const host = parsedHost.host;
 
     const protocol = String(url.searchParams.get("protocol") ?? "tcp").trim().toLowerCase() === "udp" ? "udp" : "tcp";
     const portsParam = String(url.searchParams.get("ports") ?? "").trim();
@@ -1672,7 +1835,11 @@ export function createApiApp(bindings: ApiBindings) {
     if (maybeCached) return maybeCached;
 
     const upstream = `https://gitee.com/api/v5/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}`;
-    const res = await fetch(upstream, { headers: { accept: "application/json" } });
+    const res = await fetchWithTimeout(
+      upstream,
+      { method: "GET", headers: { accept: "application/json", "user-agent": "bitlog" } },
+      10_000
+    );
     if (res.status === 404) return c.json(jsonError("Not found", 404, "NOT_FOUND"), 404);
     if (!res.ok) return c.json(jsonError("Upstream failed", 502, "UPSTREAM_FAILED"), 502);
 
@@ -1728,11 +1895,11 @@ export function createApiApp(bindings: ApiBindings) {
         const guid = link;
         return `
           <item>
-            <title><![CDATA[${p.title}]]></title>
+            <title><![CDATA[${cdataText(p.title)}]]></title>
             <link>${link}</link>
             <guid isPermaLink="true">${guid}</guid>
             <pubDate>${pubDate}</pubDate>
-            <description><![CDATA[${p.summary || p.content_html}]]></description>
+            <description><![CDATA[${cdataText(p.summary || p.content_html)}]]></description>
           </item>
         `.trim();
       })
@@ -1741,9 +1908,9 @@ export function createApiApp(bindings: ApiBindings) {
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
   <channel>
-    <title><![CDATA[${config.title ?? "bitlog"}]]></title>
+    <title><![CDATA[${cdataText(config.title ?? "bitlog")}]]></title>
     <link>${config.baseUrl}</link>
-    <description><![CDATA[${config.description ?? ""}]]></description>
+    <description><![CDATA[${cdataText(config.description ?? "")}]]></description>
     ${feedItems}
   </channel>
 </rss>`;
@@ -1793,7 +1960,8 @@ export function createApiApp(bindings: ApiBindings) {
   });
 
   app.get("/assets/*", async (c) => {
-    const key = c.req.path.replace(/^\/assets\//, "");
+    const rawKey = c.req.path.replace(/^\/assets\//, "");
+    const key = normalizePublicAssetKey(rawKey);
     if (!key) return c.json(jsonError("Not found", 404), 404);
     if (!bindings.assetsR2) return c.json(jsonError("Assets disabled", 404), 404);
 
@@ -1862,13 +2030,19 @@ export function createApiApp(bindings: ApiBindings) {
   });
 
   app.post("/api/admin/render", async (c) => {
-    if (!isSameOriginRequest(c.req.raw)) return c.json(jsonError("Forbidden", 403), 403);
+    if (!isSameOriginRequest(c.req.raw, { requireOrigin: true, requireSameSite: true })) {
+      return c.json(jsonError("Forbidden", 403), 403);
+    }
     const session = await requireAdmin(bindings, c.req.raw);
     if (!session) return c.json(jsonError("Unauthorized", 401), 401);
+
+    const limited = await rateLimitAdminRender(bindings.db, session.adminId);
+    if (!limited.ok) return c.json(jsonError("Too Many Requests", 429), 429);
 
     const body = (await c.req.json().catch(() => null)) as { content_md?: string } | null;
     const contentMd = body?.content_md ?? "";
     if (typeof contentMd !== "string") return c.json(jsonError("Invalid content_md", 400), 400);
+    if (contentMd.length > 500_000) return c.json(jsonError("Content too long", 400), 400);
 
     const config = await getSiteConfig(bindings.db);
     const rendered = await renderPostContent(contentMd, {
@@ -1881,9 +2055,14 @@ export function createApiApp(bindings: ApiBindings) {
   });
 
   app.post("/api/admin/login", async (c) => {
-    if (!isSameOriginRequest(c.req.raw)) return c.json(jsonError("Forbidden", 403), 403);
+    if (!isSameOriginRequest(c.req.raw, { requireOrigin: true, requireSameSite: true })) {
+      return c.json(jsonError("Forbidden", 403), 403);
+    }
     const passwordPolicy = getEffectivePasswordPolicy(bindings.password);
-    await ensureDefaultAdmin(bindings.db, passwordPolicy);
+    const initialized = await bindings.db.query<{ id: string }>(sql`SELECT id FROM admin_users LIMIT 1`);
+    if (!initialized[0]?.id) {
+      return c.json(jsonError("Admin not initialized", 503, "ADMIN_NOT_INITIALIZED"), 503);
+    }
     const ip = getClientIp(c.req.raw);
     const limited = await rateLimitAdminLogin(bindings.db, ip);
     if (!limited.ok) return c.json(jsonError("Too Many Requests", 429), 429);
@@ -1968,7 +2147,9 @@ export function createApiApp(bindings: ApiBindings) {
   });
 
   app.post("/api/admin/logout", async (c) => {
-    if (!isSameOriginRequest(c.req.raw)) return c.json(jsonError("Forbidden", 403), 403);
+    if (!isSameOriginRequest(c.req.raw, { requireOrigin: true, requireSameSite: true })) {
+      return c.json(jsonError("Forbidden", 403), 403);
+    }
     const session = await requireAdmin(bindings, c.req.raw);
     const sid = getCookie(c, COOKIE_SESSION_ID);
     if (session && sid) {
@@ -1980,7 +2161,9 @@ export function createApiApp(bindings: ApiBindings) {
   });
 
   app.post("/api/admin/refresh", async (c) => {
-    if (!isSameOriginRequest(c.req.raw)) return c.json(jsonError("Forbidden", 403), 403);
+    if (!isSameOriginRequest(c.req.raw, { requireOrigin: true, requireSameSite: true })) {
+      return c.json(jsonError("Forbidden", 403), 403);
+    }
     const sid = getCookie(c, COOKIE_SESSION_ID);
     const rt = getCookie(c, COOKIE_REFRESH_TOKEN);
     if (!sid || !rt) return c.json(jsonError("Unauthorized", 401), 401);
@@ -2035,7 +2218,9 @@ export function createApiApp(bindings: ApiBindings) {
   });
 
   app.put("/api/admin/prefs", async (c) => {
-    if (!isSameOriginRequest(c.req.raw)) return c.json(jsonError("Forbidden", 403), 403);
+    if (!isSameOriginRequest(c.req.raw, { requireOrigin: true, requireSameSite: true })) {
+      return c.json(jsonError("Forbidden", 403), 403);
+    }
     const session = await requireAdmin(bindings, c.req.raw);
     if (!session) return c.json(jsonError("Unauthorized", 401), 401);
     const body = (await c.req.json().catch(() => null)) as
@@ -2069,7 +2254,9 @@ export function createApiApp(bindings: ApiBindings) {
   });
 
   app.put("/api/admin/password", async (c) => {
-    if (!isSameOriginRequest(c.req.raw)) return c.json(jsonError("Forbidden", 403), 403);
+    if (!isSameOriginRequest(c.req.raw, { requireOrigin: true, requireSameSite: true })) {
+      return c.json(jsonError("Forbidden", 403), 403);
+    }
     const session = await requireAdmin(bindings, c.req.raw);
     if (!session) return c.json(jsonError("Unauthorized", 401), 401);
     const passwordPolicy = getEffectivePasswordPolicy(bindings.password);
@@ -2134,7 +2321,9 @@ export function createApiApp(bindings: ApiBindings) {
   });
 
   app.put("/api/admin/settings", async (c) => {
-    if (!isSameOriginRequest(c.req.raw)) return c.json(jsonError("Forbidden", 403), 403);
+    if (!isSameOriginRequest(c.req.raw, { requireOrigin: true, requireSameSite: true })) {
+      return c.json(jsonError("Forbidden", 403), 403);
+    }
     const session = await requireAdmin(bindings, c.req.raw);
     if (!session) return c.json(jsonError("Unauthorized", 401), 401);
     const body = await c.req.json().catch(() => null) as Record<string, unknown> | null;
@@ -2160,7 +2349,9 @@ export function createApiApp(bindings: ApiBindings) {
   });
 
   app.put("/api/admin/projects-config", async (c) => {
-    if (!isSameOriginRequest(c.req.raw)) return c.json(jsonError("Forbidden", 403), 403);
+    if (!isSameOriginRequest(c.req.raw, { requireOrigin: true, requireSameSite: true })) {
+      return c.json(jsonError("Forbidden", 403), 403);
+    }
     const session = await requireAdmin(bindings, c.req.raw);
     if (!session) return c.json(jsonError("Unauthorized", 401), 401);
     const body = (await c.req.json().catch(() => null)) as any;
@@ -2180,7 +2371,9 @@ export function createApiApp(bindings: ApiBindings) {
   });
 
   app.post("/api/admin/tools", async (c) => {
-    if (!isSameOriginRequest(c.req.raw)) return c.json(jsonError("Forbidden", 403), 403);
+    if (!isSameOriginRequest(c.req.raw, { requireOrigin: true, requireSameSite: true })) {
+      return c.json(jsonError("Forbidden", 403), 403);
+    }
     const session = await requireAdmin(bindings, c.req.raw);
     if (!session) return c.json(jsonError("Unauthorized", 401), 401);
     const body = (await c.req.json().catch(() => null)) as any;
@@ -2195,7 +2388,9 @@ export function createApiApp(bindings: ApiBindings) {
   });
 
   app.put("/api/admin/tools/reorder", async (c) => {
-    if (!isSameOriginRequest(c.req.raw)) return c.json(jsonError("Forbidden", 403), 403);
+    if (!isSameOriginRequest(c.req.raw, { requireOrigin: true, requireSameSite: true })) {
+      return c.json(jsonError("Forbidden", 403), 403);
+    }
     const session = await requireAdmin(bindings, c.req.raw);
     if (!session) return c.json(jsonError("Unauthorized", 401), 401);
     const body = (await c.req.json().catch(() => null)) as any;
@@ -2207,7 +2402,9 @@ export function createApiApp(bindings: ApiBindings) {
   });
 
   app.put("/api/admin/tools/:id", async (c) => {
-    if (!isSameOriginRequest(c.req.raw)) return c.json(jsonError("Forbidden", 403), 403);
+    if (!isSameOriginRequest(c.req.raw, { requireOrigin: true, requireSameSite: true })) {
+      return c.json(jsonError("Forbidden", 403), 403);
+    }
     const session = await requireAdmin(bindings, c.req.raw);
     if (!session) return c.json(jsonError("Unauthorized", 401), 401);
     const id = c.req.param("id");
@@ -2225,7 +2422,9 @@ export function createApiApp(bindings: ApiBindings) {
   });
 
   app.delete("/api/admin/tools/:id", async (c) => {
-    if (!isSameOriginRequest(c.req.raw)) return c.json(jsonError("Forbidden", 403), 403);
+    if (!isSameOriginRequest(c.req.raw, { requireOrigin: true, requireSameSite: true })) {
+      return c.json(jsonError("Forbidden", 403), 403);
+    }
     const session = await requireAdmin(bindings, c.req.raw);
     if (!session) return c.json(jsonError("Unauthorized", 401), 401);
     const id = c.req.param("id");
@@ -2329,7 +2528,9 @@ export function createApiApp(bindings: ApiBindings) {
   });
 
   app.post("/api/admin/posts", async (c) => {
-    if (!isSameOriginRequest(c.req.raw)) return c.json(jsonError("Forbidden", 403), 403);
+    if (!isSameOriginRequest(c.req.raw, { requireOrigin: true, requireSameSite: true })) {
+      return c.json(jsonError("Forbidden", 403), 403);
+    }
     const session = await requireAdmin(bindings, c.req.raw);
     if (!session) return c.json(jsonError("Unauthorized", 401), 401);
     const body = await c.req.json().catch(() => null) as
@@ -2343,15 +2544,30 @@ export function createApiApp(bindings: ApiBindings) {
           publish_at?: number | null;
         }
       | null;
-    if (!body?.title || !body.content_md) return c.json(jsonError("Missing fields", 400), 400);
+    if (!body || typeof body !== "object") return c.json(jsonError("Invalid JSON", 400), 400);
 
-    const status: PostStatus = body.status ?? "draft";
-    const publishAt =
-      status === "draft" ? null : typeof body.publish_at === "number" ? body.publish_at : nowMs();
+    const title = typeof body.title === "string" ? body.title.trim() : "";
+    const contentMd = typeof body.content_md === "string" ? body.content_md : "";
+    if (!title || !contentMd) return c.json(jsonError("Missing fields", 400), 400);
+
+    const status = body.status === undefined ? "draft" : parsePostStatus(body.status);
+    if (!status) return c.json(jsonError("Invalid status", 400), 400);
+
+    let publishAt: number | null = null;
+    if (status !== "draft") {
+      if ("publish_at" in body && body.publish_at !== null && body.publish_at !== undefined) {
+        if (typeof body.publish_at !== "number") return c.json(jsonError("Invalid publish_at", 400), 400);
+        const parsed = toFiniteIntMs(body.publish_at);
+        if (!parsed) return c.json(jsonError("Invalid publish_at", 400), 400);
+        publishAt = parsed;
+      } else {
+        publishAt = nowMs();
+      }
+    }
 
     const config = await getSiteConfig(bindings.db);
     const allowlist = config.embedAllowlistHosts;
-    const rendered = await renderPostContent(body.content_md, {
+    const rendered = await renderPostContent(contentMd, {
       embedAllowlist: allowlist,
       embed: embedFromShortcode
     });
@@ -2361,7 +2577,7 @@ export function createApiApp(bindings: ApiBindings) {
 
     const createdAt = nowMs();
     const postId = randomId();
-    const slug = await slugifyUnique(bindings.db, body.title);
+    const slug = await slugifyUnique(bindings.db, title);
 
     const categoryId = body.category
       ? await upsertCategory(bindings.db, body.category)
@@ -2376,7 +2592,7 @@ export function createApiApp(bindings: ApiBindings) {
     await bindings.db.execute(
       sql`INSERT INTO posts
           (id, slug, title, summary, category_id, status, publish_at, created_at, updated_at, content_md, content_html, content_text)
-          VALUES (${postId}, ${slug}, ${body.title}, ${summary}, ${categoryId}, ${status}, ${publishAt}, ${createdAt}, ${createdAt}, ${body.content_md}, ${rendered.html}, ${rendered.text})`
+          VALUES (${postId}, ${slug}, ${title}, ${summary}, ${categoryId}, ${status}, ${publishAt}, ${createdAt}, ${createdAt}, ${contentMd}, ${rendered.html}, ${rendered.text})`
     );
     for (const tagId of tagIds) {
       await bindings.db.execute(
@@ -2388,7 +2604,9 @@ export function createApiApp(bindings: ApiBindings) {
   });
 
   app.put("/api/admin/posts/:id", async (c) => {
-    if (!isSameOriginRequest(c.req.raw)) return c.json(jsonError("Forbidden", 403), 403);
+    if (!isSameOriginRequest(c.req.raw, { requireOrigin: true, requireSameSite: true })) {
+      return c.json(jsonError("Forbidden", 403), 403);
+    }
     const session = await requireAdmin(bindings, c.req.raw);
     if (!session) return c.json(jsonError("Unauthorized", 401), 401);
     const id = c.req.param("id");
@@ -2404,6 +2622,12 @@ export function createApiApp(bindings: ApiBindings) {
         }
       | null;
     if (!body) return c.json(jsonError("Invalid JSON", 400), 400);
+
+    const nextStatus = body.status === undefined ? null : parsePostStatus(body.status);
+    if (body.status !== undefined && !nextStatus) return c.json(jsonError("Invalid status", 400), 400);
+    if ("publish_at" in body && body.publish_at !== undefined && body.publish_at !== null && typeof body.publish_at !== "number") {
+      return c.json(jsonError("Invalid publish_at", 400), 400);
+    }
 
     const existing = await bindings.db.query<{ id: string; slug: string }>(
       sql`SELECT id, slug FROM posts WHERE id = ${id} LIMIT 1`
@@ -2453,15 +2677,19 @@ export function createApiApp(bindings: ApiBindings) {
       fields.push("category_id = ?");
       values.push(categoryId);
     }
-    if (body.status) {
+    if (nextStatus) {
       fields.push("status = ?");
-      values.push(body.status);
-      const publishAt =
-        body.status === "draft"
-          ? null
-          : typeof body.publish_at === "number"
-            ? body.publish_at
-            : nowMs();
+      values.push(nextStatus);
+      let publishAt: number | null = null;
+      if (nextStatus !== "draft") {
+        if (typeof body.publish_at === "number") {
+          const parsed = toFiniteIntMs(body.publish_at);
+          if (!parsed) return c.json(jsonError("Invalid publish_at", 400), 400);
+          publishAt = parsed;
+        } else {
+          publishAt = nowMs();
+        }
+      }
       fields.push("publish_at = ?");
       values.push(publishAt);
     }
@@ -2492,7 +2720,9 @@ export function createApiApp(bindings: ApiBindings) {
   });
 
   app.delete("/api/admin/posts/:id", async (c) => {
-    if (!isSameOriginRequest(c.req.raw)) return c.json(jsonError("Forbidden", 403), 403);
+    if (!isSameOriginRequest(c.req.raw, { requireOrigin: true, requireSameSite: true })) {
+      return c.json(jsonError("Forbidden", 403), 403);
+    }
     const session = await requireAdmin(bindings, c.req.raw);
     if (!session) return c.json(jsonError("Unauthorized", 401), 401);
     const id = c.req.param("id");
@@ -2504,7 +2734,9 @@ export function createApiApp(bindings: ApiBindings) {
   });
 
   app.post("/api/admin/assets/images", async (c) => {
-    if (!isSameOriginRequest(c.req.raw)) return c.json(jsonError("Forbidden", 403), 403);
+    if (!isSameOriginRequest(c.req.raw, { requireOrigin: true, requireSameSite: true })) {
+      return c.json(jsonError("Forbidden", 403), 403);
+    }
     const session = await requireAdmin(bindings, c.req.raw);
     if (!session) return c.json(jsonError("Unauthorized", 401), 401);
     if (!bindings.assetsR2) return c.json(jsonError("Upload disabled", 400), 400);

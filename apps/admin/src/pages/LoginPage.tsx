@@ -4,14 +4,14 @@ import { adminLogin } from "../api";
 
 export function LoginPage(props: { onLoggedIn: () => void; onError: (m: string) => void }) {
   const [username, setUsername] = useState("admin");
-  const [password, setPassword] = useState("123456");
+  const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(true);
   const [loading, setLoading] = useState(false);
 
   return (
     <div className="card">
       <h2 style={{ margin: "0 0 8px" }}>登录</h2>
-      <div className="muted">默认账号：admin / 123456（可在设置里改密码）。</div>
+      <div className="muted">请输入管理员账号与密码。</div>
       <div style={{ height: 12 }} />
       <div className="row">
         <label>
@@ -59,4 +59,3 @@ export function LoginPage(props: { onLoggedIn: () => void; onError: (m: string) 
     </div>
   );
 }
-

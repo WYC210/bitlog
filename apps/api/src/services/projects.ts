@@ -149,4 +149,3 @@ function normalizeToken(value: string | null): string | null {
   if (!s) return null;
   return s;
 }
-

@@ -9,6 +9,7 @@
 | 时间戳 | 功能名称 | 类型 | 状态 | 方案包路径 |
 |--------|----------|------|------|------------|
 | 202602162047 | newechoes_style_sync | 功能 | ✅已完成 | 2026-02/202602162047_newechoes_style_sync/ |
+| 202602220847 | editor_preview_smart | 功能 | ✅已完成 | 2026-02/202602220847_editor_preview_smart/ |
 
 ---
 
@@ -17,3 +18,4 @@
 ### 2026-02
 
 - [202602162047_newechoes_style_sync](2026-02/202602162047_newechoes_style_sync/) - NewEchoes 样式同步（审计+预览）
+- [202602220847_editor_preview_smart](2026-02/202602220847_editor_preview_smart/) - 编辑器“聪明实时预览”（方案 B）

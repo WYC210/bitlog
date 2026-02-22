@@ -17,7 +17,8 @@ export async function getCachedResponse(
   const url = new URL(request.url);
   url.searchParams.set("__cv", String(cfg.cacheVersion));
   url.searchParams.set("__k", key);
-  const cacheKey = new Request(url.toString(), request);
+  // Normalize cache key to avoid fragmentation by headers (Accept-Language/Cookie/etc.).
+  const cacheKey = new Request(url.toString(), { method: "GET" });
   const cache = (caches as any).default as Cache;
   const hit = await cache.match(cacheKey);
   return hit ?? null;
@@ -37,7 +38,8 @@ export async function putCachedResponse(
   const url = new URL(request.url);
   url.searchParams.set("__cv", String(cfg.cacheVersion));
   url.searchParams.set("__k", key);
-  const cacheKey = new Request(url.toString(), request);
+  // Normalize cache key to avoid fragmentation by headers (Accept-Language/Cookie/etc.).
+  const cacheKey = new Request(url.toString(), { method: "GET" });
 
   const headers = new Headers(response.headers);
   headers.set("cache-control", `public, max-age=${cfg.cacheTtlSeconds}`);

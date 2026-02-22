@@ -308,10 +308,14 @@ export async function uploadAdminImage(file: File): Promise<{
   return data.asset as any;
 }
 
-export async function renderAdminMarkdown(content_md: string): Promise<{ html: string; text: string }> {
+export async function renderAdminMarkdown(
+  content_md: string,
+  opts?: { signal?: AbortSignal | null }
+): Promise<{ html: string; text: string }> {
   const r = await apiJson<{ ok: true; rendered: { html: string; text: string } }>("/api/admin/render", {
     method: "POST",
-    body: JSON.stringify({ content_md })
+    body: JSON.stringify({ content_md }),
+    signal: opts?.signal ?? undefined
   });
   return r.rendered;
 }

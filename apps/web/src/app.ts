@@ -260,7 +260,8 @@ async function maybeCachePage(
   if (url.hostname === "127.0.0.1" || url.hostname === "localhost") return build();
   url.searchParams.set("__cv", String(cfg.cacheVersion));
   url.searchParams.set("__k", cacheKey);
-  const keyReq = new Request(url.toString(), request);
+  // Normalize cache key to avoid fragmentation by headers (Accept-Language/etc.).
+  const keyReq = new Request(url.toString(), { method: "GET" });
   const cache = (caches as any).default as Cache;
   const hit = await cache.match(keyReq);
   if (hit) return hit;
@@ -564,12 +565,16 @@ export function createWebApp() {
       const data = await apiJson<
         ApiOk<{
           projects: ProjectItem[];
+          errors?: Partial<Record<"github" | "gitee", { status: number; message: string; retryAfterSeconds?: number }>>;
           accounts: { github: { username: string } | null; gitee: { username: string } | null };
           config: { includeForks: boolean; maxItemsPerPlatform: number };
         }>
       >(c.env, `/api/projects?platform=${encodeURIComponent(platform)}`);
 
       const projects = data.projects ?? [];
+      const errors = (data as any).errors as
+        | Partial<Record<"github" | "gitee", { status: number; message: string; retryAfterSeconds?: number }>>
+        | undefined;
       const accounts = data.accounts ?? { github: null, gitee: null };
 
       const chip = (label: string, href: string, active: boolean) =>
@@ -595,7 +600,16 @@ export function createWebApp() {
 </div>
 `.trim();
 
-      const cards = projects
+      const errorText = (() => {
+        const bits: string[] = [];
+        const gh = errors?.github;
+        const gt = errors?.gitee;
+        if (gh) bits.push(`GitHub 拉取失败：${gh.message}`);
+        if (gt) bits.push(`Gitee 拉取失败：${gt.message}`);
+        return bits.length ? bits.join(" · ") : "";
+      })();
+
+      let cards = projects
         .map((p) => {
           const dateText = isoDate(Number(p.updatedAt ?? 0), cfg.timezone);
           const platformLabel = p.platform === "github" ? "GitHub" : "Gitee";
@@ -633,6 +647,7 @@ export function createWebApp() {
 </a>`;
         })
         .join("\n");
+      if (!cards && errorText) cards = `<div class="meta">${escapeHtml(errorText)}</div>`;
 
       const html = replaceAll((await loadTemplates(c.env, c.req.url)).page, {
         "{{PAGE_TITLE}}": escapeHtml(cfg.title ? `${cfg.title} · 项目` : "项目"),
@@ -818,7 +833,9 @@ ${filter}
 
     // kind=link: 直接跳转
     if (tool.kind === "link" && tool.url) {
-      return Response.redirect(tool.url, 302);
+      const href = safeHref(tool.url);
+      if (href) return Response.redirect(href, 302);
+      return c.text("Not found", 404);
     }
 
     const year = String(new Date().getFullYear());

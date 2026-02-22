@@ -75,9 +75,27 @@ export function EditorPage(props: {
   const [previewHtml, setPreviewHtml] = useState<string>("");
   const [previewing, setPreviewing] = useState(false);
   const [previewError, setPreviewError] = useState<string>("");
+  const [previewNotice, setPreviewNotice] = useState<string>("");
   const [autoPreview, setAutoPreview] = useState(true);
   const previewRef = useRef<HTMLDivElement | null>(null);
   const previewSeq = useRef(0);
+  const previewInFlightSeq = useRef(0);
+  const renderAbortRef = useRef<AbortController | null>(null);
+  const lastRenderedContentRef = useRef<string | null>(null);
+
+  const AUTO_PREVIEW_DEBOUNCE_BASE_MS = 800;
+  const AUTO_PREVIEW_DEBOUNCE_MAX_MS = 1500;
+  const autoPreviewDebounceMsRef = useRef(AUTO_PREVIEW_DEBOUNCE_BASE_MS);
+
+  const [pageVisible, setPageVisible] = useState(() => {
+    if (typeof document === "undefined") return true;
+    return document.visibilityState === "visible";
+  });
+
+  const [autoPreviewBackoffUntil, setAutoPreviewBackoffUntil] = useState(0);
+  const backoffStepRef = useRef(0);
+  const consecutiveAutoFailuresRef = useRef(0);
+  const [backoffKick, setBackoffKick] = useState(0);
 
   const CATEGORY_PAGE_SIZE = 10;
   const TAG_PAGE_SIZE = 10;
@@ -449,28 +467,142 @@ export function EditorPage(props: {
     })();
   }, [isNew, props.id, tz]);
 
-  async function renderPreview(seq: number) {
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const onVis = () => setPageVisible(document.visibilityState === "visible");
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, []);
+
+  useEffect(() => {
+    if (!autoPreview) return;
+    const now = Date.now();
+    if (autoPreviewBackoffUntil <= now) return;
+    const t = window.setTimeout(() => setBackoffKick((v) => v + 1), autoPreviewBackoffUntil - now);
+    return () => window.clearTimeout(t);
+  }, [autoPreview, autoPreviewBackoffUntil]);
+
+  useEffect(() => {
+    if (layout !== "write" && pageVisible) return;
+    renderAbortRef.current?.abort();
+    renderAbortRef.current = null;
+  }, [layout, pageVisible]);
+
+  useEffect(() => {
+    if (autoPreview) return;
+    renderAbortRef.current?.abort();
+    renderAbortRef.current = null;
+  }, [autoPreview]);
+
+  async function renderPreview(
+    seq: number,
+    opts?: {
+      reason: "auto" | "manual";
+      force?: boolean;
+      ignoreBackoff?: boolean;
+    }
+  ) {
+    const isAbort = (e: unknown) => String((e as any)?.name ?? "") === "AbortError";
+    const statusOf = (e: unknown) => {
+      const n = Number((e as any)?.status);
+      return Number.isFinite(n) ? n : 0;
+    };
+
+    const force = !!opts?.force;
+    const ignoreBackoff = !!opts?.ignoreBackoff;
+    const isAuto = (opts?.reason ?? "auto") === "auto";
+
+    if (!ignoreBackoff && isAuto && autoPreviewBackoffUntil > Date.now()) return;
+
+    const contentToRender = content ?? "";
+    if (!force && lastRenderedContentRef.current === contentToRender) return;
+
+    renderAbortRef.current?.abort();
+    const controller = new AbortController();
+    renderAbortRef.current = controller;
+
+    previewInFlightSeq.current = seq;
     setPreviewError("");
+    setPreviewNotice("");
     setPreviewing(true);
+
+    const startedAt = performance.now();
+    let aborted = false;
     try {
-      const rendered = await renderAdminMarkdown(content);
+      const rendered = await renderAdminMarkdown(contentToRender, { signal: controller.signal });
       if (seq !== previewSeq.current) return;
       setPreviewHtml(rendered.html);
+      lastRenderedContentRef.current = contentToRender;
+      autoPreviewDebounceMsRef.current = AUTO_PREVIEW_DEBOUNCE_BASE_MS;
+      consecutiveAutoFailuresRef.current = 0;
+      backoffStepRef.current = 0;
+      if (autoPreviewBackoffUntil !== 0) setAutoPreviewBackoffUntil(0);
     } catch (e) {
+      if (isAbort(e)) {
+        aborted = true;
+        return;
+      }
       if (seq !== previewSeq.current) return;
+
       const err = e as ApiError;
-      setPreviewError(err.message || "Preview render failed");
+      const status = statusOf(e);
+      const msg = err?.message || "Preview render failed";
+
+      setPreviewError(msg);
+
+      if (isAuto && (status === 429 || status >= 500)) {
+        const step = backoffStepRef.current;
+        const backoffMs = Math.min(60_000, 5_000 * Math.pow(2, step));
+        backoffStepRef.current = Math.min(step + 1, 6);
+        consecutiveAutoFailuresRef.current += 1;
+
+        const until = Date.now() + backoffMs;
+        setAutoPreviewBackoffUntil(until);
+        setPreviewNotice(`自动预览已降频（${Math.ceil(backoffMs / 1000)}s 后恢复），可手动刷新。`);
+
+        if (consecutiveAutoFailuresRef.current >= 3) {
+          setAutoPreview(false);
+          setPreviewNotice("自动预览已暂停（连续失败），可手动刷新或重新开启自动刷新。");
+        }
+
+        autoPreviewDebounceMsRef.current = AUTO_PREVIEW_DEBOUNCE_MAX_MS;
+      }
     } finally {
-      if (seq === previewSeq.current) setPreviewing(false);
+      if (!aborted) {
+        const elapsedMs = performance.now() - startedAt;
+        if (Number.isFinite(elapsedMs) && elapsedMs >= 0) {
+          if (elapsedMs > AUTO_PREVIEW_DEBOUNCE_BASE_MS) {
+            autoPreviewDebounceMsRef.current = Math.min(
+              AUTO_PREVIEW_DEBOUNCE_MAX_MS,
+              Math.max(1200, Math.ceil(elapsedMs * 1.1))
+            );
+          } else {
+            autoPreviewDebounceMsRef.current = AUTO_PREVIEW_DEBOUNCE_BASE_MS;
+          }
+        }
+      }
+
+      if (previewInFlightSeq.current === seq) setPreviewing(false);
     }
   }
 
   useEffect(() => {
     if (!autoPreview) return;
+    if (layout === "write") return;
+    if (!pageVisible) return;
+
+    const now = Date.now();
+    if (autoPreviewBackoffUntil > now) {
+      const s = Math.max(1, Math.ceil((autoPreviewBackoffUntil - now) / 1000));
+      setPreviewNotice(`自动预览已降频（${s}s 后恢复），可手动刷新。`);
+      return;
+    }
+
     const seq = ++previewSeq.current;
-    const t = window.setTimeout(() => void renderPreview(seq), 350);
+    const delay = autoPreviewDebounceMsRef.current;
+    const t = window.setTimeout(() => void renderPreview(seq, { reason: "auto" }), delay);
     return () => window.clearTimeout(t);
-  }, [content, autoPreview]);
+  }, [content, autoPreview, layout, pageVisible, autoPreviewBackoffUntil, backoffKick]);
 
   useEffect(() => {
     const root = previewRef.current;
@@ -924,7 +1056,7 @@ export function EditorPage(props: {
               className="btn btn-secondary"
               onClick={() => {
                 const seq = ++previewSeq.current;
-                void renderPreview(seq);
+                void renderPreview(seq, { reason: "manual", force: true, ignoreBackoff: true });
                 editorRef.current?.scrollToSelection();
               }}
               disabled={previewing}
@@ -933,7 +1065,7 @@ export function EditorPage(props: {
             </button>
             {layoutButtons}
           </div>
-          <span className="muted">{previewError ? previewError : previewing ? "渲染中..." : ""}</span>
+          <span className="muted">{previewError ? previewError : previewNotice ? previewNotice : previewing ? "渲染中..." : ""}</span>
         </div>
 
         {previewHtml ? (
