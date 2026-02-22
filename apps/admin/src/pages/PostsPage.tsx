@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import type { AdminPostListItem, ApiError, SiteConfig } from "../api";
-import { deleteAdminPost, listAdminPosts } from "../api";
+import { deleteAdminPost, importAdminPostsZip, listAdminPosts } from "../api";
 import { formatMs } from "../format";
 import { SelectBox } from "../components/SelectBox";
 
@@ -9,6 +9,8 @@ export function PostsPage(props: { cfg: SiteConfig | null; onError: (m: string) 
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<string>("");
+  const [importing, setImporting] = useState(false);
+  const fileRef = useRef<HTMLInputElement | null>(null);
 
   async function reload() {
     setLoading(true);
@@ -59,10 +61,53 @@ export function PostsPage(props: { cfg: SiteConfig | null; onError: (m: string) 
           <button className="chip chip-primary" onClick={() => (window.location.hash = "#/posts/new")}>
             新建（Ctrl/Cmd+N）
           </button>
+          <button
+            className="chip"
+            onClick={() => fileRef.current?.click()}
+            disabled={loading || importing}
+            title="Upload ZIP to import posts"
+          >
+            {importing ? "Importing..." : "Bulk Import"}
+          </button>
           <button className="chip" onClick={() => void reload()} disabled={loading}>
             {loading ? "加载中..." : "刷新"}
           </button>
         </div>
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".zip,application/zip,application/x-zip-compressed"
+          style={{ display: "none" }}
+          onChange={async (e) => {
+            const file = e.target.files?.[0];
+            e.currentTarget.value = "";
+            if (!file) return;
+            if (
+              !confirm(
+                `Import ZIP?\n\nFile: ${file.name}\nSize: ${Math.round(file.size / 1024)} KB\n\nRules: publish all; skip on slug conflict; if slug missing, skip on title+date.`
+              )
+            ) {
+              return;
+            }
+            props.onError("");
+            setImporting(true);
+            try {
+              const r = await importAdminPostsZip(file);
+              const sampleErrors = r.items.filter((x: any) => x && x.ok === false).slice(0, 6) as any[];
+              const errText =
+                sampleErrors.length > 0
+                  ? `\n\nSample failures:\n${sampleErrors.map((x) => `- ${x.path}: ${x.error}`).join("\n")}`
+                  : "";
+              alert(`Import done:\n- Imported: ${r.imported}\n- Skipped: ${r.skipped}\n- Failed: ${r.failed}${errText}`);
+              await reload();
+            } catch (ex) {
+              const err = ex as ApiError;
+              props.onError(err.message || "Import failed");
+            } finally {
+              setImporting(false);
+            }
+          }}
+        />
       </div>
 
       <div className="card posts-table">

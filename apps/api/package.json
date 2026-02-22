@@ -5,6 +5,8 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "dependencies": {
+    "fast-xml-parser": "^5.3.7",
+    "fflate": "^0.8.2",
     "hast-util-to-text": "^4.0.2",
     "hono": "^4.6.12",
     "refractor": "^4.9.0",
@@ -13,12 +15,14 @@
     "remark-gfm": "^4.0.1",
     "remark-parse": "^11.0.0",
     "remark-rehype": "^11.1.1",
+    "smol-toml": "^1.6.0",
+    "unified": "^11.0.5",
     "unist-util-visit": "^5.0.0",
-    "unified": "^11.0.5"
+    "yaml": "^2.8.2"
   },
   "devDependencies": {
-    "@hono/node-server": "^1.13.0",
     "@cloudflare/workers-types": "^4.20260214.0",
+    "@hono/node-server": "^1.13.0",
     "better-sqlite3": "^11.8.1",
     "mysql2": "^3.12.0",
     "pg": "^8.13.1",

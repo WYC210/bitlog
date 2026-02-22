@@ -308,6 +308,32 @@ export async function uploadAdminImage(file: File): Promise<{
   return data.asset as any;
 }
 
+export async function importAdminPostsZip(file: File): Promise<{
+  imported: number;
+  skipped: number;
+  failed: number;
+  items: Array<
+    | { ok: true; source: string; title: string; slug: string; action: "imported" | "skipped" }
+    | { ok: false; source: string; path: string; error: string }
+  >;
+}> {
+  const contentType = file.type || "application/zip";
+  const res = await fetch("/api/admin/import/posts", {
+    method: "POST",
+    credentials: "include",
+    headers: { "content-type": contentType },
+    body: file
+  });
+  const data = (await res.json().catch(() => null)) as any;
+  if (!res.ok) {
+    const err: ApiError = data?.error?.message
+      ? { message: String(data.error.message), status: Number(data.error.status ?? res.status) }
+      : { message: `HTTP ${res.status}`, status: res.status };
+    throw err;
+  }
+  return data.result as any;
+}
+
 export async function renderAdminMarkdown(
   content_md: string,
   opts?: { signal?: AbortSignal | null }

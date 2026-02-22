@@ -24,6 +24,7 @@ import { embedFromShortcode } from "./lib/embeds.js";
 import { getCachedResponse, putCachedResponse } from "./services/cache.js";
 import { uploadImageToR2, getR2ObjectByKey } from "./services/assets.js";
 import { getAdminPrefs, setAdminPrefs } from "./services/admin-prefs.js";
+import { importPostsFromZip } from "./services/import-posts.js";
 import {
   getProjectsConfig,
   getProjectsConfigAdminView,
@@ -2769,6 +2770,31 @@ export function createApiApp(bindings: ApiBindings) {
       }
     );
     return c.json({ ok: true, asset });
+  });
+
+  app.post("/api/admin/import/posts", async (c) => {
+    if (!isSameOriginRequest(c.req.raw, { requireOrigin: true, requireSameSite: true })) {
+      return c.json(jsonError("Forbidden", 403), 403);
+    }
+    const session = await requireAdmin(bindings, c.req.raw);
+    if (!session) return c.json(jsonError("Unauthorized", 401), 401);
+
+    const contentType = (c.req.header("content-type") ?? "").toLowerCase();
+    if (!contentType.includes("zip")) return c.json(jsonError("Invalid type", 400), 400);
+
+    const buf = await c.req.arrayBuffer();
+    if (buf.byteLength > 30 * 1024 * 1024) return c.json(jsonError("Too large", 400), 400);
+
+    let result: any;
+    try {
+      result = await importPostsFromZip(bindings.db, new Uint8Array(buf));
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Invalid ZIP";
+      return c.json(jsonError(msg || "Invalid ZIP", 400), 400);
+    }
+    await cleanupOrphanCategoriesAndTags(bindings.db);
+    await bumpCacheVersion(bindings.db);
+    return c.json({ ok: true, result });
   });
 
   return app;
