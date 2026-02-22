@@ -32,6 +32,41 @@ export function App() {
   const [theme, setThemeState] = useState<"light" | "dark">(() => getTheme());
   const [cmdOpen, setCmdOpen] = useState(false);
 
+  const isMobileSidebar = () => window.matchMedia?.("(max-width: 860px)")?.matches ?? false;
+
+  const setSidebarState = (next: "collapsed" | "expanded") => {
+    const root = document.documentElement;
+    root.setAttribute("data-sidebar", next);
+    try {
+      localStorage.setItem("ui-admin-sidebar", next);
+    } catch {
+      // ignore
+    }
+  };
+
+  const toggleSidebar = () => {
+    const root = document.documentElement;
+    const current = root.getAttribute("data-sidebar") === "collapsed" ? "collapsed" : "expanded";
+    const next = current === "collapsed" ? "expanded" : "collapsed";
+    setSidebarState(next);
+  };
+
+  const closeSidebarOnMobile = () => {
+    if (!isMobileSidebar()) return;
+    setSidebarState("collapsed");
+  };
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      const root = document.documentElement;
+      if (root.getAttribute("data-sidebar") !== "expanded") return;
+      closeSidebarOnMobile();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
   useEffect(() => {
     void (async () => {
       try {
@@ -90,6 +125,10 @@ export function App() {
     } catch {
       // ignore
     }
+  }, [route.page, (route as any).id]);
+
+  useEffect(() => {
+    closeSidebarOnMobile();
   }, [route.page, (route as any).id]);
 
   const shortcutSpecs = useMemo(() => {
@@ -317,15 +356,7 @@ export function App() {
             aria-label="折叠/展开侧边栏"
             title="折叠/展开"
             onClick={() => {
-              const root = document.documentElement;
-              const current = root.getAttribute("data-sidebar") === "collapsed" ? "collapsed" : "expanded";
-              const next = current === "collapsed" ? "expanded" : "collapsed";
-              root.setAttribute("data-sidebar", next);
-              try {
-                localStorage.setItem("ui-admin-sidebar", next);
-              } catch {
-                // ignore
-              }
+              toggleSidebar();
             }}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -336,7 +367,7 @@ export function App() {
         </div>
 
         <nav className="nav" aria-label="主菜单">
-          <a href="#/posts" aria-current={currentPageKey === "posts" ? "page" : "false"}>
+          <a href="#/posts" aria-current={currentPageKey === "posts" ? "page" : "false"} onClick={closeSidebarOnMobile}>
             <span className="ico" aria-hidden="true">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M4 4h16v6H4z" />
@@ -350,7 +381,7 @@ export function App() {
             <span className="meta">P</span>
           </a>
 
-          <a href="#/posts/new" aria-current={currentPageKey === "new" ? "page" : "false"}>
+          <a href="#/posts/new" aria-current={currentPageKey === "new" ? "page" : "false"} onClick={closeSidebarOnMobile}>
             <span className="ico" aria-hidden="true">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M12 5v14" />
@@ -364,7 +395,7 @@ export function App() {
             <span className="meta">⌘N</span>
           </a>
 
-          <a href="#/settings" aria-current={currentPageKey === "settings" ? "page" : "false"}>
+          <a href="#/settings" aria-current={currentPageKey === "settings" ? "page" : "false"} onClick={closeSidebarOnMobile}>
             <span className="ico" aria-hidden="true">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" />
@@ -378,7 +409,7 @@ export function App() {
             <span className="meta">S</span>
           </a>
 
-          <a href="#/account" aria-current={currentPageKey === "account" ? "page" : "false"}>
+          <a href="#/account" aria-current={currentPageKey === "account" ? "page" : "false"} onClick={closeSidebarOnMobile}>
             <span className="ico" aria-hidden="true">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M20 21a8 8 0 1 0-16 0" />
@@ -421,7 +452,7 @@ export function App() {
               </svg>
             </button>
         </div>
-          <a className="btn btn-site" href="/articles" title="前往站点" aria-label="前往站点">
+          <a className="btn btn-site" href="/articles" title="前往站点" aria-label="前往站点" onClick={closeSidebarOnMobile}>
             <span className="btn-icon" aria-hidden="true">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M3 12h18" />
@@ -433,9 +464,18 @@ export function App() {
         </div>
       </aside>
 
+      <div className="sidebar-backdrop" aria-hidden="true" onClick={closeSidebarOnMobile} />
+
       <main className="main" id="main">
         <header className="topbar" aria-label="页面头部">
           <div className="title">
+            <button className="iconbtn sidebar-toggle" type="button" aria-label="菜单" title="菜单" onClick={toggleSidebar}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                <path d="M4 6h16" />
+                <path d="M4 12h16" />
+                <path d="M4 18h16" />
+              </svg>
+            </button>
             <h1>{pageInfo.title}</h1>
             <div className="crumb">{pageInfo.crumb}</div>
           </div>

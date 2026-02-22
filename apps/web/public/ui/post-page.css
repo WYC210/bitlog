@@ -287,6 +287,41 @@
   border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
 }
 
+.post-toc > summary.toc-title {
+  cursor: pointer;
+  list-style: none;
+  margin: 0;
+}
+
+.post-toc > summary.toc-title::-webkit-details-marker {
+  display: none;
+}
+
+.post-toc > summary.toc-title::marker {
+  content: "";
+}
+
+.post-toc > summary.toc-title::after {
+  content: "";
+  margin-left: auto;
+  width: 10px;
+  height: 10px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+  opacity: 0.65;
+  transition: transform 180ms ease, opacity 180ms ease;
+}
+
+details.post-toc[open] > summary.toc-title::after {
+  transform: rotate(45deg);
+  opacity: 0.9;
+}
+
+details.post-toc[open] > summary.toc-title {
+  margin: 0 0 14px;
+}
+
 .toc-title svg {
   width: 18px;
   height: 18px;

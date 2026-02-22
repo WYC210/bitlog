@@ -1,5 +1,24 @@
 // Bitlog UI sync preview - post TOC active highlight.
 (function () {
+  const tocPanel = document.querySelector(".post-toc");
+  if (tocPanel && tocPanel.tagName === "DETAILS") {
+    const mq = window.matchMedia ? window.matchMedia("(max-width: 980px)") : null;
+    const apply = () => {
+      try {
+        if (mq && mq.matches) tocPanel.removeAttribute("open");
+        else tocPanel.setAttribute("open", "");
+      } catch {
+        // ignore
+      }
+    };
+    apply();
+    try {
+      mq && mq.addEventListener && mq.addEventListener("change", apply);
+    } catch {
+      // ignore
+    }
+  }
+
   const tocRoot = document.querySelector(".post-toc .toc");
   if (!tocRoot) return;
 

@@ -159,6 +159,52 @@ html[data-sidebar="collapsed"] .sidebar .iconbtn {
   gap: 14px;
 }
 
+@media (max-width: 860px) {
+  .app {
+    grid-template-columns: 1fr;
+  }
+
+  html[data-sidebar="collapsed"] .app {
+    grid-template-columns: 1fr;
+  }
+
+  .main {
+    padding: 12px;
+  }
+
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: min(86vw, 320px);
+    transform: translateX(-110%);
+    transition: transform 180ms ease;
+    z-index: 260;
+  }
+
+  html[data-sidebar="expanded"] .sidebar {
+    transform: translateX(0);
+  }
+
+  html[data-sidebar="collapsed"] .sidebar {
+    transform: translateX(-110%);
+  }
+
+  .sidebar-toggle {
+    display: inline-flex;
+  }
+
+  html[data-sidebar="expanded"] body {
+    overflow: hidden;
+  }
+
+  html[data-sidebar="expanded"] .sidebar-backdrop {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
 .topbar {
   height: var(--topbar-h);
   border: var(--border-w) solid var(--border);
@@ -174,9 +220,23 @@ html[data-sidebar="collapsed"] .sidebar .iconbtn {
 
 .title {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 10px;
   min-width: 0;
+}
+
+.sidebar-toggle {
+  display: none;
+}
+
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.55);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 160ms ease;
+  z-index: 240;
 }
 
 .title h1 {
