@@ -689,6 +689,28 @@ body[data-page="about"] #about-news-image {
   cursor: pointer;
 }
 
+[data-page="about"] .glass-list-item.is-active {
+  background: rgba(16, 185, 129, 0.14);
+  border-color: rgba(16, 185, 129, 0.35);
+  transform: translateX(4px);
+}
+
+@keyframes bitlogFlashRing {
+  0% {
+    box-shadow: 0 0 0 0 rgba(75, 107, 255, 0.0), 0 10px 40px rgba(0, 0, 0, 0.35);
+  }
+  20% {
+    box-shadow: 0 0 0 6px rgba(75, 107, 255, 0.22), 0 18px 60px rgba(0, 0, 0, 0.45);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(75, 107, 255, 0.0), 0 10px 40px rgba(0, 0, 0, 0.35);
+  }
+}
+
+[data-page="about"] .bitlog-flash {
+  animation: bitlogFlashRing 1200ms ease-out;
+}
+
 /* Adapt glass cards to light/dark theme */
 [data-theme="light"] .glass-card {
   background: rgba(255, 255, 255, 0.8);

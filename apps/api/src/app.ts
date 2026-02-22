@@ -52,6 +52,9 @@ type ToolGroup = "games" | "apis" | "utils" | "other";
 const ABOUT_KEY_TECH_STACK = "about.tech_stack_json";
 const ABOUT_KEY_VISITED_PLACES = "about.visited_places_json";
 const ABOUT_KEY_TIMELINE = "about.timeline_json";
+const ABOUT_KEY_SIDEBAR_DAILY_NEWS = "about.sidebar_daily_news_enabled";
+const ABOUT_KEY_SIDEBAR_HISTORY_TODAY = "about.sidebar_history_today_enabled";
+const ABOUT_KEY_SIDEBAR_TRAVEL = "about.sidebar_travel_enabled";
 const POSTS_KEY_AUTO_SUMMARY = "posts.auto_summary";
 
 function parseLooseBool(v: string | null | undefined): boolean {
@@ -651,7 +654,10 @@ export function createApiApp(bindings: ApiBindings) {
     const map = await getSettingsValues(bindings.db, [
       ABOUT_KEY_TECH_STACK,
       ABOUT_KEY_VISITED_PLACES,
-      ABOUT_KEY_TIMELINE
+      ABOUT_KEY_TIMELINE,
+      ABOUT_KEY_SIDEBAR_DAILY_NEWS,
+      ABOUT_KEY_SIDEBAR_HISTORY_TODAY,
+      ABOUT_KEY_SIDEBAR_TRAVEL
     ]);
 
     const response = c.json({
@@ -659,7 +665,13 @@ export function createApiApp(bindings: ApiBindings) {
       config: {
         techStackJson: map.get(ABOUT_KEY_TECH_STACK) ?? null,
         visitedPlacesJson: map.get(ABOUT_KEY_VISITED_PLACES) ?? null,
-        timelineJson: map.get(ABOUT_KEY_TIMELINE) ?? null
+        timelineJson: map.get(ABOUT_KEY_TIMELINE) ?? null,
+        sidebarDailyNewsEnabled:
+          map.has(ABOUT_KEY_SIDEBAR_DAILY_NEWS) ? parseLooseBool(map.get(ABOUT_KEY_SIDEBAR_DAILY_NEWS)) : true,
+        sidebarHistoryTodayEnabled:
+          map.has(ABOUT_KEY_SIDEBAR_HISTORY_TODAY) ? parseLooseBool(map.get(ABOUT_KEY_SIDEBAR_HISTORY_TODAY)) : true,
+        sidebarTravelEnabled:
+          map.has(ABOUT_KEY_SIDEBAR_TRAVEL) ? parseLooseBool(map.get(ABOUT_KEY_SIDEBAR_TRAVEL)) : true
       }
     });
     await putCachedResponse(c.req.raw, response, bindings.db, "about-config");

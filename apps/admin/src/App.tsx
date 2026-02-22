@@ -162,12 +162,12 @@ export function App() {
         toggleTheme(e);
         return;
       }
-      if (matchChord(e, shortcutSpecs.newPost)) {
+      if (matchChord(e, shortcutSpecs.newPost) || seq.match(parseSeq(shortcutSpecs.newPost))) {
         e.preventDefault();
         window.location.hash = "#/posts/new";
         return;
       }
-      if (matchChord(e, shortcutSpecs.goSite)) {
+      if (matchChord(e, shortcutSpecs.goSite) || seq.match(parseSeq(shortcutSpecs.goSite))) {
         e.preventDefault();
         window.location.href = "/articles";
         return;

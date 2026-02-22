@@ -125,6 +125,31 @@ export async function initWorldHeatmap(container, visitedPlaces) {
   controls.minPolarAngle = Math.PI * 0.1;
   controls.maxPolarAngle = Math.PI * 0.9;
 
+  let autoRotateEnabled = true;
+  let hoverPaused = false;
+  const updateAutoRotate = () => {
+    controls.autoRotate = !!autoRotateEnabled && !hoverPaused;
+  };
+  updateAutoRotate();
+
+  const pauseAutoRotate = () => {
+    hoverPaused = true;
+    updateAutoRotate();
+  };
+  const resumeAutoRotate = () => {
+    hoverPaused = false;
+    updateAutoRotate();
+  };
+
+  const onAutoEnter = () => pauseAutoRotate();
+  const onAutoLeave = () => resumeAutoRotate();
+  const onAutoPointerUp = () => resumeAutoRotate();
+
+  renderer.domElement.addEventListener("mouseenter", onAutoEnter, { passive: true });
+  renderer.domElement.addEventListener("mouseleave", onAutoLeave, { passive: true });
+  renderer.domElement.addEventListener("pointerdown", onAutoEnter, { passive: true });
+  window.addEventListener("pointerup", onAutoPointerUp, { passive: true });
+
   const hoverEl = document.createElement("div");
   hoverEl.style.position = "absolute";
   hoverEl.style.right = "10px";
@@ -201,6 +226,8 @@ export async function initWorldHeatmap(container, visitedPlaces) {
     lineMetaByName.set(name, { isVisited });
   }
 
+  const allRegionNames = Array.from(linesByName.keys());
+
   const raycaster = new Raycaster();
   const mouse = new Vector2();
   let hoveredName = null;
@@ -240,6 +267,56 @@ export async function initWorldHeatmap(container, visitedPlaces) {
     hoverEl.style.display = "";
     hoverEl.textContent = next;
   };
+
+  function resolveFocusName(place) {
+    const raw = String(place ?? "").trim();
+    if (!raw) return null;
+
+    const candidates = [];
+    const rawNoTail = raw.split("·")[0] ?? raw;
+    candidates.push(raw);
+    candidates.push(rawNoTail);
+
+    if (raw.includes("-")) {
+      const parts = raw.split("-").map((x) => x.trim()).filter(Boolean);
+      const left = parts[0] ?? "";
+      const right = parts[1] ?? "";
+      const rightNoTail = right.split("·")[0] ?? right;
+      if (right) candidates.push(right);
+      if (rightNoTail) candidates.push(rightNoTail);
+      if (left) candidates.push(left);
+      if (right && left) candidates.push(`${left}-${rightNoTail}`);
+    }
+
+    for (const c of candidates) {
+      if (!c) continue;
+      if (linesByName.has(c)) return c;
+    }
+
+    for (const c of candidates) {
+      if (!c) continue;
+      for (const n of allRegionNames) {
+        if (n === c) return n;
+        if (n.endsWith(`-${c}`)) return n;
+        if (n.includes(c)) return n;
+      }
+    }
+
+    return null;
+  }
+
+  function focusPlace(place) {
+    const raw = String(place ?? "").trim();
+    if (!raw) {
+      setHover(null);
+      return true;
+    }
+
+    const name = resolveFocusName(raw);
+    if (!name) return false;
+    setHover(name);
+    return true;
+  }
 
   const onMouseMove = (e) => {
     const rect = renderer.domElement.getBoundingClientRect();
@@ -317,12 +394,21 @@ export async function initWorldHeatmap(container, visitedPlaces) {
   setStatus("");
 
   return {
+    focusPlace,
+    setAutoRotateEnabled(enabled) {
+      autoRotateEnabled = !!enabled;
+      updateAutoRotate();
+    },
     destroy() {
       if (raf) cancelAnimationFrame(raf);
       ro?.disconnect();
       themeObserver.disconnect();
       renderer.domElement.removeEventListener("mousemove", onMouseMove);
       renderer.domElement.removeEventListener("mouseleave", onMouseLeave);
+      renderer.domElement.removeEventListener("mouseenter", onAutoEnter);
+      renderer.domElement.removeEventListener("mouseleave", onAutoLeave);
+      renderer.domElement.removeEventListener("pointerdown", onAutoEnter);
+      window.removeEventListener("pointerup", onAutoPointerUp);
       controls.dispose();
       disposeObject3D(scene);
       renderer.dispose();

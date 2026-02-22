@@ -140,6 +140,15 @@ function pickSkillIcon(kind) {
 </svg>`;
 }
 
+function skillLevelToLabel(level) {
+  const l = String(level ?? "").trim().toLowerCase();
+  if (l === "beginner") return "Beginner";
+  if (l === "intermediate") return "Intermediate";
+  if (l === "advanced") return "Advanced";
+  if (l === "expert") return "Expert";
+  return "";
+}
+
 function renderSkills(jsonText) {
   const parsed = safeParseJson(jsonText);
   if (!parsed) {
@@ -200,6 +209,17 @@ function renderSkills(jsonText) {
       const tags = tagsRaw.filter((x) => typeof x === "string").map((x) => String(x));
       const iconKind = it.icon ? String(it.icon) : title;
 
+      const levelLabel = skillLevelToLabel(it.level ?? it.LEVEL);
+      const url = it.url ? String(it.url) : it.URL ? String(it.URL) : "";
+      const metaBits = [];
+      if (levelLabel) metaBits.push(`<span class="about-skill-tag">${escapeHtml(levelLabel)}</span>`);
+      if (url) {
+        metaBits.push(
+          `<a class="about-skill-tag" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">Link</a>`
+        );
+      }
+      const metaHtml = metaBits.length ? `<div class="about-skill-tags">${metaBits.join("")}</div>` : "";
+
       return `
 <div class="about-skill-card">
   <div class="about-skill-header">
@@ -207,6 +227,7 @@ function renderSkills(jsonText) {
     <h3 class="about-skill-title">${escapeHtml(title)}</h3>
   </div>
   ${desc ? `<p class="about-skill-description">${escapeHtml(desc)}</p>` : ""}
+  ${metaHtml}
   ${tags.length ? `<div class="about-skill-tags">${tags
     .map((s) => `<span class="about-skill-tag">${escapeHtml(s)}</span>`)
     .join("")}</div>` : ""}
@@ -229,15 +250,26 @@ function renderExperience(jsonText) {
   const items = parsed
     .filter((x) => x && typeof x === "object")
     .map((it) => {
+      const from = it.from ?? it.FROM ?? "";
+      const to = it.to ?? it.TO ?? "";
+      const present = it.present === true || it.PRESENT === true;
+      const computedDate =
+        from && present
+          ? `${String(from)} ~ Present`
+          : from && to
+            ? `${String(from)} ~ ${String(to)}`
+            : from
+              ? String(from)
+              : "";
+
       const date =
-        it.date ??
-        it.DATE ??
-        it.from ??
-        it.FROM ??
-        it.period ??
-        it.PERIOD ??
-        (typeof it.year === "number" ? String(it.year) : it.year ?? "") ??
-        (typeof it.YEAR === "number" ? String(it.YEAR) : it.YEAR ?? "") ??
+        computedDate ||
+        it.date ||
+        it.DATE ||
+        it.period ||
+        it.PERIOD ||
+        (typeof it.year === "number" ? String(it.year) : it.year ?? "") ||
+        (typeof it.YEAR === "number" ? String(it.YEAR) : it.YEAR ?? "") ||
         "";
       const title = it.title ? String(it.title) : "";
       const company = it.company
@@ -281,6 +313,64 @@ async function fetchJson(path) {
 
 let heatmapInstance = null;
 let lastVisitedPlaces = [];
+let aboutSidebarFlags = { dailyNews: true, historyToday: true, travel: true };
+
+function flashElement(el) {
+  if (!el) return;
+  el.classList.remove("bitlog-flash");
+  // Force reflow to restart animation.
+  // eslint-disable-next-line no-unused-expressions
+  el.offsetHeight;
+  el.classList.add("bitlog-flash");
+  window.setTimeout(() => el.classList.remove("bitlog-flash"), 1200);
+}
+
+function scrollToHeatmap(opts) {
+  const place = opts?.place ? String(opts.place) : "";
+  const heatmap = $("about-heatmap");
+  if (!heatmap) return;
+  const card = heatmap.closest(".card") || heatmap;
+
+  try {
+    card.scrollIntoView({ behavior: "smooth", block: "start" });
+  } catch {
+    // ignore
+  }
+  flashElement(card);
+
+  if (place && heatmapInstance && typeof heatmapInstance.focusPlace === "function") {
+    try {
+      heatmapInstance.focusPlace(place);
+    } catch {
+      // ignore
+    }
+  }
+}
+
+function setGlassCardTitle(card, title) {
+  const el = card ? card.querySelector(".glass-card-title") : null;
+  if (!el) return;
+  const next = String(title ?? "").trim();
+  if (!next) return;
+  // 模板里的标题通常会包含多个 TextNode（换行/缩进 + 实际文本）。
+  // 直接替换第一个 TextNode 会导致“历史上的今日 今日快讯”同时出现。
+  // 这里统一移除所有 TextNode，再追加一个干净的文本节点。
+  for (const node of Array.from(el.childNodes)) {
+    if (node.nodeType === Node.TEXT_NODE) el.removeChild(node);
+  }
+  el.appendChild(document.createTextNode(next));
+}
+
+function formatVisitedPlaceLabel(place) {
+  const s = String(place ?? "").trim();
+  if (!s) return "";
+  const i = s.indexOf("-");
+  if (i === -1) return s.replaceAll("·", " · ");
+  const left = s.slice(0, i).trim();
+  const right = s.slice(i + 1).trim().replaceAll("·", " · ");
+  if (!left || !right) return s.replaceAll("·", " · ");
+  return `${right} · ${left}`;
+}
 
 function findSidebarCardByTitle(keyword) {
   const kw = String(keyword ?? "").trim();
@@ -319,6 +409,18 @@ async function loadConfigAndRender() {
   const techStackJson = typeof config.techStackJson === "string" ? config.techStackJson : "";
   const visitedPlacesJson = typeof config.visitedPlacesJson === "string" ? config.visitedPlacesJson : "";
   const timelineJson = typeof config.timelineJson === "string" ? config.timelineJson : "";
+  aboutSidebarFlags = {
+    dailyNews: config.sidebarDailyNewsEnabled !== false,
+    historyToday: config.sidebarHistoryTodayEnabled !== false,
+    travel: config.sidebarTravelEnabled !== false
+  };
+
+  const dailyCard = document.getElementById("about-news-card");
+  if (dailyCard) dailyCard.style.display = aboutSidebarFlags.dailyNews ? "" : "none";
+  const historyCard = document.getElementById("about-history-card");
+  if (historyCard) historyCard.style.display = aboutSidebarFlags.historyToday ? "" : "none";
+  const travelCard = document.getElementById("about-travel-card");
+  if (travelCard) travelCard.style.display = aboutSidebarFlags.travel ? "" : "none";
 
   if (skillsRoot) skillsRoot.innerHTML = renderSkills(techStackJson);
   if (expRoot) expRoot.innerHTML = renderExperience(timelineJson);
@@ -332,6 +434,7 @@ async function loadConfigAndRender() {
 async function updateSidebarWeather() {
   const card = findSidebarCardByTitle("实时天气");
   if (!card) return;
+  setGlassCardTitle(card, "历史上的今日");
 
   const tempEl = card.querySelector(".weather-card-temp");
   const descEl = card.querySelector(".weather-card-desc");
@@ -369,8 +472,9 @@ async function updateSidebarWeather() {
 }
 
 async function updateSidebarBrief() {
-  const card = findSidebarCardByTitle("今日快讯");
+  const card = document.getElementById("about-history-card") || findSidebarCardByTitle("今日快讯");
   if (!card) return;
+  setGlassCardTitle(card, "历史上的今日");
   const list = card.querySelector(".glass-list");
   const badge = card.querySelector(".glass-card-badge");
   if (!list) return;
@@ -378,8 +482,8 @@ async function updateSidebarBrief() {
   try {
     const data = await fetchJson("/api/programmer-history");
     const events = Array.isArray(data?.events) ? data.events : [];
-    const top = events.slice(0, 3);
-    if (badge) badge.textContent = String(top.length);
+    const top = events.slice(0, 6);
+    if (badge) badge.textContent = String(events.length);
 
     list.innerHTML = top
       .map((ev) => {
@@ -396,7 +500,7 @@ async function updateSidebarBrief() {
   </div>
   <div class="glass-list-item-content">
     <div class="glass-list-item-title">${escapeHtml(title)}</div>
-    <div class="glass-list-item-subtitle"><span>${escapeHtml(subtitle || "历史今日")}</span></div>
+    <div class="glass-list-item-subtitle"><span>${escapeHtml(subtitle || "历史上的今日")}</span></div>
   </div>
 </div>
 `.trim();
@@ -408,24 +512,54 @@ async function updateSidebarBrief() {
 }
 
 async function updateSidebarTravel() {
-  const card = findSidebarCardByTitle("旅行足迹");
+  const card = document.getElementById("about-travel-card") || findSidebarCardByTitle("旅行足迹");
   if (!card) return;
   const list = card.querySelector(".glass-list");
   const badge = card.querySelector(".glass-card-badge");
   if (!list) return;
 
+  const header = card.querySelector(".glass-card-header");
+  if (header && !header.getAttribute("data-travel-wired")) {
+    header.setAttribute("data-travel-wired", "1");
+    header.addEventListener("click", (e) => {
+      const t = e.target;
+      if (t && (t.closest?.(".glass-list-item") || t.closest?.("a"))) return;
+      scrollToHeatmap({});
+    });
+  }
+
+  if (!list.getAttribute("data-travel-wired")) {
+    list.setAttribute("data-travel-wired", "1");
+    list.addEventListener("click", (e) => {
+      const a = e.target?.closest?.(".glass-list-item");
+      if (!a) return;
+      e.preventDefault?.();
+
+      for (const it of Array.from(list.querySelectorAll(".glass-list-item.is-active"))) it.classList.remove("is-active");
+      a.classList.add("is-active");
+
+      const place = a.getAttribute("data-place") || "";
+      scrollToHeatmap({ place });
+    });
+  }
+
   try {
     const cfg = await fetchJson("/api/about-config");
     const placesJson = typeof cfg?.config?.visitedPlacesJson === "string" ? cfg.config.visitedPlacesJson : "";
     const parsed = safeParseJson(placesJson);
-    const places = Array.isArray(parsed) ? parsed.filter((x) => typeof x === "string") : [];
+    let places = Array.isArray(parsed) ? parsed.filter((x) => typeof x === "string").map((x) => String(x)) : [];
+    if (!places.length && Array.isArray(lastVisitedPlaces) && lastVisitedPlaces.length) places = lastVisitedPlaces.slice();
     if (badge) badge.textContent = String(places.length);
 
-    list.innerHTML = places
+    const maxShow = 8;
+    const shown = places.slice(0, maxShow);
+
+    const bodyHtml = shown
       .map((p) => {
-        const title = String(p);
+        const label = formatVisitedPlaceLabel(p);
+        const place = String(p);
         return `
-<div class="glass-list-item">
+<a href="#about-heatmap" class="glass-list-item" data-place="${escapeHtml(place)}">
   <div class="glass-list-item-icon">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <circle cx="12" cy="12" r="10"></circle>
@@ -434,12 +568,47 @@ async function updateSidebarTravel() {
     </svg>
   </div>
   <div class="glass-list-item-content">
-    <div class="glass-list-item-title">${escapeHtml(title)}</div>
+    <div class="glass-list-item-title">${escapeHtml(label)}</div>
   </div>
-</div>
+</a>
 `.trim();
       })
       .join("");
+
+    const more = places.length - shown.length;
+    const moreHtml =
+      more > 0
+        ? `
+<a href="#about-heatmap" class="glass-list-item" data-place="">
+  <div class="glass-list-item-icon">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="10"></circle>
+      <path d="M8 12h8"></path>
+      <path d="M12 8v8"></path>
+    </svg>
+  </div>
+  <div class="glass-list-item-content">
+    <div class="glass-list-item-title">${escapeHtml(`还有 ${more} 条…`)}</div>
+  </div>
+</a>
+`.trim()
+        : "";
+
+    const emptyHtml = `
+<a href="#about-heatmap" class="glass-list-item" data-place="">
+  <div class="glass-list-item-icon">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="10"></circle>
+      <line x1="8" y1="12" x2="16" y2="12"></line>
+    </svg>
+  </div>
+  <div class="glass-list-item-content">
+    <div class="glass-list-item-title">（未配置）</div>
+  </div>
+</a>
+`.trim();
+
+    list.innerHTML = places.length ? [bodyHtml, moreHtml].filter(Boolean).join("") : emptyHtml;
   } catch {
     // ignore
   }
@@ -600,11 +769,11 @@ async function main() {
   const btnHeatmap = $("aboutHeatmapReload");
   if (btnHeatmap) btnHeatmap.addEventListener("click", () => void mountHeatmap());
 
-  refreshNewsImage();
   await loadConfigAndRender().catch(() => null);
+  if (aboutSidebarFlags.dailyNews) refreshNewsImage();
   await mountHeatmap();
-  void updateSidebarBrief();
-  void updateSidebarTravel();
+  if (aboutSidebarFlags.historyToday) void updateSidebarBrief();
+  if (aboutSidebarFlags.travel) void updateSidebarTravel();
 }
 let previewEl = null;
 function ensureImagePreview() {

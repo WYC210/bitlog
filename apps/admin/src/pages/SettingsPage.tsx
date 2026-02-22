@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
 import type { AdminToolItem, ApiError, ProjectsConfigAdminView, SiteConfig, ToolGroup, ToolKind, UiStyle } from "../api";
 import { CodeEditor } from "../components/CodeEditor";
-import { ShortcutsEditor } from "../components/ShortcutsEditor";
+import { AboutExperienceEditor } from "../components/about/AboutExperienceEditor";
+import { AboutSkillsEditor } from "../components/about/AboutSkillsEditor";
+import { AboutVisitedPlacesEditor } from "../components/about/AboutVisitedPlacesEditor";
 import { SelectBox } from "../components/SelectBox";
 import {
-  apiJson,
   createAdminTool,
   deleteAdminTool,
   getConfig,
@@ -25,21 +26,21 @@ export function SettingsPage(props: {
   const ABOUT_KEY_TECH_STACK = "about.tech_stack_json";
   const ABOUT_KEY_VISITED_PLACES = "about.visited_places_json";
   const ABOUT_KEY_TIMELINE = "about.timeline_json";
+  const ABOUT_KEY_SIDEBAR_DAILY_NEWS = "about.sidebar_daily_news_enabled";
+  const ABOUT_KEY_SIDEBAR_HISTORY_TODAY = "about.sidebar_history_today_enabled";
+  const ABOUT_KEY_SIDEBAR_TRAVEL = "about.sidebar_travel_enabled";
   const POSTS_KEY_AUTO_SUMMARY = "posts.auto_summary";
 
   const [baseUrl, setBaseUrl] = useState(props.cfg?.baseUrl ?? "");
   const [timezone, setTimezone] = useState(props.cfg?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone);
   const [cacheTtl, setCacheTtl] = useState(String(props.cfg?.cacheTtlSeconds ?? 60));
   const [embedAllowlist, setEmbedAllowlist] = useState((props.cfg?.embedAllowlistHosts ?? []).join("\n"));
-  const [shortcuts, setShortcuts] = useState(props.cfg?.shortcutsJson ?? "");
   const [footerCopyrightUrl, setFooterCopyrightUrl] = useState(props.cfg?.footerCopyrightUrl ?? "");
   const [footerIcpText, setFooterIcpText] = useState(props.cfg?.footerIcpText ?? "");
   const [footerIcpLink, setFooterIcpLink] = useState(props.cfg?.footerIcpLink ?? "https://beian.miit.gov.cn/");
   const [webStyle, setWebStyle] = useState<UiStyle>(props.cfg?.webStyle ?? "current");
   const [adminStyle, setAdminStyle] = useState<UiStyle>(props.cfg?.adminStyle ?? "current");
   const [autoSummaryEnabled, setAutoSummaryEnabled] = useState(false);
-  const [pwOld, setPwOld] = useState("");
-  const [pwNew, setPwNew] = useState("");
   const [saving, setSaving] = useState(false);
   const [projectsCfg, setProjectsCfg] = useState<ProjectsConfigAdminView | null>(null);
   const [ghEnabled, setGhEnabled] = useState(true);
@@ -61,6 +62,9 @@ export function SettingsPage(props: {
   const [aboutTechStackJson, setAboutTechStackJson] = useState("");
   const [aboutVisitedPlacesJson, setAboutVisitedPlacesJson] = useState("");
   const [aboutTimelineJson, setAboutTimelineJson] = useState("");
+  const [aboutSidebarDailyNewsEnabled, setAboutSidebarDailyNewsEnabled] = useState(true);
+  const [aboutSidebarHistoryTodayEnabled, setAboutSidebarHistoryTodayEnabled] = useState(true);
+  const [aboutSidebarTravelEnabled, setAboutSidebarTravelEnabled] = useState(true);
   const [formattingAboutJson, setFormattingAboutJson] = useState(false);
   const [newTool, setNewTool] = useState<{
     title: string;
@@ -118,6 +122,11 @@ export function SettingsPage(props: {
     return JSON.stringify(parsed, null, 2);
   }
 
+  function parseLooseBoolClient(v: string | null | undefined): boolean {
+    const s = String(v ?? "").trim().toLowerCase();
+    return s === "1" || s === "true" || s === "yes" || s === "on";
+  }
+
   async function formatAboutJson() {
     setFormattingAboutJson(true);
     try {
@@ -169,7 +178,6 @@ export function SettingsPage(props: {
     setTimezone(props.cfg.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone);
     setCacheTtl(String(props.cfg.cacheTtlSeconds ?? 60));
     setEmbedAllowlist((props.cfg.embedAllowlistHosts ?? []).join("\n"));
-    setShortcuts(props.cfg.shortcutsJson ?? "");
     setFooterCopyrightUrl(props.cfg.footerCopyrightUrl ?? "");
     setFooterIcpText(props.cfg.footerIcpText ?? "");
     setFooterIcpLink(props.cfg.footerIcpLink ?? "https://beian.miit.gov.cn/");
@@ -202,11 +210,29 @@ export function SettingsPage(props: {
           ABOUT_KEY_TECH_STACK,
           ABOUT_KEY_VISITED_PLACES,
           ABOUT_KEY_TIMELINE,
+          ABOUT_KEY_SIDEBAR_DAILY_NEWS,
+          ABOUT_KEY_SIDEBAR_HISTORY_TODAY,
+          ABOUT_KEY_SIDEBAR_TRAVEL,
           POSTS_KEY_AUTO_SUMMARY
         ]);
         setAboutTechStackJson(settings[ABOUT_KEY_TECH_STACK] ?? "");
         setAboutVisitedPlacesJson(settings[ABOUT_KEY_VISITED_PLACES] ?? "");
         setAboutTimelineJson(settings[ABOUT_KEY_TIMELINE] ?? "");
+        setAboutSidebarDailyNewsEnabled(
+          settings[ABOUT_KEY_SIDEBAR_DAILY_NEWS] === null || settings[ABOUT_KEY_SIDEBAR_DAILY_NEWS] === undefined
+            ? true
+            : parseLooseBoolClient(settings[ABOUT_KEY_SIDEBAR_DAILY_NEWS])
+        );
+        setAboutSidebarHistoryTodayEnabled(
+          settings[ABOUT_KEY_SIDEBAR_HISTORY_TODAY] === null || settings[ABOUT_KEY_SIDEBAR_HISTORY_TODAY] === undefined
+            ? true
+            : parseLooseBoolClient(settings[ABOUT_KEY_SIDEBAR_HISTORY_TODAY])
+        );
+        setAboutSidebarTravelEnabled(
+          settings[ABOUT_KEY_SIDEBAR_TRAVEL] === null || settings[ABOUT_KEY_SIDEBAR_TRAVEL] === undefined
+            ? true
+            : parseLooseBoolClient(settings[ABOUT_KEY_SIDEBAR_TRAVEL])
+        );
         const raw = String(settings[POSTS_KEY_AUTO_SUMMARY] ?? "").trim().toLowerCase();
         setAutoSummaryEnabled(raw === "1" || raw === "true" || raw === "yes" || raw === "on");
       } catch {
@@ -230,7 +256,10 @@ export function SettingsPage(props: {
       await updateSettings({
         [ABOUT_KEY_TECH_STACK]: aboutTechStackJson,
         [ABOUT_KEY_VISITED_PLACES]: aboutVisitedPlacesJson,
-        [ABOUT_KEY_TIMELINE]: aboutTimelineJson
+        [ABOUT_KEY_TIMELINE]: aboutTimelineJson,
+        [ABOUT_KEY_SIDEBAR_DAILY_NEWS]: aboutSidebarDailyNewsEnabled ? "1" : "0",
+        [ABOUT_KEY_SIDEBAR_HISTORY_TODAY]: aboutSidebarHistoryTodayEnabled ? "1" : "0",
+        [ABOUT_KEY_SIDEBAR_TRAVEL]: aboutSidebarTravelEnabled ? "1" : "0"
       });
       const newCfg = await getConfig();
       props.onCfg(newCfg);
@@ -314,24 +343,6 @@ export function SettingsPage(props: {
     try {
       const allowlistHosts = parseAllowlistHosts(embedAllowlist);
       await updateSettings({ "site.embed_allowlist": allowlistHosts });
-      const newCfg = await getConfig();
-      props.onCfg(newCfg);
-      alert("已保存（cache_version 已递增）");
-    } catch (e) {
-      const err = e as ApiError;
-      props.onError(err.message || "保存失败");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function saveShortcuts() {
-    props.onError("");
-    setSaving(true);
-    try {
-      const text = String(shortcuts ?? "").trim();
-      if (text) JSON.parse(text);
-      await updateSettings({ "site.shortcuts_json": shortcuts });
       const newCfg = await getConfig();
       props.onCfg(newCfg);
       alert("已保存（cache_version 已递增）");
@@ -527,30 +538,6 @@ export function SettingsPage(props: {
     }
   }
 
-  async function changePassword() {
-    props.onError("");
-    if (!pwOld || !pwNew) {
-      props.onError("请输入旧密码/新密码");
-      return;
-    }
-    setSaving(true);
-    try {
-      const r = await apiJson<{ ok: true; relogin?: boolean }>("/api/admin/password", {
-        method: "PUT",
-        body: JSON.stringify({ oldPassword: pwOld, newPassword: pwNew })
-      });
-      setPwNew("");
-      setPwOld("");
-      if (r.relogin) window.location.reload();
-      alert("密码已更新");
-    } catch (e) {
-      const err = e as ApiError;
-      props.onError(err.message || "改密失败");
-    } finally {
-      setSaving(false);
-    }
-  }
-
   return (
     <div className="grid">
       <div className="card">
@@ -565,6 +552,53 @@ export function SettingsPage(props: {
             {saving ? "保存中..." : "保存 /about"}
           </button>
         </div>
+
+        <div className="row">
+          <label>
+            侧边栏：每日新闻
+            <SelectBox
+              value={aboutSidebarDailyNewsEnabled ? "1" : "0"}
+              options={[
+                { value: "1", label: "开启" },
+                { value: "0", label: "关闭" }
+              ]}
+              onChange={(v) => setAboutSidebarDailyNewsEnabled(v === "1")}
+            />
+          </label>
+          <label>
+            侧边栏：历史上的今日
+            <SelectBox
+              value={aboutSidebarHistoryTodayEnabled ? "1" : "0"}
+              options={[
+                { value: "1", label: "开启" },
+                { value: "0", label: "关闭" }
+              ]}
+              onChange={(v) => setAboutSidebarHistoryTodayEnabled(v === "1")}
+            />
+          </label>
+          <label>
+            侧边栏：旅行足迹
+            <SelectBox
+              value={aboutSidebarTravelEnabled ? "1" : "0"}
+              options={[
+                { value: "1", label: "开启" },
+                { value: "0", label: "关闭" }
+              ]}
+              onChange={(v) => setAboutSidebarTravelEnabled(v === "1")}
+            />
+          </label>
+        </div>
+
+        <AboutSkillsEditor value={aboutTechStackJson} onChange={(v) => setAboutTechStackJson(v)} />
+        <div style={{ height: 16 }} />
+        <AboutVisitedPlacesEditor value={aboutVisitedPlacesJson} onChange={(v) => setAboutVisitedPlacesJson(v)} />
+        <div style={{ height: 16 }} />
+        <AboutExperienceEditor value={aboutTimelineJson} onChange={(v) => setAboutTimelineJson(v)} />
+
+        <details style={{ marginTop: 12 }}>
+          <summary className="muted" style={{ cursor: "pointer" }}>
+            高级：JSON
+          </summary>
 
         <label>
           <div style={{ fontWeight: 700 }}>技能专长（JSON）</div>
@@ -597,6 +631,7 @@ export function SettingsPage(props: {
             placeholder={`[\n  {\n    \"date\": \"2023 - 至今\",\n    \"title\": \"高级前端工程师\",\n    \"company\": \"某科技公司\",\n    \"description\": \"负责核心产品的前端架构设计与开发，带领团队完成多个重要项目。\"\n  },\n  {\n    \"date\": \"2021 - 2023\",\n    \"title\": \"前端工程师\",\n    \"company\": \"某互联网公司\",\n    \"description\": \"参与多个 Web 应用的开发，积累了丰富的前端开发经验。\"\n  }\n]`}
           />
         </label>
+        </details>
       </div>
 
       <div className="card">
@@ -703,25 +738,6 @@ export function SettingsPage(props: {
           </button>
         </div>
         <div style={{ height: 16 }} />
-        <h3 style={{ margin: "6px 0 4px" }}>快捷键</h3>
-        <div className="muted">录制为主：下拉选择动作 + 录制组合键/序列键；JSON 仅作为高级导入/导出。</div>
-        <div style={{ height: 10 }} />
-        <ShortcutsEditor value={shortcuts} onChange={setShortcuts} allowedTargets={["web", "admin"]} />
-        <details style={{ marginTop: 10 }}>
-          <summary className="muted">高级：shortcuts_json（JSON）</summary>
-          <div style={{ height: 8 }} />
-          <textarea
-            value={shortcuts}
-            onChange={(e) => setShortcuts(e.target.value)}
-            placeholder={`{\n  \"global\": { \"focusSearch\": \"/\", \"goHome\": \"g h\" },\n  \"contexts\": { \"web.post\": { \"postPrev\": \"k\", \"postNext\": \"j\" } }\n}`}
-          />
-        </details>
-        <div className="nav">
-          <button className="chip chip-primary" onClick={() => void saveShortcuts()} disabled={saving}>
-            {saving ? "保存中..." : "保存快捷键"}
-          </button>
-        </div>
-        <div style={{ height: 10 }} />
         <h3 style={{ margin: "6px 0 4px" }}>底部（Footer）</h3>
         <div className="muted">所有公共页面底部展示：版权信息 + Sitemap/RSS + ICP 备案（可配置）。</div>
         <div style={{ height: 12 }} />
@@ -1097,26 +1113,6 @@ export function SettingsPage(props: {
         <div className="nav">
           <button className="chip chip-primary" onClick={() => void addTool()} disabled={saving}>
             {saving ? "新增中..." : "新增"}
-          </button>
-        </div>
-      </div>
-
-      <div className="card">
-        <h2 style={{ margin: "0 0 8px" }}>管理员密码</h2>
-        <div className="row">
-          <label>
-            旧密码
-            <input type="password" value={pwOld} onChange={(e) => setPwOld(e.target.value)} />
-          </label>
-          <label>
-            新密码（≥6）
-            <input type="password" value={pwNew} onChange={(e) => setPwNew(e.target.value)} />
-          </label>
-        </div>
-        <div style={{ height: 10 }} />
-        <div className="nav">
-          <button className="chip" onClick={() => void changePassword()} disabled={saving}>
-            更新密码
           </button>
         </div>
       </div>
