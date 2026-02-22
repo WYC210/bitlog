@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import type { AdminToolItem, ApiError, ProjectsConfigAdminView, SiteConfig, ToolGroup, ToolKind, UiStyle } from "../api";
 import { CodeEditor } from "../components/CodeEditor";
+import { ShortcutsEditor } from "../components/ShortcutsEditor";
 import { SelectBox } from "../components/SelectBox";
 import {
   apiJson,
@@ -702,15 +703,19 @@ export function SettingsPage(props: {
           </button>
         </div>
         <div style={{ height: 16 }} />
-        <label>
-          <h3 style={{ margin: "6px 0 4px" }}>快捷键</h3>
-          快捷键（JSON）
+        <h3 style={{ margin: "6px 0 4px" }}>快捷键</h3>
+        <div className="muted">录制为主：下拉选择动作 + 录制组合键/序列键；JSON 仅作为高级导入/导出。</div>
+        <div style={{ height: 10 }} />
+        <ShortcutsEditor value={shortcuts} onChange={setShortcuts} allowedTargets={["web", "admin"]} />
+        <details style={{ marginTop: 10 }}>
+          <summary className="muted">高级：shortcuts_json（JSON）</summary>
+          <div style={{ height: 8 }} />
           <textarea
             value={shortcuts}
             onChange={(e) => setShortcuts(e.target.value)}
-            placeholder={`{\n  \"global\": { \"focusSearch\": \"ctrl+f\", \"goHome\": \"ctrl+h\" },\n  \"contexts\": { \"articles\": { \"back\": \"g b\", \"forward\": \"g n\" } }\n}`}
+            placeholder={`{\n  \"global\": { \"focusSearch\": \"/\", \"goHome\": \"g h\" },\n  \"contexts\": { \"web.post\": { \"postPrev\": \"k\", \"postNext\": \"j\" } }\n}`}
           />
-        </label>
+        </details>
         <div className="nav">
           <button className="chip chip-primary" onClick={() => void saveShortcuts()} disabled={saving}>
             {saving ? "保存中..." : "保存快捷键"}

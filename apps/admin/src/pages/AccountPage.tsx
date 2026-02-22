@@ -1,8 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import type { AdminPrefs, ApiError } from "../api";
 import { changeAdminPassword, getAdminPrefs, updateAdminPrefs } from "../api";
-
-type ShortcutAction = "newPost" | "goHome" | "goBack" | "goForward";
+import { ShortcutsEditor } from "../components/ShortcutsEditor";
 
 function parseJson(text: string): { ok: true; value: any } | { ok: false; error: string } {
   const s = String(text ?? "").trim();
@@ -14,25 +13,6 @@ function parseJson(text: string): { ok: true; value: any } | { ok: false; error:
   } catch {
     return { ok: false, error: "JSON 解析失败" };
   }
-}
-
-function ensureAdminGlobal(sc: any): any {
-  if (!sc || typeof sc !== "object") sc = {};
-  if (!sc.contexts || typeof sc.contexts !== "object") sc.contexts = {};
-  if (!sc.contexts["admin.global"] || typeof sc.contexts["admin.global"] !== "object") sc.contexts["admin.global"] = {};
-  return sc;
-}
-
-function formatRecordedCombo(e: KeyboardEvent): string | null {
-  const k = String(e.key ?? "").toLowerCase();
-  if (k === "escape") return null;
-  if (!k || ["control", "shift", "alt", "meta"].includes(k)) return "";
-  const mods: string[] = [];
-  if (e.ctrlKey || e.metaKey) mods.push("mod");
-  if (e.altKey) mods.push("alt");
-  if (e.shiftKey) mods.push("shift");
-  const key = k === " " ? "space" : k;
-  return [...mods, key].join("+");
 }
 
 export function AccountPage(props: {
@@ -52,14 +32,6 @@ export function AccountPage(props: {
   const parsed = useMemo(() => parseJson(shortcutsText), [shortcutsText]);
   const parseError = parsed.ok ? "" : parsed.error;
 
-  const adminGlobal = useMemo(() => {
-    if (!parsed.ok) return {};
-    const sc = ensureAdminGlobal(JSON.parse(JSON.stringify(parsed.value ?? {})));
-    return sc.contexts["admin.global"] ?? {};
-  }, [parsed]);
-
-  const [recording, setRecording] = useState<ShortcutAction | null>(null);
-
   useEffect(() => {
     if (!props.prefs) return;
     if (!shortcutsDirty) setShortcutsText(props.prefs.shortcutsJson ?? "");
@@ -75,40 +47,6 @@ export function AccountPage(props: {
     }
   }, [shortcutsText, props.prefs?.shortcutsJson]);
 
-  useEffect(() => {
-    if (!recording) return;
-    const onKeydown = (e: KeyboardEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const combo = formatRecordedCombo(e);
-      if (combo === null) {
-        setRecording(null);
-        return;
-      }
-      if (combo === "") return;
-      applyShortcut(recording, combo);
-      setRecording(null);
-    };
-    window.addEventListener("keydown", onKeydown, true);
-    return () => window.removeEventListener("keydown", onKeydown, true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recording]);
-
-  function applyShortcut(action: ShortcutAction, spec: string) {
-    if (!parsed.ok) return;
-    const sc = ensureAdminGlobal(JSON.parse(JSON.stringify(parsed.value ?? {})));
-    sc.contexts["admin.global"][action] = spec;
-    setShortcutsText(JSON.stringify(sc, null, 2));
-    setShortcutsDirty(true);
-  }
-
-  function clearShortcut(action: ShortcutAction) {
-    if (!parsed.ok) return;
-    const sc = ensureAdminGlobal(JSON.parse(JSON.stringify(parsed.value ?? {})));
-    delete sc.contexts["admin.global"][action];
-    setShortcutsText(JSON.stringify(sc, null, 2));
-    setShortcutsDirty(true);
-  }
 
   async function reloadPrefs() {
     const p = await getAdminPrefs();
@@ -183,13 +121,6 @@ export function AccountPage(props: {
     }
   }
 
-  const actions: Array<{ key: ShortcutAction; label: string; placeholder: string }> = [
-    { key: "newPost", label: "新建文章", placeholder: "mod+n / g n ..." },
-    { key: "goHome", label: "去站点", placeholder: "alt+h ..." },
-    { key: "goBack", label: "上一页", placeholder: "g b ..." },
-    { key: "goForward", label: "下一页", placeholder: "g n ..." }
-  ];
-
   return (
     <div className="grid">
       <div className="card">
@@ -233,32 +164,9 @@ export function AccountPage(props: {
 
       <div className="card">
         <h2 style={{ margin: "0 0 8px" }}>个人快捷键（覆盖站点默认）</h2>
-        <div className="muted">支持 chord（如 mod+s）和序列（如 g b）。录制只支持 chord。</div>
+        <div className="muted">支持 chord（如 mod+s）和序列（如 g p）。</div>
         <div style={{ height: 12 }} />
-        <div className="grid">
-          {actions.map((a) => (
-            <div key={a.key} className="card" style={{ padding: 12 }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                <div style={{ fontWeight: 750 }}>{a.label}</div>
-                <div className="nav">
-                  <button className="chip" onClick={() => setRecording(a.key)} disabled={saving || !!recording}>
-                    {recording === a.key ? "按键中…" : "录制"}
-                  </button>
-                  <button className="chip" onClick={() => clearShortcut(a.key)} disabled={saving || !parsed.ok}>
-                    清空
-                  </button>
-                </div>
-              </div>
-              <div style={{ height: 8 }} />
-              <input
-                value={String((adminGlobal as any)?.[a.key] ?? "")}
-                placeholder={a.placeholder}
-                onChange={(e) => applyShortcut(a.key, e.target.value)}
-                disabled={!parsed.ok || saving}
-              />
-            </div>
-          ))}
-        </div>
+        <ShortcutsEditor value={shortcutsText} onChange={setShortcutsText} allowedTargets={["admin"]} />
         <div style={{ height: 10 }} />
         <label>
           高级：shortcuts_json（JSON）

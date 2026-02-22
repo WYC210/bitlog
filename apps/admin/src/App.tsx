@@ -9,6 +9,9 @@ import { EditorPage } from "./pages/EditorPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { AccountPage } from "./pages/AccountPage";
 import { applyThemeWithTransition, getTheme } from "./ui/theme";
+import { CommandPalette } from "./components/CommandPalette";
+import type { AdminActionId } from "./shortcuts/actions";
+import { getAdminContextKey, getActionBinding, getEffectiveBindings, isTypingTarget, matchChord, mergeShortcuts, parseSeq, parseShortcutsJson, SeqBuffer } from "./shortcuts/shortcuts";
 
 function useRoute() {
   const [route, setRoute] = useState<Route>(() => parseRoute(window.location.hash));
@@ -20,39 +23,6 @@ function useRoute() {
   return route;
 }
 
-function isTypingTarget(target: EventTarget | null): boolean {
-  const t = target as any;
-  const tag = String(t?.tagName ?? "").toLowerCase();
-  return tag === "input" || tag === "textarea" || tag === "select" || !!t?.isContentEditable;
-}
-
-function matchChord(e: KeyboardEvent, combo: string | undefined): boolean {
-  const s = String(combo ?? "").trim().toLowerCase();
-  if (!s || s.includes(" ")) return false;
-  const parts = s.split("+").map((x) => x.trim()).filter(Boolean);
-  const key = String(e.key ?? "").toLowerCase();
-  const wantCtrl = parts.includes("ctrl");
-  const wantMeta = parts.includes("meta");
-  const wantMod = parts.includes("cmd") || parts.includes("mod");
-  const wantAlt = parts.includes("alt");
-  const wantShift = parts.includes("shift");
-  const wantKey = parts.find((p) => !["ctrl", "cmd", "mod", "meta", "alt", "shift"].includes(p));
-  if (wantCtrl && !e.ctrlKey) return false;
-  if (wantMeta && !e.metaKey) return false;
-  if (wantMod && !(e.ctrlKey || e.metaKey)) return false;
-  if (wantAlt && !e.altKey) return false;
-  if (wantShift && !e.shiftKey) return false;
-  if (wantKey && wantKey !== key) return false;
-  return true;
-}
-
-function parseSeq(spec: string | undefined): string[] | null {
-  const s = String(spec ?? "").trim().toLowerCase();
-  if (!s.includes(" ")) return null;
-  const keys = s.split(/\s+/).map((x) => x.trim()).filter(Boolean);
-  return keys.length ? keys : null;
-}
-
 export function App() {
   const route = useRoute();
   const [cfg, setCfg] = useState<SiteConfig | null>(null);
@@ -60,6 +30,7 @@ export function App() {
   const [prefs, setPrefs] = useState<AdminPrefs | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [theme, setThemeState] = useState<"light" | "dark">(() => getTheme());
+  const [cmdOpen, setCmdOpen] = useState(false);
 
   useEffect(() => {
     void (async () => {
@@ -121,111 +92,136 @@ export function App() {
     }
   }, [route.page, (route as any).id]);
 
-  function parseShortcutsJson(text: string | null | undefined): any {
-    try {
-      const v = text ? JSON.parse(text) : {};
-      return v && typeof v === "object" ? v : {};
-    } catch {
-      return {};
-    }
-  }
-
-  function mergeShortcuts(a: any, b: any): any {
-    const out: any = {};
-    const ag = a?.global && typeof a.global === "object" ? a.global : {};
-    const bg = b?.global && typeof b.global === "object" ? b.global : {};
-    out.global = { ...ag, ...bg };
-    const ac = a?.contexts && typeof a.contexts === "object" ? a.contexts : {};
-    const bc = b?.contexts && typeof b.contexts === "object" ? b.contexts : {};
-    const keys = new Set<string>([...Object.keys(ac), ...Object.keys(bc)]);
-    const contexts: any = {};
-    keys.forEach((k) => {
-      const av = ac[k] && typeof ac[k] === "object" ? ac[k] : {};
-      const bv = bc[k] && typeof bc[k] === "object" ? bc[k] : {};
-      contexts[k] = { ...av, ...bv };
-    });
-    out.contexts = contexts;
-    return out;
-  }
-
   const shortcutSpecs = useMemo(() => {
     const merged = mergeShortcuts(parseShortcutsJson(cfg?.shortcutsJson), parseShortcutsJson(prefs?.shortcutsJson));
-    const pageKey = `admin.${route.page}`;
-    const effective = {
-      ...(merged?.global ?? {}),
-      ...(merged?.contexts?.["admin.global"] ?? {}),
-      ...(merged?.contexts?.[pageKey] ?? {})
-    };
-    const getSpec = (keys: string[], fallback: string) => {
-      for (const k of keys) {
-        const v = (effective as any)?.[k];
-        if (v) return String(v);
-      }
-      return fallback;
-    };
+    const ctx = getAdminContextKey(route);
+    const effective = getEffectiveBindings(merged, ctx);
+    const get = (id: AdminActionId, fallback?: string) => getActionBinding(effective, id, fallback);
     return {
-      newPost: getSpec(["newPost"], "mod+n"),
-      goHome: getSpec(["goHome"], "alt+h"),
-      back: getSpec(["goBack", "back"], "g b"),
-      forward: getSpec(["goForward", "forward"], "g n")
+      openCommandPalette: get("openCommandPalette", "?"),
+      toggleLightDark: get("toggleLightDark", "shift+d"),
+      newPost: get("newPost", "c n"),
+      goSite: get("goSite", "g s"),
+      goAdminPosts: get("goAdminPosts", "g p"),
+      goAdminSettings: get("goAdminSettings", "g ,"),
+      goAdminAccount: get("goAdminAccount", "g a"),
+      editorSave: get("editorSave", "mod+s"),
+      editorPublish: get("editorPublish", "mod+shift+p"),
+      editorRefreshPreview: get("editorRefreshPreview", "mod+shift+r"),
+      back: get("back", "g b"),
+      forward: get("forward", "g n")
     };
-  }, [cfg?.shortcutsJson, prefs?.shortcutsJson, route.page]);
+  }, [cfg?.shortcutsJson, prefs?.shortcutsJson, route.page, (route as any).id]);
+
+  const contextKey = useMemo(() => getAdminContextKey(route), [route]);
 
   useEffect(() => {
-    let seq: string[] = [];
-    let timer: number | null = null;
-    const pushSeq = (key: string) => {
-      if (!key || key.length !== 1) return;
-      seq.push(key);
-      if (seq.length > 4) seq.shift();
-      if (timer) window.clearTimeout(timer);
-      timer = window.setTimeout(() => {
-        seq = [];
-        timer = null;
-      }, 900);
+    const onOpen = () => setCmdOpen(true);
+    window.addEventListener("bitlog:admin:commandPaletteOpen", onOpen as any);
+    return () => window.removeEventListener("bitlog:admin:commandPaletteOpen", onOpen as any);
+  }, []);
+
+  useEffect(() => {
+    const seq = new SeqBuffer();
+
+    const fire = (type: string) => {
+      window.dispatchEvent(new CustomEvent(type));
     };
-    const matchSeq = (keys: string[] | null) => {
-      if (!keys || !keys.length) return false;
-      if (seq.length < keys.length) return false;
-      const tail = seq.slice(seq.length - keys.length);
-      for (let i = 0; i < keys.length; i++) {
-        if (tail[i] !== keys[i]) return false;
-      }
-      return true;
+
+    const toggleTheme = (e?: KeyboardEvent) => {
+      const next = theme === "dark" ? "light" : "dark";
+      applyThemeWithTransition({ next, toggleEl: document.getElementById("themeToggle") as any, event: e as any });
+      setThemeState(next);
     };
 
     const onKeydown = (e: KeyboardEvent) => {
-      if (isTypingTarget(e.target)) return;
+      const typing = isTypingTarget(e.target);
 
-      if (!e.ctrlKey && !e.metaKey && !e.altKey) pushSeq(String(e.key ?? "").toLowerCase());
+      if (!typing) seq.push(e);
 
+      const allowInTyping = matchChord(e, shortcutSpecs.editorSave) || matchChord(e, shortcutSpecs.editorPublish) || matchChord(e, shortcutSpecs.editorRefreshPreview);
+      if (typing && !allowInTyping) return;
+
+      const authedNow = !!user;
+      if (!authedNow) {
+        // 未登录：不允许触发后台相关动作（新建/跳转后台/发布等）。
+        if (matchChord(e, shortcutSpecs.toggleLightDark)) {
+          e.preventDefault();
+          toggleTheme(e);
+        }
+        return;
+      }
+
+      if (matchChord(e, shortcutSpecs.openCommandPalette)) {
+        e.preventDefault();
+        fire("bitlog:admin:commandPaletteOpen");
+        return;
+      }
+      if (matchChord(e, shortcutSpecs.toggleLightDark)) {
+        e.preventDefault();
+        toggleTheme(e);
+        return;
+      }
       if (matchChord(e, shortcutSpecs.newPost)) {
         e.preventDefault();
         window.location.hash = "#/posts/new";
         return;
       }
-      if (matchChord(e, shortcutSpecs.goHome)) {
+      if (matchChord(e, shortcutSpecs.goSite)) {
         e.preventDefault();
         window.location.href = "/articles";
         return;
       }
 
+      if (matchChord(e, shortcutSpecs.goAdminPosts) || seq.match(parseSeq(shortcutSpecs.goAdminPosts))) {
+        e.preventDefault();
+        window.location.hash = "#/posts";
+        return;
+      }
+      if (matchChord(e, shortcutSpecs.goAdminSettings) || seq.match(parseSeq(shortcutSpecs.goAdminSettings))) {
+        e.preventDefault();
+        window.location.hash = "#/settings";
+        return;
+      }
+      if (matchChord(e, shortcutSpecs.goAdminAccount) || seq.match(parseSeq(shortcutSpecs.goAdminAccount))) {
+        e.preventDefault();
+        window.location.hash = "#/account";
+        return;
+      }
+
+      if (matchChord(e, shortcutSpecs.editorSave)) {
+        e.preventDefault();
+        fire("bitlog:admin:editorSave");
+        return;
+      }
+      if (matchChord(e, shortcutSpecs.editorRefreshPreview)) {
+        e.preventDefault();
+        fire("bitlog:admin:editorRefreshPreview");
+        return;
+      }
+      if (matchChord(e, shortcutSpecs.editorPublish)) {
+        e.preventDefault();
+        fire("bitlog:admin:editorPublish");
+        return;
+      }
+
       const backSeq = parseSeq(shortcutSpecs.back);
       const fwdSeq = parseSeq(shortcutSpecs.forward);
-      if (matchChord(e, shortcutSpecs.back) || matchSeq(backSeq)) {
+      if (matchChord(e, shortcutSpecs.back) || seq.match(backSeq)) {
         e.preventDefault();
         history.back();
         return;
       }
-      if (matchChord(e, shortcutSpecs.forward) || matchSeq(fwdSeq)) {
+      if (matchChord(e, shortcutSpecs.forward) || seq.match(fwdSeq)) {
         e.preventDefault();
         history.forward();
+        return;
       }
     };
 
     window.addEventListener("keydown", onKeydown);
     return () => window.removeEventListener("keydown", onKeydown);
-  }, [shortcutSpecs]);
+  }, [shortcutSpecs, theme, user]);
 
   useEffect(() => setError(null), [route.page]);
   const authed = !!user;
@@ -446,6 +442,20 @@ export function App() {
           <div className="actions">
             <button
               className="iconbtn"
+              type="button"
+              aria-label="命令面板"
+              title="命令面板（?）"
+              onClick={() => setCmdOpen(true)}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                <path d="M4 4h16v16H4z" />
+                <path d="M8 9h8" />
+                <path d="M8 13h6" />
+                <path d="M8 17h5" />
+              </svg>
+            </button>
+            <button
+              className="iconbtn"
               id="themeToggle"
               type="button"
               aria-label="切换主题"
@@ -492,6 +502,20 @@ export function App() {
           </div>
         </section>
       </main>
+
+      <CommandPalette
+        open={cmdOpen}
+        onOpenChange={setCmdOpen}
+        contextKey={contextKey}
+        bindings={shortcutSpecs as any}
+        cfg={cfg}
+        onCfg={setCfg}
+        onToggleTheme={() => {
+          const next = theme === "dark" ? "light" : "dark";
+          applyThemeWithTransition({ next, toggleEl: document.getElementById("themeToggle") as any, event: undefined as any });
+          setThemeState(next);
+        }}
+      />
     </div>
   );
 }

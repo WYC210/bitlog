@@ -700,7 +700,7 @@ export function EditorPage(props: {
     }
   }
 
-  async function save() {
+  async function save(overrides?: { status?: typeof status; publishAtLocal?: string }) {
     props.onError("");
     if (!title.trim() || !content.trim()) {
       props.onError("title/content 不能为空");
@@ -708,11 +708,13 @@ export function EditorPage(props: {
     }
     setSaving(true);
     try {
+      const effectiveStatus = overrides?.status ?? status;
+      const effectivePublishAtLocal = overrides?.publishAtLocal ?? publishAtLocal;
       const publishAt =
-        status === "draft"
+        effectiveStatus === "draft"
           ? null
-          : publishAtLocal
-            ? zonedInputToUtcMs(publishAtLocal, tz)
+          : effectivePublishAtLocal
+            ? zonedInputToUtcMs(effectivePublishAtLocal, tz)
             : Date.now();
       const tagsArr = tags
         .split(",")
@@ -725,7 +727,7 @@ export function EditorPage(props: {
           content_md: content,
           category: category.trim() ? category.trim() : null,
           tags: tagsArr,
-          status,
+          status: effectiveStatus,
           publish_at: publishAt ?? null
         });
         setId(created.id);
@@ -738,7 +740,7 @@ export function EditorPage(props: {
           content_md: content,
           category: category.trim() ? category.trim() : null,
           tags: tagsArr,
-          status,
+          status: effectiveStatus,
           publish_at: publishAt ?? null
         });
         if (!summary.trim()) {
@@ -759,6 +761,30 @@ export function EditorPage(props: {
       setSaving(false);
     }
   }
+
+  useEffect(() => {
+    const onSave = () => void save();
+    const onPublish = () => {
+      const nextPublishAtLocal = publishAtLocal || utcMsToZonedInput(Date.now(), tz);
+      setStatus("published");
+      setPublishAtLocal(nextPublishAtLocal);
+      void save({ status: "published", publishAtLocal: nextPublishAtLocal });
+    };
+    const onRefreshPreview = () => {
+      const seq = ++previewSeq.current;
+      void renderPreview(seq, { reason: "manual", force: true, ignoreBackoff: true });
+      editorRef.current?.scrollToSelection();
+    };
+
+    window.addEventListener("bitlog:admin:editorSave", onSave as any);
+    window.addEventListener("bitlog:admin:editorPublish", onPublish as any);
+    window.addEventListener("bitlog:admin:editorRefreshPreview", onRefreshPreview as any);
+    return () => {
+      window.removeEventListener("bitlog:admin:editorSave", onSave as any);
+      window.removeEventListener("bitlog:admin:editorPublish", onPublish as any);
+      window.removeEventListener("bitlog:admin:editorRefreshPreview", onRefreshPreview as any);
+    };
+  }, [publishAtLocal, renderPreview, save, tz]);
 
   if (loading) return <div className="card">加载中...</div>;
 
