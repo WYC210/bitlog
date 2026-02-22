@@ -125,6 +125,50 @@ a {
   flex-wrap: wrap;
 }
 
+/* Pagination */
+.pager {
+  display: flex;
+  align-items: stretch;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+}
+
+.pager-btn {
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  padding: 8px 12px;
+  min-width: 40px;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background var(--t-fast), color var(--t-fast);
+}
+
+.pager-btn:hover:not(:disabled) {
+  background: var(--accent-dim);
+}
+
+.pager-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.pager-btn.is-active {
+  background: rgba(75, 107, 255, 0.18);
+  color: var(--text);
+}
+
+.pager-ellipsis {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 10px;
+  color: var(--muted);
+  user-select: none;
+}
+
 /* ── Chip (pill tag, for labels/filters) ── */
 .chip {
   display: inline-flex;

@@ -24,7 +24,7 @@ import { embedFromShortcode } from "./lib/embeds.js";
 import { getCachedResponse, putCachedResponse } from "./services/cache.js";
 import { uploadImageToR2, getR2ObjectByKey } from "./services/assets.js";
 import { getAdminPrefs, setAdminPrefs } from "./services/admin-prefs.js";
-import { importPostsFromZip } from "./services/import-posts.js";
+import { importPostsFromItems, importPostsFromZip } from "./services/import-posts.js";
 import {
   getProjectsConfig,
   getProjectsConfigAdminView,
@@ -758,6 +758,8 @@ export function createApiApp(bindings: ApiBindings) {
     const url = new URL(c.req.url);
     const limitRaw = url.searchParams.get("limit");
     const cursorRaw = url.searchParams.get("cursor");
+    const orderRaw = (url.searchParams.get("order") ?? "").trim().toLowerCase();
+    const order = orderRaw === "popular" ? "popular" : "name";
     const paged = limitRaw !== null || cursorRaw !== null;
     const limit = Math.max(
       1,
@@ -783,32 +785,50 @@ export function createApiApp(bindings: ApiBindings) {
     const maybeCached = await getCachedResponse(
       c.req.raw,
       bindings.db,
-      paged ? `tags:${limit}:${cursorRaw ?? ""}` : `tags`
+      paged ? `tags:${order}:${limit}:${cursorRaw ?? ""}` : `tags:${order}`
     );
     if (maybeCached) return maybeCached;
 
     const now = nowMs();
     const fetchLimit = paged ? limit + 1 : 1000000;
-    const allRows = await bindings.db.query<{ id: string; slug: string; name: string }>(
-      sql`SELECT t.id, t.slug, t.name
-          FROM tags t
-          WHERE EXISTS (
-            SELECT 1
-            FROM post_tags pt
+
+    let allRows: Array<{ id: string; slug: string; name: string }> = [];
+    if (order === "popular") {
+      if (paged) return c.json(jsonError("Paged popular tags not supported", 400), 400);
+      allRows = await bindings.db.query<{ id: string; slug: string; name: string; count: number }>(
+        sql`SELECT t.id, t.slug, t.name, COUNT(DISTINCT pt.post_id) as count
+            FROM tags t
+            JOIN post_tags pt ON pt.tag_id = t.id
             JOIN posts p ON p.id = pt.post_id
-            WHERE pt.tag_id = t.id
-              AND p.status IN ('published','scheduled')
+            WHERE p.status IN ('published','scheduled')
               AND p.publish_at IS NOT NULL
               AND p.publish_at <= ${now}
-          )
-          AND (
-            ${cursor?.name ?? null} IS NULL
-            OR t.name > ${cursor?.name ?? null}
-            OR (t.name = ${cursor?.name ?? null} AND t.id > ${cursor?.id ?? null})
-          )
-          ORDER BY t.name ASC, t.id ASC
-          LIMIT ${fetchLimit}`
-    );
+            GROUP BY t.id, t.slug, t.name
+            ORDER BY COUNT(DISTINCT pt.post_id) DESC, t.name ASC, t.id ASC
+            LIMIT ${fetchLimit}`
+      );
+    } else {
+      allRows = await bindings.db.query<{ id: string; slug: string; name: string }>(
+        sql`SELECT t.id, t.slug, t.name
+            FROM tags t
+            WHERE EXISTS (
+              SELECT 1
+              FROM post_tags pt
+              JOIN posts p ON p.id = pt.post_id
+              WHERE pt.tag_id = t.id
+                AND p.status IN ('published','scheduled')
+                AND p.publish_at IS NOT NULL
+                AND p.publish_at <= ${now}
+            )
+            AND (
+              ${cursor?.name ?? null} IS NULL
+              OR t.name > ${cursor?.name ?? null}
+              OR (t.name = ${cursor?.name ?? null} AND t.id > ${cursor?.id ?? null})
+            )
+            ORDER BY t.name ASC, t.id ASC
+            LIMIT ${fetchLimit}`
+      );
+    }
 
     const hasMore = paged && allRows.length > limit;
     const rows = hasMore ? allRows.slice(0, limit) : allRows;
@@ -825,7 +845,7 @@ export function createApiApp(bindings: ApiBindings) {
       c.req.raw,
       response,
       bindings.db,
-      paged ? `tags:${limit}:${cursorRaw ?? ""}` : `tags`
+      paged ? `tags:${order}:${limit}:${cursorRaw ?? ""}` : `tags:${order}`
     );
     return response;
   });
@@ -1638,12 +1658,13 @@ export function createApiApp(bindings: ApiBindings) {
     const maybeCached = await getCachedResponse(
       c.req.raw,
       bindings.db,
-      `posts:${page}:${pageSize}:${category ?? ""}:${tag ?? ""}`
+      `posts:v3:${page}:${pageSize}:${category ?? ""}:${tag ?? ""}`
     );
     if (maybeCached) return maybeCached;
 
     const offset = (page - 1) * pageSize;
     const now = nowMs();
+    const fetchLimit = pageSize + 1;
 
     const rows = await bindings.db.query<{
       id: string;
@@ -1654,6 +1675,7 @@ export function createApiApp(bindings: ApiBindings) {
       updated_at: number;
       category_slug: string | null;
       category_name: string | null;
+      total: number;
     }>(
       sql`SELECT
             p.id,
@@ -1663,7 +1685,8 @@ export function createApiApp(bindings: ApiBindings) {
             p.publish_at,
             p.updated_at,
             c.slug AS category_slug,
-            c.name AS category_name
+            c.name AS category_name,
+            COUNT(*) OVER() AS total
           FROM posts p
           LEFT JOIN categories c ON c.id = p.category_id
           WHERE p.status IN ('published','scheduled')
@@ -1679,15 +1702,22 @@ export function createApiApp(bindings: ApiBindings) {
               )
             )
           ORDER BY p.publish_at DESC, p.updated_at DESC
-          LIMIT ${pageSize} OFFSET ${offset}`
+          LIMIT ${fetchLimit} OFFSET ${offset}`
     );
 
-    const response = c.json({ ok: true, page, pageSize, posts: rows });
+    const hasMore = rows.length > pageSize;
+    const posts = hasMore ? rows.slice(0, pageSize) : rows;
+    const total = Number(posts[0]?.total ?? rows[0]?.total ?? 0) || 0;
+    const safePosts = posts.map((p) => {
+      const { total: _total, ...rest } = p as any;
+      return rest;
+    });
+    const response = c.json({ ok: true, page, pageSize, hasMore, total, posts: safePosts });
     await putCachedResponse(
       c.req.raw,
       response,
       bindings.db,
-      `posts:${page}:${pageSize}:${category ?? ""}:${tag ?? ""}`
+      `posts:v3:${page}:${pageSize}:${category ?? ""}:${tag ?? ""}`
     );
     return response;
   });
@@ -1747,7 +1777,7 @@ export function createApiApp(bindings: ApiBindings) {
     const url = new URL(c.req.url);
     const qRaw = url.searchParams.get("q") ?? "";
     const q = qRaw.trim();
-    if (!q) return c.json({ ok: true, q: "", page: 1, pageSize: 10, results: [] });
+    if (!q) return c.json({ ok: true, q: "", page: 1, pageSize: 10, hasMore: false, total: 0, results: [] });
 
     const ip = getClientIp(c.req.raw);
     const limited = await rateLimitSearch(bindings.db, ip);
@@ -1768,14 +1798,14 @@ export function createApiApp(bindings: ApiBindings) {
       return c.json(jsonError("Query too long", 400), 400);
     }
 
-    const cacheKey = `search:${normalizedQ}:${page}:${pageSize}`;
+    const cacheKey = `search:v3:${normalizedQ}:${page}:${pageSize}`;
     const maybeCached = await getCachedResponse(c.req.raw, bindings.db, cacheKey);
     if (maybeCached) return maybeCached;
 
     const now = nowMs();
     const offset = (page - 1) * pageSize;
     if (offset >= 3000) {
-      return c.json({ ok: true, q: normalizedQ, page, pageSize, results: [] });
+      return c.json({ ok: true, q: normalizedQ, page, pageSize, hasMore: false, total: 3000, results: [] });
     }
 
     const likeParts = uniqTokens.map((t) => `%${t.toLowerCase()}%`);
@@ -1815,20 +1845,27 @@ export function createApiApp(bindings: ApiBindings) {
           AND p.publish_at IS NOT NULL
           AND p.publish_at <= ?
       )
-      SELECT *
+      SELECT *, COUNT(*) OVER() AS total
       FROM scored
       WHERE score > 0
       ORDER BY score DESC, publish_at DESC, updated_at DESC
       LIMIT ? OFFSET ?
     `;
-    params.push(now, pageSize, offset);
+    params.push(now, pageSize + 1, offset);
 
-    const results = await bindings.db.query<Record<string, unknown>>({
+    const rows = await bindings.db.query<Record<string, unknown> & { total?: number }>({
       text: queryText,
       values: params as any
     });
 
-    const response = c.json({ ok: true, q: normalizedQ, page, pageSize, results });
+    const hasMore = rows.length > pageSize;
+    const results = hasMore ? rows.slice(0, pageSize) : rows;
+    const total = Number((results[0] as any)?.total ?? (rows[0] as any)?.total ?? 0) || 0;
+    const safeResults = results.map((r) => {
+      const { total: _total, ...rest } = r as any;
+      return rest;
+    });
+    const response = c.json({ ok: true, q: normalizedQ, page, pageSize, hasMore, total, results: safeResults });
     await putCachedResponse(c.req.raw, response, bindings.db, cacheKey);
     return response;
   });
@@ -2456,7 +2493,18 @@ export function createApiApp(bindings: ApiBindings) {
     const pageSize = Math.min(30, Math.max(1, Number(url.searchParams.get("pageSize") ?? "20")));
     const status = url.searchParams.get("status")?.trim() as PostStatus | null;
     const q = (url.searchParams.get("q") ?? "").trim().toLowerCase();
-    const offset = (page - 1) * pageSize;
+    const fetchLimit = pageSize + 1;
+
+    const countRows = await bindings.db.query<{ c: number }>(
+      sql`SELECT count(*) AS c
+          FROM posts p
+          WHERE (${status ?? null} IS NULL OR p.status = ${status ?? null})
+            AND (${q || null} IS NULL OR lower(p.title) LIKE ${q ? `%${q}%` : null})`
+    );
+    const total = Number(countRows?.[0]?.c ?? 0);
+    const pageCount = Math.max(1, Math.ceil(total / pageSize));
+    const safePage = Math.min(page, pageCount);
+    const offset = (safePage - 1) * pageSize;
 
     const rows = await bindings.db.query<{
       id: string;
@@ -2486,10 +2534,12 @@ export function createApiApp(bindings: ApiBindings) {
           WHERE (${status ?? null} IS NULL OR p.status = ${status ?? null})
             AND (${q || null} IS NULL OR lower(p.title) LIKE ${q ? `%${q}%` : null})
           ORDER BY p.updated_at DESC
-          LIMIT ${pageSize} OFFSET ${offset}`
+          LIMIT ${fetchLimit} OFFSET ${offset}`
     );
 
-    return c.json({ ok: true, page, pageSize, posts: rows });
+    const hasMore = rows.length > pageSize;
+    const posts = hasMore ? rows.slice(0, pageSize) : rows;
+    return c.json({ ok: true, page: safePage, pageSize, hasMore, total, pageCount, posts });
   });
 
   app.get("/api/admin/posts/:id", async (c) => {
@@ -2752,14 +2802,14 @@ export function createApiApp(bindings: ApiBindings) {
     }
     const session = await requireAdmin(bindings, c.req.raw);
     if (!session) return c.json(jsonError("Unauthorized", 401), 401);
-    if (!bindings.assetsR2) return c.json(jsonError("Upload disabled", 400), 400);
+    if (!bindings.assetsR2) return c.json(jsonError("上传已禁用", 400), 400);
 
     const contentType = c.req.header("content-type") ?? "";
-    if (!contentType.startsWith("image/")) return c.json(jsonError("Invalid type", 400), 400);
-    if (contentType === "image/svg+xml") return c.json(jsonError("SVG disabled", 400), 400);
+    if (!contentType.startsWith("image/")) return c.json(jsonError("文件类型不支持", 400), 400);
+    if (contentType === "image/svg+xml") return c.json(jsonError("SVG 已禁用", 400), 400);
 
     const body = await c.req.arrayBuffer();
-    if (body.byteLength > 10 * 1024 * 1024) return c.json(jsonError("Too large", 400), 400);
+    if (body.byteLength > 10 * 1024 * 1024) return c.json(jsonError("文件过大", 400), 400);
 
     const asset = await uploadImageToR2(
       { db: bindings.db, assetsR2: bindings.assetsR2 },
@@ -2780,20 +2830,56 @@ export function createApiApp(bindings: ApiBindings) {
     if (!session) return c.json(jsonError("Unauthorized", 401), 401);
 
     const contentType = (c.req.header("content-type") ?? "").toLowerCase();
-    if (!contentType.includes("zip")) return c.json(jsonError("Invalid type", 400), 400);
+    if (!contentType.includes("zip")) return c.json(jsonError("文件类型不支持", 400), 400);
 
     const buf = await c.req.arrayBuffer();
-    if (buf.byteLength > 30 * 1024 * 1024) return c.json(jsonError("Too large", 400), 400);
+    if (buf.byteLength > 30 * 1024 * 1024) return c.json(jsonError("文件过大", 400), 400);
 
     let result: any;
     try {
       result = await importPostsFromZip(bindings.db, new Uint8Array(buf));
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Invalid ZIP";
-      return c.json(jsonError(msg || "Invalid ZIP", 400), 400);
+      const msg = e instanceof Error ? e.message : "ZIP 文件无效";
+      return c.json(jsonError(msg || "ZIP 文件无效", 400), 400);
     }
     await cleanupOrphanCategoriesAndTags(bindings.db);
     await bumpCacheVersion(bindings.db);
+    return c.json({ ok: true, result });
+  });
+
+  app.post("/api/admin/import/posts/batch", async (c) => {
+    if (!isSameOriginRequest(c.req.raw, { requireOrigin: true, requireSameSite: true })) {
+      return c.json(jsonError("Forbidden", 403), 403);
+    }
+    const session = await requireAdmin(bindings, c.req.raw);
+    if (!session) return c.json(jsonError("Unauthorized", 401), 401);
+
+    const body = await c.req.json().catch(() => null) as
+      | {
+          items?: unknown;
+          final?: unknown;
+        }
+      | null;
+    if (!body || typeof body !== "object") return c.json(jsonError("JSON 无效", 400), 400);
+    if (!Array.isArray(body.items)) return c.json(jsonError("缺少 items", 400), 400);
+    if (body.items.length < 1) return c.json(jsonError("items 为空", 400), 400);
+    if (body.items.length > 5) return c.json(jsonError("items 过多", 400), 400);
+
+    let result: any;
+    try {
+      result = await importPostsFromItems(bindings.db, body.items as any);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "导入失败";
+      return c.json(jsonError(msg || "导入失败", 400), 400);
+    }
+
+    const isFinal = String(body.final ?? "").trim().toLowerCase() === "1" || String(body.final ?? "").trim().toLowerCase() === "true";
+    if (isFinal) {
+      await cleanupOrphanCategoriesAndTags(bindings.db);
+      await bumpCacheVersion(bindings.db);
+    } else if (result?.imported) {
+      await bumpCacheVersion(bindings.db);
+    }
     return c.json({ ok: true, result });
   });
 

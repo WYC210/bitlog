@@ -155,17 +155,32 @@
       if (!parsed || typeof parsed !== "object") return null;
       if (typeof parsed.at !== "number" || Date.now() - parsed.at > LIST_CTX_TTL_MS) return null;
       if (!Array.isArray(parsed.slugs)) return null;
-      return { at: parsed.at, slugs: parsed.slugs.map(String), from: String(parsed.from || "") };
+      const titles = parsed.titles && typeof parsed.titles === "object" ? parsed.titles : null;
+      return {
+        at: parsed.at,
+        slugs: parsed.slugs.map(String),
+        titles: titles,
+        from: String(parsed.from || "")
+      };
     } catch {
       return null;
     }
   }
 
-  function writeListContext(slugs, from) {
+  function writeListContext(payload) {
     try {
+      const slugs = Array.isArray(payload && payload.slugs) ? payload.slugs : [];
+      const from = payload && payload.from ? payload.from : "";
+      const titles = payload && payload.titles && typeof payload.titles === "object" ? payload.titles : null;
       sessionStorage.setItem(
         LIST_CTX_KEY,
-        JSON.stringify({ v: 1, at: Date.now(), slugs: slugs.slice(0, 200), from: String(from || "") })
+        JSON.stringify({
+          v: 2,
+          at: Date.now(),
+          slugs: slugs.slice(0, 200),
+          titles: titles,
+          from: String(from || "")
+        })
       );
     } catch {}
   }
@@ -193,18 +208,45 @@
     const body = document.querySelector("article.card .card-body");
     if (!body) return;
     if (document.getElementById("postNav")) return;
+    const ctx = readListContext();
+    const titles = (ctx && ctx.titles && typeof ctx.titles === "object") ? ctx.titles : null;
+    const titleOf = (slug) => {
+      try {
+        if (!titles || !slug) return "";
+        const t = titles[slug];
+        return (t && String(t).trim()) || "";
+      } catch {
+        return "";
+      }
+    };
     const wrap = document.createElement("div");
     wrap.id = "postNav";
     wrap.className = "post-nav";
-    const mk = (label, slug) =>
-      slug
-        ? `<a class="btn ghost post-nav-btn" href="/articles/${encodeURIComponent(slug)}">${label}</a>`
-        : `<span class="btn ghost post-nav-btn is-disabled" aria-disabled="true">${label}</span>`;
-    wrap.innerHTML = `<div class="post-nav-inner">
-      ${mk("上一篇", postNav.prev)}
-      ${mk("下一篇", postNav.next)}
-    </div>`;
+    const mk = (kind, label, slug) => {
+      const title = titleOf(slug) || (slug ? slug : (kind === "prev" ? "没有上一篇" : "没有下一篇"));
+      if (!slug) {
+        return `<div class="post-nav-item ${kind} is-disabled" aria-disabled="true">
+  <div class="post-nav-label">${label}</div>
+  <div class="post-nav-title">${title}</div>
+</div>`;
+      }
+      return `<a class="post-nav-item ${kind}" href="/articles/${encodeURIComponent(slug)}">
+  <div class="post-nav-label">${label}</div>
+  <div class="post-nav-title">${title}</div>
+</a>`;
+    };
+    wrap.innerHTML = `${mk("prev", "上一篇", postNav.prev)}${mk("next", "下一篇", postNav.next)}`;
     body.appendChild(wrap);
+  }
+
+  function ensurePostBackLink() {
+    if (page !== "post") return;
+    const a = document.getElementById("postBack");
+    if (!a) return;
+    const ctx = readListContext();
+    const from = ctx && typeof ctx.from === "string" ? ctx.from : "";
+    const href = from && from.startsWith("/") ? from : "/articles";
+    a.setAttribute("href", href);
   }
 
   function postPrev() {
@@ -363,14 +405,22 @@
         if (!href.startsWith("/articles/")) return;
         const parts = href.split("?")[0].split("/").filter(Boolean);
         if (parts[0] !== "articles" || !parts[1]) return;
-        const slugs = Array.from(document.querySelectorAll("a.article-card[href^='/articles/']"))
-          .map((x) => x.getAttribute("href") || "")
-          .map((h) => {
+        const cards = Array.from(document.querySelectorAll("a.article-card[href^='/articles/']"));
+        const titles = {};
+        const slugs = cards
+          .map((x) => {
+            const h = x.getAttribute("href") || "";
             const p = h.split("?")[0].split("/").filter(Boolean);
-            return p[0] === "articles" && p[1] ? decodeURIComponent(p[1]) : "";
+            const slug = p[0] === "articles" && p[1] ? decodeURIComponent(p[1]) : "";
+            const titleEl = x.querySelector && x.querySelector(".article-title");
+            const title = titleEl && titleEl.textContent ? String(titleEl.textContent).trim() : "";
+            if (slug && title) titles[slug] = title;
+            return slug;
           })
           .filter(Boolean);
-        if (slugs.length) writeListContext(slugs, window.location.pathname + window.location.search);
+        if (slugs.length) {
+          writeListContext({ slugs, titles, from: window.location.pathname + window.location.search });
+        }
       },
       true
     );
@@ -507,6 +557,7 @@
   });
 
   ensurePostNavUi();
+  ensurePostBackLink();
   enableArticleListContextCapture();
   enablePostSwipe();
   ensureMobileButton();

@@ -13,7 +13,7 @@
 pnpm install -r
 ```
 
-1) 启动 API（需要先把 `apps/api/wrangler.toml` 里的 `database_id` 替换成你的 D1）
+1. 启动 API（需要先把 `apps/api/wrangler.toml` 里的 `database_id` 替换成你的 D1）
 
 创建 D1 并应用 migrations：
 
@@ -30,13 +30,13 @@ wrangler d1 migrations apply bitlog --local --cwd apps/api -c wrangler.toml
 pnpm run dev:api
 ```
 
-2) 配置 Web 在本地通过 HTTP 访问 API（绕过 Service Binding），在 `apps/web/.dev.vars` 写：
+2. 配置 Web 在本地通过 HTTP 访问 API（绕过 Service Binding），在 `apps/web/.dev.vars` 写：
 
 ```bash
 API_BASE_URL=http://127.0.0.1:8787
 ```
 
-3) 启动 Web（会先构建 Admin 静态资源到 `apps/web/public/admin/`）
+3. 启动 Web（会先构建 Admin 静态资源到 `apps/web/public/admin/`）
 
 ```bash
 pnpm run dev:web
@@ -46,13 +46,13 @@ pnpm run dev:web
 
 ## 部署（Cloudflare）
 
-1) 部署 API：
+1. 部署 API：
 
 ```bash
 pnpm run deploy:api
 ```
 
-2) 部署 Web（会自动 `pnpm -C apps/admin run build`）：
+2. 部署 Web（会自动 `pnpm -C apps/admin run build`）：
 
 ```bash
 pnpm run deploy:web
@@ -66,17 +66,3 @@ pnpm run deploy:web
 - `bitlog-api`：`your-domain.com/api/*`、`your-domain.com/assets/*`、`your-domain.com/rss.xml`、`your-domain.com/sitemap.xml`
 
 这样浏览器访问 `/api/*` 会直接落到 API Worker；Web Worker 仍然通过 Service Binding 访问 API（并在本地开发时支持同源转发）。
-
-## 可选：启用 R2 图片上传
-
-默认禁用上传（后端会返回 `Upload disabled`）。
-
-启用方法：在 `apps/api/wrangler.toml` 取消注释 `r2_buckets`，并确保你的账号下存在对应 bucket。
-
-## 访问入口
-
-- 公开站：`/articles`、`/articles/:slug`
-- 管理端：`/admin/`
-- API：`/api/*`
-
-默认管理员：`admin / 123456`（可在 Admin 的“管理员密码”里修改）。

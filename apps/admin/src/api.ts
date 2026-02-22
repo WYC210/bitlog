@@ -197,16 +197,36 @@ export async function listAdminPosts(params: {
   pageSize?: number;
   status?: string;
   q?: string;
-}): Promise<{ posts: AdminPostListItem[]; page: number; pageSize: number }> {
+}): Promise<{
+  posts: AdminPostListItem[];
+  page: number;
+  pageSize: number;
+  hasMore?: boolean;
+  total?: number;
+  pageCount?: number;
+}> {
   const usp = new URLSearchParams();
   if (params.page) usp.set("page", String(params.page));
   if (params.pageSize) usp.set("pageSize", String(params.pageSize));
   if (params.status) usp.set("status", params.status);
   if (params.q) usp.set("q", params.q);
-  const r = await apiJson<{ ok: true; posts: AdminPostListItem[]; page: number; pageSize: number }>(
-    `/api/admin/posts?${usp.toString()}`
-  );
-  return { posts: r.posts, page: r.page, pageSize: r.pageSize };
+  const r = await apiJson<{
+    ok: true;
+    posts: AdminPostListItem[];
+    page: number;
+    pageSize: number;
+    hasMore?: boolean;
+    total?: number;
+    pageCount?: number;
+  }>(`/api/admin/posts?${usp.toString()}`);
+  return {
+    posts: r.posts,
+    page: r.page,
+    pageSize: r.pageSize,
+    hasMore: (r as any).hasMore,
+    total: (r as any).total,
+    pageCount: (r as any).pageCount
+  };
 }
 
 export type AdminPostDetail = {
@@ -332,6 +352,38 @@ export async function importAdminPostsZip(file: File): Promise<{
     throw err;
   }
   return data.result as any;
+}
+
+export type AdminImportPostsItem =
+  | { kind: "markdown"; path: string; content: string }
+  | {
+      kind: "wordpress";
+      title: string;
+      content_html: string;
+      excerpt_html?: string | null;
+      slug?: string | null;
+      publish_at?: number | string | null;
+      categories?: string[] | null;
+      tags?: string[] | null;
+    };
+
+export async function importAdminPostsBatch(
+  items: AdminImportPostsItem[],
+  opts?: { final?: boolean }
+): Promise<{
+  imported: number;
+  skipped: number;
+  failed: number;
+  items: Array<
+    | { ok: true; source: string; title: string; slug: string; action: "imported" | "skipped" }
+    | { ok: false; source: string; path: string; error: string }
+  >;
+}> {
+  const r = await apiJson<{ ok: true; result: any }>("/api/admin/import/posts/batch", {
+    method: "POST",
+    body: JSON.stringify({ items, final: !!opts?.final })
+  });
+  return r.result as any;
 }
 
 export async function renderAdminMarkdown(

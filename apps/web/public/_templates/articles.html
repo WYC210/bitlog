@@ -43,7 +43,7 @@
             <a href="/tools">工具中心</a>
             <a href="/about">关于我</a>
           </nav>
-          <a class="btn ghost" href="/admin/">我的</a>
+          <a class="btn ghost admin-link" href="/admin/">我的</a>
           <button class="btn ghost icon" id="themeToggle" type="button" aria-label="切换主题" title="切换主题">
             <svg class="icon-moon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path
@@ -79,6 +79,7 @@
       <div class="layout">
         <section>
           <div class="article-list">{{POST_CARDS}}</div>
+          {{PAGINATION}}
           <div class="footer">Tips：可使用分类/标签过滤，或搜索缩小范围。</div>
         </section>
 

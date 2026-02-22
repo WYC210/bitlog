@@ -25,7 +25,7 @@ type SiteConfig = {
 };
 
 type Category = { id: string; slug: string; name: string };
-type Tag = { id?: string; slug: string; name: string };
+type Tag = { id?: string; slug: string; name: string; count?: number };
 
 type PostListItem = {
   id?: string;
@@ -139,7 +139,7 @@ function renderSiteFooter(cfg: SiteConfig, year: string): string {
     : `<span>${escapeHtml(copyrightText)}</span>`;
 
   const dot = `<span class="site-footer__dot" aria-hidden="true">·</span>`;
-  const sitemap = `<a href="/sitemap.xml" target="_blank" rel="noopener noreferrer" aria-label="网站地图">Sitemap</a>`;
+  const sitemap = `<a href="/sitemap.xml" target="_blank" rel="noopener noreferrer" aria-label="网站地图">网站地图</a>`;
   const rss = `<a href="/rss.xml" target="_blank" rel="noopener noreferrer" aria-label="RSS订阅">RSS</a>`;
 
   const icpText = String(cfg.footerIcpText ?? "").trim();
@@ -296,16 +296,75 @@ function renderChips(items: Array<{ name: string; slug: string }>, baseHref: str
 function renderChipsWithActive(
   items: Array<{ name: string; slug: string }>,
   baseHref: string,
-  activeSlug: string | null
+  activeSlug: string | null,
+  opts?: { collapseAt?: number; moreLabel?: string; lessLabel?: string }
 ): string {
-  return items
-    .map((it) => {
-      const href = `${baseHref}${encodeURIComponent(it.slug)}`;
-      const color = hashColor(it.name);
-      const cls = `chip chip--${color}${activeSlug && it.slug === activeSlug ? " is-active" : ""}`;
-      return `<a class="${cls}" href="${href}">${escapeHtml(it.name)}</a>`;
-    })
-    .join("");
+  const render = (arr: Array<{ name: string; slug: string }>) =>
+    arr
+      .map((it) => {
+        const href = `${baseHref}${encodeURIComponent(it.slug)}`;
+        const color = hashColor(it.name);
+        const cls = `chip chip--${color}${activeSlug && it.slug === activeSlug ? " is-active" : ""}`;
+        return `<a class="${cls}" href="${href}">${escapeHtml(it.name)}</a>`;
+      })
+      .join("");
+
+  const collapseAt = Math.max(0, Math.trunc(opts?.collapseAt ?? 0));
+  if (!collapseAt || items.length <= collapseAt) return render(items);
+
+  const reordered = items.slice();
+  if (activeSlug) {
+    const i = reordered.findIndex((x) => x.slug === activeSlug);
+    if (i > collapseAt - 1 && i >= 0) {
+      const [active] = reordered.splice(i, 1);
+      reordered.unshift(active!);
+    }
+  }
+
+  const head = reordered.slice(0, collapseAt);
+  const tail = reordered.slice(collapseAt);
+
+  const moreLabel = String(opts?.moreLabel ?? "··· 更多");
+  const lessLabel = String(opts?.lessLabel ?? "收起");
+  return (
+    render(head) +
+    `<details class="tag-more">
+  <summary class="tag-more-summary"><span class="more">${escapeHtml(moreLabel)}</span><span class="less">${escapeHtml(lessLabel)}</span></summary>
+  <div class="tag-list">${render(tail)}</div>
+</details>`
+  );
+}
+
+function reorderTagsForSidebar(tags: Tag[], activeSlug: string | null, maxTop = 12): { tags: Tag[]; topCount: number } {
+  const list = (tags ?? []).slice();
+  const byCount = list.slice().sort((a, b) => {
+    const da = Number.isFinite(a.count as any) ? (a.count as number) : 0;
+    const db = Number.isFinite(b.count as any) ? (b.count as number) : 0;
+    if (db !== da) return db - da;
+    return String(a.name ?? "").localeCompare(String(b.name ?? ""), "zh-CN");
+  });
+
+  const count2 = byCount.filter((t) => (t.count ?? 0) >= 2);
+  let top = count2.slice(0, Math.min(maxTop, count2.length));
+  if (top.length === 0) top = byCount.slice(0, Math.min(maxTop, byCount.length));
+
+  if (activeSlug) {
+    const isActiveInTop = top.some((t) => t.slug === activeSlug);
+    if (!isActiveInTop) {
+      const active = byCount.find((t) => t.slug === activeSlug);
+      if (active) {
+        if (top.length < maxTop) top = [active, ...top];
+        else top = [active, ...top.slice(0, Math.max(0, top.length - 1))];
+      }
+    }
+  }
+
+  const topSet = new Set(top.map((t) => t.slug));
+  const tail = byCount
+    .filter((t) => !topSet.has(t.slug))
+    .sort((a, b) => String(a.name ?? "").localeCompare(String(b.name ?? ""), "zh-CN"));
+
+  return { tags: [...top, ...tail], topCount: top.length };
 }
 
 function hashColor(str: string): string {
@@ -484,8 +543,9 @@ export function createWebApp() {
       const footer = renderSiteFooter(cfg, year);
       const [categories, tags] = await Promise.all([
         apiJson<ApiOk<{ categories: Category[] }>>(c.env, "/api/categories").then((r) => r.categories),
-        apiJson<ApiOk<{ tags: Tag[] }>>(c.env, "/api/tags").then((r) => r.tags)
+        apiJson<ApiOk<{ tags: Tag[] }>>(c.env, "/api/tags?order=popular").then((r) => r.tags)
       ]);
+      const tagReordered = reorderTagsForSidebar(tags as any, tag, 12);
 
       const filterPill = category
         ? `<span class="pill"><strong>分类</strong><span class="sep">·</span>${escapeHtml(
@@ -500,18 +560,24 @@ export function createWebApp() {
             )}</span>`;
 
       let posts: PostListItem[] = [];
+      let hasMore = false;
+      let total = 0;
       if (q) {
-        const search = await apiJson<ApiOk<{ results: PostListItem[]; q: string }>>(
+        const search = await apiJson<ApiOk<{ results: PostListItem[]; q: string; hasMore?: boolean; total?: number }>>(
           c.env,
           `/api/search?q=${encodeURIComponent(q)}&page=${page}&pageSize=${pageSize}`
         );
         posts = (search.results ?? []) as any;
+        hasMore = !!(search as any).hasMore;
+        total = Number((search as any).total ?? 0) || 0;
       } else {
-        const list = await apiJson<ApiOk<{ posts: PostListItem[] }>>(
+        const list = await apiJson<ApiOk<{ posts: PostListItem[]; hasMore?: boolean; total?: number }>>(
           c.env,
           `/api/posts?page=${page}&pageSize=${pageSize}${category ? `&category=${encodeURIComponent(category)}` : ""}${tag ? `&tag=${encodeURIComponent(tag)}` : ""}`
         );
         posts = list.posts ?? [];
+        hasMore = !!(list as any).hasMore;
+        total = Number((list as any).total ?? 0) || 0;
       }
 
       const cards = posts
@@ -530,7 +596,59 @@ export function createWebApp() {
         })
         .join("\n");
 
-      const resultMeta = q ? `搜索结果 · ${posts.length} 条` : `最近更新`;
+      const resultMeta = q ? `搜索结果 · ${posts.length} 条` : "";
+
+      const pagination = (() => {
+        const pageCount = Math.max(1, Math.ceil((total || 0) / pageSize));
+        if (pageCount <= 1) return "";
+
+        const baseParams = new URLSearchParams(url.searchParams);
+        const hrefForPage = (p: number) => {
+          const sp = new URLSearchParams(baseParams);
+          if (p <= 1) sp.delete("page");
+          else sp.set("page", String(p));
+          if (pageSize === 10) sp.delete("pageSize");
+          else sp.set("pageSize", String(pageSize));
+          const qs = sp.toString();
+          return `/articles${qs ? `?${qs}` : ""}`;
+        };
+
+        const current = Math.min(Math.max(1, page), pageCount);
+        const hasPrev = current > 1;
+        const hasNext = current < pageCount;
+
+        const pageItems: Array<number | "ellipsis"> = [];
+        if (pageCount <= 7) {
+          for (let i = 1; i <= pageCount; i++) pageItems.push(i);
+        } else if (current <= 3) {
+          pageItems.push(1, 2, 3, "ellipsis", pageCount);
+        } else if (current >= pageCount - 2) {
+          pageItems.push(1, "ellipsis", pageCount - 2, pageCount - 1, pageCount);
+        } else {
+          pageItems.push(1, "ellipsis", current - 1, current, current + 1, "ellipsis", pageCount);
+        }
+
+        const prev = hasPrev
+          ? `<a class="pagination-btn" href="${escapeHtml(hrefForPage(current - 1))}" aria-label="上一页">&lsaquo;</a>`
+          : `<span class="pagination-btn is-disabled" aria-disabled="true" aria-label="上一页">&lsaquo;</span>`;
+        const next = hasNext
+          ? `<a class="pagination-btn" href="${escapeHtml(hrefForPage(current + 1))}" aria-label="下一页">&rsaquo;</a>`
+          : `<span class="pagination-btn is-disabled" aria-disabled="true" aria-label="下一页">&rsaquo;</span>`;
+
+        const pages = pageItems
+          .map((it) => {
+            if (it === "ellipsis") return `<span class="pagination-ellipsis" aria-hidden="true">…</span>`;
+            if (it === current) return `<span class="pagination-btn active" aria-current="page">${it}</span>`;
+            return `<a class="pagination-btn" href="${escapeHtml(hrefForPage(it))}">${it}</a>`;
+          })
+          .join("");
+
+        return `<nav class="articles-pagination" aria-label="分页">
+  <div class="pagination-bar">
+    ${prev}${pages}${next}
+  </div>
+</nav>`;
+      })();
 
       const html = replaceAll((await loadTemplates(c.env, c.req.url)).articles, {
         "{{PAGE_TITLE}}": escapeHtml(cfg.title ?? "Articles"),
@@ -539,8 +657,9 @@ export function createWebApp() {
         "{{RESULT_META}}": escapeHtml(resultMeta),
         "{{SEARCH_VALUE}}": escapeHtml(q),
         "{{POST_CARDS}}": cards || `<div class="meta">暂无文章</div>`,
+        "{{PAGINATION}}": pagination,
         "{{CATEGORIES}}": renderChipsWithActive(categories, "/articles?category=", category),
-        "{{TAGS}}": renderChipsWithActive(tags as any, "/articles?tag=", tag),
+        "{{TAGS}}": renderChipsWithActive(tagReordered.tags as any, "/articles?tag=", tag, { collapseAt: tagReordered.topCount }),
         "{{SITE_FOOTER}}": footer,
         "{{CACHE_VERSION}}": escapeHtml(cacheVersionForRequest(cfg, c.req.url)),
         "{{UI_WEB_STYLE}}": escapeHtml(String(cfg.webStyle ?? "current")),

@@ -212,20 +212,23 @@ async function hasPostTitleDate(db: Db, title: string, publishAt: number): Promi
   return !!rows[0];
 }
 
-export async function importPostsFromZip(db: Db, zipBytes: Uint8Array): Promise<ImportPostsResult> {
-  const map = unzipSync(zipBytes);
-  const entries = Object.entries(map)
-    .map(([path, bytes]) => ({ path: String(path ?? ""), bytes }))
-    .filter((e) => e.path && !e.path.endsWith("/"));
+type InsertPostInput = {
+  title: string;
+  contentMd: string;
+  summary: string;
+  publishAt: number;
+  slugPreferred: string | null;
+  categoryName: string | null;
+  tags: string[];
+};
 
-  const xmlEntries = entries.filter((e) => e.path.toLowerCase().endsWith(".xml"));
-  const mdEntries = entries.filter((e) => e.path.toLowerCase().endsWith(".md"));
+type InsertPostResult =
+  | { ok: true; slug: string; action: "imported" | "skipped" }
+  | { ok: false; error: string };
 
-  const items: ImportPostsResult["items"] = [];
-  let imported = 0;
-  let skipped = 0;
-  let failed = 0;
-
+async function createImportInserter(db: Db): Promise<{
+  insertPost: (input: InsertPostInput) => Promise<InsertPostResult>;
+}> {
   const config = await getSiteConfig(db);
   const allowlist = config.embedAllowlistHosts;
 
@@ -290,15 +293,7 @@ export async function importPostsFromZip(db: Db, zipBytes: Uint8Array): Promise<
     return out;
   };
 
-  const insertPost = async (input: {
-    title: string;
-    contentMd: string;
-    summary: string;
-    publishAt: number;
-    slugPreferred: string | null;
-    categoryName: string | null;
-    tags: string[];
-  }): Promise<{ ok: true; slug: string; action: "imported" | "skipped" } | { ok: false; error: string }> => {
+  const insertPost = async (input: InsertPostInput): Promise<InsertPostResult> => {
     const title = input.title.trim();
     if (!title) return { ok: false, error: "Missing title" };
     if (!input.contentMd) return { ok: false, error: "Missing content" };
@@ -342,6 +337,25 @@ export async function importPostsFromZip(db: Db, zipBytes: Uint8Array): Promise<
 
     return { ok: true, slug, action: "imported" };
   };
+
+  return { insertPost };
+}
+
+export async function importPostsFromZip(db: Db, zipBytes: Uint8Array): Promise<ImportPostsResult> {
+  const map = unzipSync(zipBytes);
+  const entries = Object.entries(map)
+    .map(([path, bytes]) => ({ path: String(path ?? ""), bytes }))
+    .filter((e) => e.path && !e.path.endsWith("/"));
+
+  const xmlEntries = entries.filter((e) => e.path.toLowerCase().endsWith(".xml"));
+  const mdEntries = entries.filter((e) => e.path.toLowerCase().endsWith(".md"));
+
+  const items: ImportPostsResult["items"] = [];
+  let imported = 0;
+  let skipped = 0;
+  let failed = 0;
+
+  const { insertPost } = await createImportInserter(db);
 
   // Markdown-based importers (Bitlog/Hexo/Hugo/Jekyll)
   for (const e of mdEntries) {
@@ -468,4 +482,138 @@ export async function importPostsFromZip(db: Db, zipBytes: Uint8Array): Promise<
   }
 
   return { ok: true, imported, skipped, failed, items };
+}
+
+export type ImportPostsItem =
+  | { kind: "markdown"; path: string; content: string }
+  | {
+      kind: "wordpress";
+      title: string;
+      content_html: string;
+      excerpt_html?: string | null;
+      slug?: string | null;
+      publish_at?: number | string | null;
+      categories?: string[] | null;
+      tags?: string[] | null;
+    };
+
+export async function importPostsFromItems(db: Db, inputs: ImportPostsItem[]): Promise<ImportPostsResult> {
+  const { insertPost } = await createImportInserter(db);
+
+  const items: ImportPostsResult["items"] = [];
+  let imported = 0;
+  let skipped = 0;
+  let failed = 0;
+
+  for (let index = 0; index < inputs.length; index++) {
+    const it = inputs[index] as any;
+    if (!it || typeof it !== "object") {
+      failed++;
+      items.push({ ok: false, source: "md", path: `item:${index}`, error: "invalid_item" });
+      continue;
+    }
+
+    if (it.kind === "markdown") {
+      const path = String(it.path ?? "");
+      try {
+        const { meta, body } = splitFrontmatter(String(it.content ?? ""));
+        const title = String(meta.title ?? "").trim();
+        const publishAt = coerceDateMs(meta.date) ?? nowMs();
+        const tags = toStringArray((meta as any).tags);
+        const folderCat = categoryFromPath(path);
+        const metaCat = pickFirstString((meta as any).category ?? (meta as any).categories);
+        const categoryName = folderCat ?? metaCat;
+
+        const slugPreferred =
+          normalizeSlug((meta as any).slug) ??
+          normalizeSlug((meta as any).url) ??
+          normalizeSlug((meta as any).permalink) ??
+          slugFromFileName(path);
+
+        const summary =
+          String((meta as any).summary ?? "").trim() ||
+          String((meta as any).description ?? "").trim();
+
+        if (!title) throw new Error("missing_title");
+        const res = await insertPost({
+          title,
+          contentMd: body,
+          summary,
+          publishAt,
+          slugPreferred,
+          categoryName,
+          tags
+        });
+        if (!res.ok) throw new Error(res.error);
+        if (res.action === "imported") {
+          imported++;
+          items.push({ ok: true, source: "md", title, slug: res.slug, action: "imported" });
+        } else {
+          skipped++;
+          items.push({ ok: true, source: "md", title, slug: res.slug, action: "skipped" });
+        }
+      } catch (err) {
+        failed++;
+        const msg = err instanceof Error ? err.message : "import_failed";
+        items.push({ ok: false, source: "md", path: path || `item:${index}`, error: msg });
+      }
+      continue;
+    }
+
+    if (it.kind === "wordpress") {
+      try {
+        const title = normalizeWhitespace(String(it.title ?? ""));
+        const contentHtml = String(it.content_html ?? "");
+        const excerptHtml = String(it.excerpt_html ?? "");
+        const summary = stripHtmlToText(excerptHtml);
+        const slugPreferred = normalizeSlug(String(it.slug ?? "")) ?? null;
+
+        const publishAt =
+          (typeof it.publish_at === "number" && Number.isFinite(it.publish_at) ? toFiniteMs(it.publish_at) : null) ??
+          parseWpUtcMs(it.publish_at) ??
+          coerceDateMs(it.publish_at) ??
+          nowMs();
+
+        const catNames = Array.isArray(it.categories) ? it.categories.map((x: any) => String(x ?? "").trim()).filter(Boolean) : [];
+        const tagNames = Array.isArray(it.tags) ? it.tags.map((x: any) => String(x ?? "").trim()).filter(Boolean) : [];
+
+        if (!title) throw new Error("missing_title");
+        if (!contentHtml) throw new Error("missing_content");
+
+        const res = await insertPost({
+          title,
+          contentMd: contentHtml,
+          summary,
+          publishAt,
+          slugPreferred,
+          categoryName: catNames[0] ?? null,
+          tags: tagNames
+        });
+        if (!res.ok) throw new Error(res.error);
+        if (res.action === "imported") {
+          imported++;
+          items.push({ ok: true, source: "wordpress", title, slug: res.slug, action: "imported" });
+        } else {
+          skipped++;
+          items.push({ ok: true, source: "wordpress", title, slug: res.slug, action: "skipped" });
+        }
+      } catch (err) {
+        failed++;
+        const msg = err instanceof Error ? err.message : "import_failed";
+        const pathHint = String(it.slug ?? "") || String(it.title ?? "") || `item:${index}`;
+        items.push({ ok: false, source: "wordpress", path: pathHint, error: msg });
+      }
+      continue;
+    }
+
+    failed++;
+    items.push({ ok: false, source: "md", path: `item:${index}`, error: "invalid_kind" });
+  }
+
+  return { ok: true, imported, skipped, failed, items };
+}
+
+function toFiniteMs(v: number): number | null {
+  const x = Math.floor(v);
+  return Number.isFinite(x) && x > 0 ? x : null;
 }

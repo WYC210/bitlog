@@ -37,6 +37,10 @@ body[data-page="articles"] {
   color: var(--muted);
 }
 
+.articles-result-meta:empty {
+  display: none;
+}
+
 /* Enhanced Article Cards - 优化后 */
 body[data-page="articles"] .article-card {
   position: relative;
@@ -315,6 +319,39 @@ body[data-page="articles"] .article-summary {
   padding: 20px 0;
 }
 
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 14px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  box-shadow: var(--shadow-soft);
+}
+
+.pagination-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.pagination-bar > * {
+  border-right: 1px solid var(--border);
+}
+
+.pagination-bar > *:last-child {
+  border-right: 0;
+}
+
+.pagination-meta {
+  display: inline-flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 8px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
 .pagination-btn {
   display: inline-flex;
   align-items: center;
@@ -333,9 +370,25 @@ body[data-page="articles"] .article-summary {
   text-decoration: none;
 }
 
+.pagination-bar .pagination-btn,
+.pagination-bar .pagination-ellipsis {
+  height: 44px;
+  min-width: 56px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
 .pagination-btn:hover {
   background: var(--surface-2);
   border-color: color-mix(in srgb, var(--primary) 40%, var(--border));
+  color: var(--primary);
+}
+
+.pagination-bar .pagination-btn:hover {
+  background: var(--surface-2);
+  border-color: transparent;
   color: var(--primary);
 }
 
@@ -345,9 +398,29 @@ body[data-page="articles"] .article-summary {
   color: white;
 }
 
+.pagination-bar .pagination-btn.active {
+  background: var(--primary);
+  color: white;
+}
+
 .pagination-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.pagination-btn.is-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.pagination-ellipsis {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-weight: 600;
+  user-select: none;
 }
 
 .pagination-btn svg {

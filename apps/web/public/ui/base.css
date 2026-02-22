@@ -358,6 +358,11 @@ html.theme-transition-active {
   min-width: 0;
 }
 
+.header-right .admin-link {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
 .nav {
   display: flex;
   align-items: center;
@@ -372,6 +377,7 @@ html.theme-transition-active {
   border: 1px solid var(--border);
   background: color-mix(in srgb, var(--surface) 72%, transparent);
   box-shadow: var(--shadow-soft);
+  min-width: 0;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
@@ -847,6 +853,11 @@ mark {
   color: var(--muted);
 }
 
+.chip.is-disabled {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
 .chip.is-active {
   color: var(--primary-700);
   border-color: color-mix(in srgb, var(--primary) 45%, var(--border));
@@ -1138,6 +1149,63 @@ mark {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.tag-list .tag-more {
+  flex-basis: 100%;
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+}
+
+.tag-more-summary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 0 2px;
+  cursor: pointer;
+  user-select: none;
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+}
+
+.tag-more-summary::-webkit-details-marker {
+  display: none;
+}
+
+.tag-more-summary::marker {
+  content: "";
+}
+
+.tag-more .more {
+  padding-left: 0;
+}
+
+.tag-more .more::before {
+  content: "";
+  display: none;
+}
+
+.tag-more:not([open]) .less {
+  display: none;
+}
+
+.tag-more[open] .more {
+  display: none;
+}
+
+.tag-more > summary {
+  order: 2;
+}
+
+.tag-more > .tag-list {
+  order: 1;
+}
+
+.tag-more .tag-list {
+  margin-top: 6px;
 }
 
 .prose {
