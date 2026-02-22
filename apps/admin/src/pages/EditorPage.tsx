@@ -7,8 +7,7 @@ import {
   listPublicTags,
   renderAdminMarkdown,
   updateAdminPost,
-  updateAdminPrefs,
-  uploadAdminImage
+  updateAdminPrefs
 } from "../api";
 import { utcMsToZonedInput, zonedInputToUtcMs } from "../tz";
 import type { MarkdownEditorHandle } from "../components/MarkdownEditor";
@@ -39,8 +38,6 @@ export function EditorPage(props: {
   const [tags, setTags] = useState<string>("");
   const [status, setStatus] = useState<"draft" | "published" | "scheduled">("draft");
   const [publishAtLocal, setPublishAtLocal] = useState<string>("");
-  const [uploading, setUploading] = useState(false);
-  const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -683,23 +680,6 @@ export function EditorPage(props: {
     });
   }, [previewHtml]);
 
-  async function uploadImage(file: File): Promise<string> {
-    props.onError("");
-    setUploading(true);
-    setUploadedUrl(null);
-    try {
-      const asset = await uploadAdminImage(file);
-      setUploadedUrl(asset.url);
-      return asset.url;
-    } catch (err) {
-      const apiErr = err as ApiError;
-      props.onError(apiErr.message || "上传失败");
-      throw err;
-    } finally {
-      setUploading(false);
-    }
-  }
-
   async function save(overrides?: { status?: typeof status; publishAtLocal?: string }) {
     props.onError("");
     if (!title.trim() || !content.trim()) {
@@ -1015,42 +995,6 @@ export function EditorPage(props: {
                 />
               </label>
             </div>
-            <label className="field">
-              图片上传（仅当 Worker 绑定 R2 时可用）
-              <input
-                className="input"
-                type="file"
-                accept="image/png,image/jpeg,image/webp,image/gif"
-                disabled={uploading}
-                onChange={async (e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  try {
-                    const url = await uploadImage(file);
-                    editorRef.current?.insertText(`\n\n![](${url})\n`);
-                  } catch {
-                    // error handled by uploadImage
-                  } finally {
-                    e.target.value = "";
-                  }
-                }}
-              />
-            </label>
-            {uploadedUrl ? (
-              <div className="nav">
-                <span className="muted">已上传：{uploadedUrl}</span>
-                <button
-                  className="btn btn-ghost"
-                  onClick={() => {
-                    editorRef.current?.insertText(`\n\n![](${uploadedUrl})\n`);
-                  }}
-                >
-                  插入 Markdown
-                </button>
-              </div>
-            ) : uploading ? (
-              <div className="muted">上传中...</div>
-            ) : null}
           </div>
 
           <label className="field editor-md">
@@ -1060,7 +1004,6 @@ export function EditorPage(props: {
               value={content}
               onChange={setContent}
               onSave={() => void save()}
-              onUploadImage={uploadImage}
               onFocusChange={setMarkdownFocused}
             />
           </label>
