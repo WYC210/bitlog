@@ -3,8 +3,8 @@ import type { AdminPostDetail, AdminPrefs, ApiError, PublicCategory, PublicTag, 
 import {
   createAdminPost,
   getAdminPost,
-  listPublicCategories,
-  listPublicTags,
+  listAdminCategories,
+  listAdminTags,
   renderAdminMarkdown,
   updateAdminPost,
   updateAdminPrefs
@@ -117,7 +117,7 @@ export function EditorPage(props: {
     if (categoryLoading || !categoryHasMore) return;
     setCategoryLoading(true);
     try {
-      const r = await listPublicCategories({ limit: CATEGORY_PAGE_SIZE, cursor: categoryNextCursor });
+      const r = await listAdminCategories({ limit: CATEGORY_PAGE_SIZE, cursor: categoryNextCursor });
       setCategoryItems((prev) => {
         const map = new Map(prev.map((x) => [x.id, x] as const));
         for (const item of r.categories ?? []) map.set(item.id, item);
@@ -136,7 +136,7 @@ export function EditorPage(props: {
     if (tagsLoading || !tagsHasMore) return;
     setTagsLoading(true);
     try {
-      const r = await listPublicTags({ limit: TAG_PAGE_SIZE, cursor: tagsNextCursor });
+      const r = await listAdminTags({ limit: TAG_PAGE_SIZE, cursor: tagsNextCursor });
       setTagsItems((prev) => {
         const map = new Map(prev.map((x) => [x.id, x] as const));
         for (const item of r.tags ?? []) map.set(item.id, item);

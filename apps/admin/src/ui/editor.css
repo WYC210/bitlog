@@ -647,8 +647,8 @@
     ),
     linear-gradient(
       180deg,
-      color-mix(in srgb, var(--bg) 82%, var(--panel)),
-      color-mix(in srgb, var(--bg) 88%, var(--panel))
+      color-mix(in srgb, var(--bg) 92%, var(--accent)),
+      color-mix(in srgb, var(--bg) 96%, var(--accent))
     );
   border-radius: var(--radius);
   padding: 6px;

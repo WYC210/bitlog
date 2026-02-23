@@ -2420,6 +2420,112 @@ export function createApiApp(bindings: ApiBindings) {
     return c.json({ ok: true, tools });
   });
 
+  app.get("/api/admin/categories", async (c) => {
+    if (!isSameOriginRequest(c.req.raw)) return c.json(jsonError("Forbidden", 403), 403);
+    const session = await requireAdmin(bindings, c.req.raw);
+    if (!session) return c.json(jsonError("Unauthorized", 401), 401);
+
+    const url = new URL(c.req.url);
+    const limitRaw = url.searchParams.get("limit");
+    const cursorRaw = url.searchParams.get("cursor");
+    const paged = limitRaw !== null || cursorRaw !== null;
+    const limit = Math.max(1, Math.min(1000, Number.isFinite(Number(limitRaw)) ? Math.trunc(Number(limitRaw)) : 1000));
+
+    let cursor: { name: string; id: string } | null = null;
+    if (cursorRaw) {
+      try {
+        let b64 = cursorRaw.replace(/-/g, "+").replace(/_/g, "/");
+        const pad = (4 - (b64.length % 4)) % 4;
+        if (pad) b64 += "=".repeat(pad);
+        const json = atob(b64);
+        const parsed = JSON.parse(json) as any;
+        const name = String(parsed?.name ?? "");
+        const id = String(parsed?.id ?? "");
+        if (name && id) cursor = { name, id };
+      } catch {
+        cursor = null;
+      }
+    }
+
+    const fetchLimit = paged ? limit + 1 : 1000000;
+    const allRows = await bindings.db.query<{ id: string; slug: string; name: string }>(
+      sql`SELECT c.id, c.slug, c.name
+            FROM categories c
+            WHERE (
+              ${cursor?.name ?? null} IS NULL
+              OR c.name > ${cursor?.name ?? null}
+              OR (c.name = ${cursor?.name ?? null} AND c.id > ${cursor?.id ?? null})
+            )
+            ORDER BY c.name ASC, c.id ASC
+            LIMIT ${fetchLimit}`
+    );
+
+    const hasMore = paged && allRows.length > limit;
+    const rows = hasMore ? allRows.slice(0, limit) : allRows;
+
+    let nextCursor: string | null = null;
+    if (hasMore && rows.length > 0) {
+      const last = rows[rows.length - 1]!;
+      const payload = JSON.stringify({ name: last.name, id: last.id });
+      nextCursor = btoa(payload).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+    }
+
+    return c.json(paged ? { ok: true, categories: rows, nextCursor } : { ok: true, categories: rows });
+  });
+
+  app.get("/api/admin/tags", async (c) => {
+    if (!isSameOriginRequest(c.req.raw)) return c.json(jsonError("Forbidden", 403), 403);
+    const session = await requireAdmin(bindings, c.req.raw);
+    if (!session) return c.json(jsonError("Unauthorized", 401), 401);
+
+    const url = new URL(c.req.url);
+    const limitRaw = url.searchParams.get("limit");
+    const cursorRaw = url.searchParams.get("cursor");
+    const paged = limitRaw !== null || cursorRaw !== null;
+    const limit = Math.max(1, Math.min(1000, Number.isFinite(Number(limitRaw)) ? Math.trunc(Number(limitRaw)) : 1000));
+
+    let cursor: { name: string; id: string } | null = null;
+    if (cursorRaw) {
+      try {
+        let b64 = cursorRaw.replace(/-/g, "+").replace(/_/g, "/");
+        const pad = (4 - (b64.length % 4)) % 4;
+        if (pad) b64 += "=".repeat(pad);
+        const json = atob(b64);
+        const parsed = JSON.parse(json) as any;
+        const name = String(parsed?.name ?? "");
+        const id = String(parsed?.id ?? "");
+        if (name && id) cursor = { name, id };
+      } catch {
+        cursor = null;
+      }
+    }
+
+    const fetchLimit = paged ? limit + 1 : 1000000;
+    const allRows = await bindings.db.query<{ id: string; slug: string; name: string }>(
+      sql`SELECT t.id, t.slug, t.name
+            FROM tags t
+            WHERE (
+              ${cursor?.name ?? null} IS NULL
+              OR t.name > ${cursor?.name ?? null}
+              OR (t.name = ${cursor?.name ?? null} AND t.id > ${cursor?.id ?? null})
+            )
+            ORDER BY t.name ASC, t.id ASC
+            LIMIT ${fetchLimit}`
+    );
+
+    const hasMore = paged && allRows.length > limit;
+    const rows = hasMore ? allRows.slice(0, limit) : allRows;
+
+    let nextCursor: string | null = null;
+    if (hasMore && rows.length > 0) {
+      const last = rows[rows.length - 1]!;
+      const payload = JSON.stringify({ name: last.name, id: last.id });
+      nextCursor = btoa(payload).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+    }
+
+    return c.json(paged ? { ok: true, tags: rows, nextCursor } : { ok: true, tags: rows });
+  });
+
   app.post("/api/admin/tools", async (c) => {
     if (!isSameOriginRequest(c.req.raw, { requireOrigin: true, requireSameSite: true })) {
       return c.json(jsonError("Forbidden", 403), 403);
