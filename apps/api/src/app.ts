@@ -63,6 +63,35 @@ function parseLooseBool(v: string | null | undefined): boolean {
   return s === "1" || s === "true" || s === "yes" || s === "on";
 }
 
+function base64UrlEncodeUtf8(text: string): string {
+  const bytes = new TextEncoder().encode(String(text ?? ""));
+  let bin = "";
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
+function base64UrlDecodeUtf8(base64Url: string): string {
+  let b64 = String(base64Url ?? "").replace(/-/g, "+").replace(/_/g, "/");
+  const pad = (4 - (b64.length % 4)) % 4;
+  if (pad) b64 += "=".repeat(pad);
+  const bin = atob(b64);
+  const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+}
+
+function decodeCursorJson(raw: string | null): any | null {
+  if (!raw) return null;
+  try {
+    return JSON.parse(base64UrlDecodeUtf8(raw));
+  } catch {
+    return null;
+  }
+}
+
+function encodeCursorJson(value: unknown): string {
+  return base64UrlEncodeUtf8(JSON.stringify(value ?? null));
+}
+
 function parsePostStatus(value: unknown): PostStatus | null {
   const s = String(value ?? "").trim().toLowerCase();
   if (s === "draft") return "draft";
@@ -691,18 +720,10 @@ export function createApiApp(bindings: ApiBindings) {
 
     let cursor: { name: string; id: string } | null = null;
     if (cursorRaw) {
-      try {
-        let b64 = cursorRaw.replace(/-/g, "+").replace(/_/g, "/");
-        const pad = (4 - (b64.length % 4)) % 4;
-        if (pad) b64 += "=".repeat(pad);
-        const json = atob(b64);
-        const parsed = JSON.parse(json) as any;
-        const name = String(parsed?.name ?? "");
-        const id = String(parsed?.id ?? "");
-        if (name && id) cursor = { name, id };
-      } catch {
-        cursor = null;
-      }
+      const parsed = decodeCursorJson(cursorRaw);
+      const name = String(parsed?.name ?? "");
+      const id = String(parsed?.id ?? "");
+      if (name && id) cursor = { name, id };
     }
 
     const maybeCached = await getCachedResponse(
@@ -740,8 +761,7 @@ export function createApiApp(bindings: ApiBindings) {
     let nextCursor: string | null = null;
     if (hasMore && rows.length > 0) {
       const last = rows[rows.length - 1]!;
-      const payload = JSON.stringify({ name: last.name, id: last.id });
-      nextCursor = btoa(payload).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+      nextCursor = encodeCursorJson({ name: last.name, id: last.id });
     }
 
     const response = c.json(paged ? { ok: true, categories: rows, nextCursor } : { ok: true, categories: rows });
@@ -768,18 +788,10 @@ export function createApiApp(bindings: ApiBindings) {
 
     let cursor: { name: string; id: string } | null = null;
     if (cursorRaw) {
-      try {
-        let b64 = cursorRaw.replace(/-/g, "+").replace(/_/g, "/");
-        const pad = (4 - (b64.length % 4)) % 4;
-        if (pad) b64 += "=".repeat(pad);
-        const json = atob(b64);
-        const parsed = JSON.parse(json) as any;
-        const name = String(parsed?.name ?? "");
-        const id = String(parsed?.id ?? "");
-        if (name && id) cursor = { name, id };
-      } catch {
-        cursor = null;
-      }
+      const parsed = decodeCursorJson(cursorRaw);
+      const name = String(parsed?.name ?? "");
+      const id = String(parsed?.id ?? "");
+      if (name && id) cursor = { name, id };
     }
 
     const maybeCached = await getCachedResponse(
@@ -836,8 +848,7 @@ export function createApiApp(bindings: ApiBindings) {
     let nextCursor: string | null = null;
     if (hasMore && rows.length > 0) {
       const last = rows[rows.length - 1]!;
-      const payload = JSON.stringify({ name: last.name, id: last.id });
-      nextCursor = btoa(payload).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+      nextCursor = encodeCursorJson({ name: last.name, id: last.id });
     }
 
     const response = c.json(paged ? { ok: true, tags: rows, nextCursor } : { ok: true, tags: rows });
@@ -2433,18 +2444,10 @@ export function createApiApp(bindings: ApiBindings) {
 
     let cursor: { name: string; id: string } | null = null;
     if (cursorRaw) {
-      try {
-        let b64 = cursorRaw.replace(/-/g, "+").replace(/_/g, "/");
-        const pad = (4 - (b64.length % 4)) % 4;
-        if (pad) b64 += "=".repeat(pad);
-        const json = atob(b64);
-        const parsed = JSON.parse(json) as any;
-        const name = String(parsed?.name ?? "");
-        const id = String(parsed?.id ?? "");
-        if (name && id) cursor = { name, id };
-      } catch {
-        cursor = null;
-      }
+      const parsed = decodeCursorJson(cursorRaw);
+      const name = String(parsed?.name ?? "");
+      const id = String(parsed?.id ?? "");
+      if (name && id) cursor = { name, id };
     }
 
     const fetchLimit = paged ? limit + 1 : 1000000;
@@ -2466,8 +2469,7 @@ export function createApiApp(bindings: ApiBindings) {
     let nextCursor: string | null = null;
     if (hasMore && rows.length > 0) {
       const last = rows[rows.length - 1]!;
-      const payload = JSON.stringify({ name: last.name, id: last.id });
-      nextCursor = btoa(payload).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+      nextCursor = encodeCursorJson({ name: last.name, id: last.id });
     }
 
     return c.json(paged ? { ok: true, categories: rows, nextCursor } : { ok: true, categories: rows });
@@ -2486,18 +2488,10 @@ export function createApiApp(bindings: ApiBindings) {
 
     let cursor: { name: string; id: string } | null = null;
     if (cursorRaw) {
-      try {
-        let b64 = cursorRaw.replace(/-/g, "+").replace(/_/g, "/");
-        const pad = (4 - (b64.length % 4)) % 4;
-        if (pad) b64 += "=".repeat(pad);
-        const json = atob(b64);
-        const parsed = JSON.parse(json) as any;
-        const name = String(parsed?.name ?? "");
-        const id = String(parsed?.id ?? "");
-        if (name && id) cursor = { name, id };
-      } catch {
-        cursor = null;
-      }
+      const parsed = decodeCursorJson(cursorRaw);
+      const name = String(parsed?.name ?? "");
+      const id = String(parsed?.id ?? "");
+      if (name && id) cursor = { name, id };
     }
 
     const fetchLimit = paged ? limit + 1 : 1000000;
@@ -2519,8 +2513,7 @@ export function createApiApp(bindings: ApiBindings) {
     let nextCursor: string | null = null;
     if (hasMore && rows.length > 0) {
       const last = rows[rows.length - 1]!;
-      const payload = JSON.stringify({ name: last.name, id: last.id });
-      nextCursor = btoa(payload).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+      nextCursor = encodeCursorJson({ name: last.name, id: last.id });
     }
 
     return c.json(paged ? { ok: true, tags: rows, nextCursor } : { ok: true, tags: rows });
