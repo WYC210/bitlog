@@ -391,8 +391,20 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New",
     monospace;
   font-size: 13px;
+  font-weight: 500;
   line-height: 1.6;
   padding: 10px 12px;
+  letter-spacing: 0;
+  text-transform: none;
+  scroll-behavior: smooth;
+}
+
+.cm-host .cm-content {
+  caret-color: var(--accent);
+}
+
+.cm-host .cm-editor.cm-focused > .cm-scroller > .cm-cursorLayer {
+  animation: none !important;
 }
 
 .cm-host .cm-gutters {
@@ -402,6 +414,19 @@
 }
 
 .cm-host .cm-cursor {
+  border-left-width: 2px;
+  border-left-color: var(--accent);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent),
+    0 0 12px 1px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+.cm-host .cm-editor.cm-focused .cm-cursor {
+  animation: blt-caret-blink 1200ms ease-in-out infinite;
+}
+
+.cm-host .cm-dropCursor {
+  border-left-width: 2px;
   border-left-color: var(--accent);
 }
 
@@ -412,6 +437,29 @@
 .cm-host .cm-editor.cm-focused {
   box-shadow: var(--focus);
   border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+}
+
+@keyframes blt-caret-blink {
+  0%,
+  35% {
+    opacity: 1;
+  }
+  50%,
+  85% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cm-host .cm-scroller {
+    scroll-behavior: auto;
+  }
+  .cm-host .cm-editor.cm-focused .cm-cursor {
+    animation: none;
+  }
 }
 
 .md-preview-toolbar {

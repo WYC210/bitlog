@@ -2,7 +2,7 @@ import React, { forwardRef, useEffect, useImperativeHandle, useRef } from "react
 import { indentWithTab } from "@codemirror/commands";
 import { markdown } from "@codemirror/lang-markdown";
 import { EditorState } from "@codemirror/state";
-import { EditorView, keymap } from "@codemirror/view";
+import { EditorView, drawSelection, dropCursor, keymap } from "@codemirror/view";
 
 export type MarkdownEditorHandle = {
   focus: () => void;
@@ -29,6 +29,18 @@ export const MarkdownEditor = forwardRef<
 >(function MarkdownEditor(props, ref) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const viewRef = useRef<EditorView | null>(null);
+
+  const scrollToPos = (view: EditorView, pos: number) => {
+    const behavior: ScrollBehavior =
+      typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches
+        ? "auto"
+        : "smooth";
+    const scroller = view.scrollDOM;
+    const block = view.lineBlockAt(pos);
+    const target = block.top + block.height / 2 - scroller.clientHeight / 2;
+    const top = Math.max(0, Math.min(target, scroller.scrollHeight - scroller.clientHeight));
+    scroller.scrollTo({ top, behavior });
+  };
 
   useImperativeHandle(ref, () => ({
     focus: () => viewRef.current?.focus(),
@@ -59,7 +71,7 @@ export const MarkdownEditor = forwardRef<
       const view = viewRef.current;
       if (!view) return;
       const head = view.state.selection.main.head;
-      view.dispatch({ effects: EditorView.scrollIntoView(head, { y: "center" }) });
+      scrollToPos(view, head);
       view.focus();
     },
     scrollToLine: (line1Based: number) => {
@@ -67,10 +79,8 @@ export const MarkdownEditor = forwardRef<
       if (!view) return;
       const want = Math.max(1, Math.min(Math.trunc(line1Based), view.state.doc.lines));
       const line = view.state.doc.line(want);
-      view.dispatch({
-        selection: { anchor: line.from },
-        effects: EditorView.scrollIntoView(line.from, { y: "center" })
-      });
+      view.dispatch({ selection: { anchor: line.from } });
+      scrollToPos(view, line.from);
       view.focus();
     },
     insertText: (text: string) => {
@@ -107,6 +117,8 @@ export const MarkdownEditor = forwardRef<
       extensions: [
         markdown(),
         EditorView.lineWrapping,
+        drawSelection(),
+        dropCursor(),
         keymap.of([
           indentWithTab,
           {

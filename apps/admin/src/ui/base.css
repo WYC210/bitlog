@@ -644,6 +644,16 @@ html[data-sidebar="collapsed"] .sidebar .btn-site .btn-label {
   text-transform: uppercase;
 }
 
+.field input,
+.field textarea,
+.field select,
+.field .input,
+.field .select,
+.field .textarea {
+  text-transform: none;
+  letter-spacing: 0;
+}
+
 .input,
 .select,
 .textarea {
