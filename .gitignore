@@ -18,7 +18,8 @@ vendor/bundle/
 vendor/
 # Rust 依赖
 target/
-
+helloagents/
+plan/
 # ==================== 通用忽略项（非依赖但常用） ====================
 # 操作系统文件
 .DS_Store
@@ -47,3 +48,6 @@ apps/web/public/admin/
 worker-configuration.d.ts
 .dev.vars
 .codex
+.claude
+.tool
+.devtools-client-code.md
