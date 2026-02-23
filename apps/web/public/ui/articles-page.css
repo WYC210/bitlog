@@ -1,9 +1,6 @@
 /* Articles Page - Enhanced Styles */
 
-/* Wider layout on large screens (use most of the viewport width) */
-body[data-page="articles"] {
-  --container-max: min(92vw, 1720px);
-}
+/* Layout max-width is controlled globally in ui/base.css */
 
 /* Articles Header - 优化后的筛选栏 */
 .articles-header {

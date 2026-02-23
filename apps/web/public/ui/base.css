@@ -26,7 +26,8 @@
   --theme-toggle-ripple-duration: 800ms;
   --theme-toggle-ripple-opacity: 0.15;
   --theme-toggle-ripple-scale: 10;
-  --container-max: 1180px;
+  /* Match the "articles" page layout density across the whole site. */
+  --container-max: min(92vw, 1720px);
 }
 
 [data-theme="dark"] {
@@ -295,13 +296,7 @@ html.theme-transition-active {
   opacity: 0.5;
 }
 
-@media (min-width: 1440px) {
-  :root { --container-max: 1320px; }
-}
-
-@media (min-width: 1760px) {
-  :root { --container-max: 1480px; }
-}
+/* container max is set in :root above */
 
 .site-header {
   position: sticky;
