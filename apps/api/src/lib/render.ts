@@ -407,6 +407,7 @@ function rehypeBitlogSanitize(options: { embedAllowlist: Set<string> }) {
     "a",
     "img",
     "button",
+    "input",
     "code",
     "pre",
     "blockquote",
@@ -436,6 +437,7 @@ function rehypeBitlogSanitize(options: { embedAllowlist: Set<string> }) {
     a: new Set(["href", "rel", "target", "aria-label"]),
     img: new Set(["src", "alt", "width", "height", "loading", "decoding"]),
     button: new Set(["type", "aria-label"]),
+    input: new Set(["type", "checked", "disabled"]),
     code: new Set(["class"]),
     pre: new Set(["class"]),
     details: new Set(["open"]),
@@ -491,6 +493,13 @@ function rehypeBitlogSanitize(options: { embedAllowlist: Set<string> }) {
     if (tag === "a") sanitizeHref(props as any);
     if (tag === "img") sanitizeImg(props as any);
     if (tag === "iframe") sanitizeIframe(props as any, options.embedAllowlist);
+    if (tag === "input") {
+      const typeRaw = String((props as any).type ?? "checkbox").toLowerCase();
+      if (typeRaw !== "checkbox") return null;
+      (props as any).type = "checkbox";
+      // Keep task lists non-interactive (GFM uses disabled checkboxes).
+      (props as any).disabled = true;
+    }
     if (tag === "iframe" && !props.src) return null;
     if (tag === "img" && !props.src) return null;
 

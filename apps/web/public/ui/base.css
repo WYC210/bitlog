@@ -1213,6 +1213,51 @@ mark {
   font-size: 16px;
 }
 
+.prose ul.contains-task-list,
+.prose ol.contains-task-list {
+  list-style: none;
+  padding-left: 0;
+}
+
+.prose li.task-list-item {
+  list-style: none;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.prose li.task-list-item > input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
+  border: 1.5px solid color-mix(in srgb, var(--primary) 55%, var(--border));
+  background: color-mix(in srgb, var(--surface) 92%, var(--bg));
+  margin-top: 0.2em;
+  flex: 0 0 auto;
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--primary) 10%, transparent);
+}
+
+.prose li.task-list-item > input[type="checkbox"]:checked {
+  background: color-mix(in srgb, var(--primary) 18%, var(--surface));
+  border-color: color-mix(in srgb, var(--primary) 75%, var(--border));
+}
+
+.prose li.task-list-item > input[type="checkbox"]:checked::after {
+  content: "";
+  display: block;
+  width: 10px;
+  height: 6px;
+  border-left: 2px solid var(--primary);
+  border-bottom: 2px solid var(--primary);
+  transform: translate(3px, 4px) rotate(-45deg);
+}
+
+.prose li.task-list-item > p {
+  margin: 0;
+}
+
 .prose h2 {
   font-size: 22px;
   margin-top: 20px;
