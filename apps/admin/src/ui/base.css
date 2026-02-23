@@ -721,11 +721,15 @@ html[data-sidebar="collapsed"] .sidebar .btn-site .btn-label {
   overflow: auto;
   -webkit-overflow-scrolling: touch;
   border: var(--border-w) solid color-mix(in srgb, var(--border) 70%, transparent);
-  background: color-mix(in srgb, var(--panel2) 92%, transparent);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--panel) 94%, var(--bg)),
+    color-mix(in srgb, var(--panel) 84%, var(--bg))
+  );
   border-radius: var(--radius);
   padding: 6px;
   box-shadow: var(--shadow);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(14px);
   z-index: 250;
 }
 
