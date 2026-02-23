@@ -83,6 +83,9 @@
   font-size: 17px;
   line-height: 1.8;
   color: var(--text);
+  /* Mobile safety: prevent long URLs/inline-code from breaking layout */
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .prose h2 {
@@ -156,6 +159,8 @@
   text-decoration-color: color-mix(in srgb, var(--primary) 40%, transparent);
   text-underline-offset: 3px;
   transition: all 0.2s ease;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .prose a:hover {
@@ -715,6 +720,9 @@ body[data-page="post"] .layout > aside {
   font-size: 0.9em;
   color: var(--primary-700);
   font-weight: 500;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: break-spaces;
 }
 
 /* Table Enhancements */
@@ -723,6 +731,13 @@ body[data-page="post"] .layout > aside {
   border-collapse: collapse;
   margin: 24px 0;
   font-size: 15px;
+}
+
+.prose table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .prose thead {
