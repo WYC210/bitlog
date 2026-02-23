@@ -721,16 +721,22 @@ html[data-sidebar="collapsed"] .sidebar .btn-site .btn-label {
   overflow: auto;
   -webkit-overflow-scrolling: touch;
   border: var(--border-w) solid color-mix(in srgb, var(--border) 70%, transparent);
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--panel) 94%, var(--bg)),
-    color-mix(in srgb, var(--panel) 84%, var(--bg))
-  );
+  background:
+    radial-gradient(
+      520px 220px at 18% 0%,
+      color-mix(in srgb, var(--accent) 16%, transparent),
+      transparent 62%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--bg) 82%, var(--panel)),
+      color-mix(in srgb, var(--bg) 88%, var(--panel))
+    );
   border-radius: var(--radius);
   padding: 6px;
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow), inset 0 1px 0 color-mix(in srgb, var(--accent) 14%, transparent);
   backdrop-filter: blur(14px);
-  z-index: 250;
+  z-index: 5000;
 }
 
 .selectbox-item {

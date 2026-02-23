@@ -58,6 +58,13 @@
   gap: 12px;
   transition: max-height 200ms ease, opacity 160ms ease;
   will-change: max-height, opacity;
+  position: relative;
+  z-index: 5;
+}
+
+.editor-md {
+  position: relative;
+  z-index: 0;
 }
 
 .grid--editor.focus-md {
@@ -632,11 +639,22 @@
   max-height: 240px;
   overflow: auto;
   border: var(--border-w) solid color-mix(in srgb, var(--border) 70%, transparent);
-  background: color-mix(in srgb, var(--panel2) 92%, transparent);
+  background:
+    radial-gradient(
+      520px 220px at 18% 0%,
+      color-mix(in srgb, var(--accent) 16%, transparent),
+      transparent 62%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--bg) 82%, var(--panel)),
+      color-mix(in srgb, var(--bg) 88%, var(--panel))
+    );
   border-radius: var(--radius);
   padding: 6px;
-  box-shadow: var(--shadow);
-  z-index: 80;
+  box-shadow: var(--shadow), inset 0 1px 0 color-mix(in srgb, var(--accent) 14%, transparent);
+  backdrop-filter: blur(14px);
+  z-index: 5000;
 }
 
 .combo-item {
