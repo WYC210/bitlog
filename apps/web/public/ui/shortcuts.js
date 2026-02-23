@@ -24,12 +24,14 @@
   const sc = parseShortcuts();
   const contexts = (sc && typeof sc === "object" && sc.contexts && typeof sc.contexts === "object") ? sc.contexts : {};
   const global = (sc && typeof sc === "object" && sc.global && typeof sc.global === "object") ? sc.global : {};
+  const web = (sc && typeof sc === "object" && sc.web && typeof sc.web === "object") ? sc.web : {};
   const effective = Object.assign(
     {},
-    global || {},
     contexts["web.global"] || {},
     contexts[page] || {},
-    contexts[`web.${page}`] || {}
+    contexts[`web.${page}`] || {},
+    web || {},
+    global || {}
   );
 
   function getSpec(keys, fallback) {
@@ -49,6 +51,10 @@
     goProjects: getSpec(["goProjects"], "g p"),
     goTools: getSpec(["goTools"], "g t"),
     goAbout: getSpec(["goAbout"], "g o"),
+    goAdminPosts: getSpec(["goAdminPosts"], ""),
+    goAdminSettings: getSpec(["goAdminSettings"], ""),
+    goAdminAccount: getSpec(["goAdminAccount"], ""),
+    newPost: getSpec(["newPost"], ""),
     postPrev: getSpec(["postPrev"], "k"),
     postNext: getSpec(["postNext"], "j"),
     back: getSpec(["goBack", "back"], "g b"),
@@ -526,6 +532,27 @@
     if (matchChord(e, specs.goAbout) || matchSeq(parseSeq(specs.goAbout))) {
       e.preventDefault();
       go("/about");
+      return;
+    }
+
+    if (specs.goAdminPosts && (matchChord(e, specs.goAdminPosts) || matchSeq(parseSeq(specs.goAdminPosts)))) {
+      e.preventDefault();
+      go("/admin/#/posts");
+      return;
+    }
+    if (specs.goAdminSettings && (matchChord(e, specs.goAdminSettings) || matchSeq(parseSeq(specs.goAdminSettings)))) {
+      e.preventDefault();
+      go("/admin/#/settings");
+      return;
+    }
+    if (specs.goAdminAccount && (matchChord(e, specs.goAdminAccount) || matchSeq(parseSeq(specs.goAdminAccount)))) {
+      e.preventDefault();
+      go("/admin/#/account");
+      return;
+    }
+    if (specs.newPost && (matchChord(e, specs.newPost) || matchSeq(parseSeq(specs.newPost)))) {
+      e.preventDefault();
+      go("/admin/#/posts/new");
       return;
     }
 

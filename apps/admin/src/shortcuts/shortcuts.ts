@@ -4,6 +4,8 @@ import { ADMIN_ACTION_ALIASES, ADMIN_ACTIONS } from "./actions";
 
 export type ShortcutConfig = {
   global?: Record<string, string>;
+  admin?: Record<string, string>;
+  web?: Record<string, string>;
   contexts?: Record<string, Record<string, string>>;
 };
 
@@ -54,6 +56,12 @@ export function mergeShortcuts(a: ShortcutConfig, b: ShortcutConfig): ShortcutCo
   const ag = a?.global && typeof a.global === "object" ? a.global : {};
   const bg = b?.global && typeof b.global === "object" ? b.global : {};
   out.global = { ...ag, ...bg };
+  const aa = a?.admin && typeof a.admin === "object" ? a.admin : {};
+  const ba = b?.admin && typeof b.admin === "object" ? b.admin : {};
+  out.admin = { ...aa, ...ba };
+  const aw = a?.web && typeof a.web === "object" ? a.web : {};
+  const bw = b?.web && typeof b.web === "object" ? b.web : {};
+  out.web = { ...aw, ...bw };
   const ac = a?.contexts && typeof a.contexts === "object" ? a.contexts : {};
   const bc = b?.contexts && typeof b.contexts === "object" ? b.contexts : {};
   const keys = new Set<string>([...Object.keys(ac), ...Object.keys(bc)]);
@@ -76,10 +84,12 @@ export function getAdminContextKey(route: Route): AdminContextKey {
 
 export function getEffectiveBindings(sc: ShortcutConfig, contextKey: AdminContextKey): Record<string, string> {
   const global = sc?.global && typeof sc.global === "object" ? sc.global : {};
+  const admin = sc?.admin && typeof sc.admin === "object" ? sc.admin : {};
   const contexts = sc?.contexts && typeof sc.contexts === "object" ? sc.contexts : {};
   const adminGlobal = contexts["admin.global"] && typeof contexts["admin.global"] === "object" ? contexts["admin.global"] : {};
   const page = contexts[contextKey] && typeof contexts[contextKey] === "object" ? contexts[contextKey] : {};
-  return { ...global, ...adminGlobal, ...page } as any;
+  // Priority: legacy contexts < admin scope < global scope (global is highest, applies in both admin/web runtimes).
+  return { ...adminGlobal, ...page, ...admin, ...global } as any;
 }
 
 export function getActionBinding(
@@ -135,4 +145,3 @@ export function normalizeRecordedChord(e: KeyboardEvent): string | null {
   const key = k === " " ? "space" : k;
   return [...mods, key].join("+");
 }
-

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
-import type { AdminPrefs, ApiError } from "../api";
-import { changeAdminPassword, getAdminPrefs, updateAdminPrefs } from "../api";
+import type { AdminPrefs, ApiError, SiteConfig } from "../api";
+import { changeAdminPassword, getAdminPrefs, getConfig, updateAdminPrefs, updateSettings } from "../api";
 import { ShortcutsEditor } from "../components/ShortcutsEditor";
 
 function parseJson(text: string): { ok: true; value: any } | { ok: false; error: string } {
@@ -16,41 +16,53 @@ function parseJson(text: string): { ok: true; value: any } | { ok: false; error:
 }
 
 export function AccountPage(props: {
+  cfg: SiteConfig | null;
+  onCfg: (c: SiteConfig) => void;
   prefs: AdminPrefs | null;
   onPrefs: (p: AdminPrefs) => void;
   onError: (m: string) => void;
   onForceRelogin: () => void;
 }) {
-  const [shortcutsText, setShortcutsText] = useState(props.prefs?.shortcutsJson ?? "");
   const [editorLayout, setEditorLayout] = useState<AdminPrefs["editorLayout"]>(props.prefs?.editorLayout ?? "split");
-  const [shortcutsDirty, setShortcutsDirty] = useState(false);
+
+  const [siteShortcutsText, setSiteShortcutsText] = useState(props.cfg?.shortcutsJson ?? "");
+  const [siteShortcutsDirty, setSiteShortcutsDirty] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const [pwOld, setPwOld] = useState("");
   const [pwNew, setPwNew] = useState("");
 
-  const parsed = useMemo(() => parseJson(shortcutsText), [shortcutsText]);
-  const parseError = parsed.ok ? "" : parsed.error;
+  const parsedSiteShortcuts = useMemo(() => parseJson(siteShortcutsText), [siteShortcutsText]);
+  const siteShortcutsParseError = parsedSiteShortcuts.ok ? "" : parsedSiteShortcuts.error;
 
   useEffect(() => {
     if (!props.prefs) return;
-    if (!shortcutsDirty) setShortcutsText(props.prefs.shortcutsJson ?? "");
     setEditorLayout(props.prefs.editorLayout ?? "split");
   }, [props.prefs]);
 
   useEffect(() => {
-    const base = props.prefs?.shortcutsJson ?? "";
-    if (shortcutsText === base) {
-      if (shortcutsDirty) setShortcutsDirty(false);
+    if (!props.cfg) return;
+    if (!siteShortcutsDirty) setSiteShortcutsText(props.cfg.shortcutsJson ?? "");
+  }, [props.cfg, siteShortcutsDirty]);
+
+  useEffect(() => {
+    const base = props.cfg?.shortcutsJson ?? "";
+    if (siteShortcutsText === base) {
+      if (siteShortcutsDirty) setSiteShortcutsDirty(false);
     } else {
-      if (!shortcutsDirty) setShortcutsDirty(true);
+      if (!siteShortcutsDirty) setSiteShortcutsDirty(true);
     }
-  }, [shortcutsText, props.prefs?.shortcutsJson]);
+  }, [siteShortcutsText, props.cfg?.shortcutsJson]);
 
 
   async function reloadPrefs() {
     const p = await getAdminPrefs();
     props.onPrefs(p);
+  }
+
+  async function reloadCfg() {
+    const c = await getConfig();
+    props.onCfg(c);
   }
 
   async function persistEditorLayout(next: AdminPrefs["editorLayout"]) {
@@ -72,17 +84,18 @@ export function AccountPage(props: {
     }
   }
 
-  async function saveShortcuts() {
+  async function saveSiteShortcuts() {
     props.onError("");
-    if (!parsed.ok) {
-      props.onError(parseError || "JSON 解析失败");
+    if (!parsedSiteShortcuts.ok) {
+      props.onError(siteShortcutsParseError || "JSON 解析失败");
       return;
     }
     setSaving(true);
     try {
-      await updateAdminPrefs({ shortcutsJson: shortcutsText.trim() ? shortcutsText : null });
-      setShortcutsDirty(false);
-      await reloadPrefs();
+      const text = String(siteShortcutsText ?? "").trim();
+      await updateSettings({ "site.shortcuts_json": text ? text : null });
+      setSiteShortcutsDirty(false);
+      await reloadCfg();
       alert("已保存");
     } catch (e) {
       const err = e as ApiError;
@@ -163,29 +176,29 @@ export function AccountPage(props: {
       </div>
 
       <div className="card">
-        <h2 style={{ margin: "0 0 8px" }}>个人快捷键（覆盖站点默认）</h2>
-        <div className="muted">支持 chord（如 mod+s）和序列（如 g p）。</div>
+        <h2 style={{ margin: "0 0 8px" }}>全站快捷键（影响前端 + 后台）</h2>
+        <div className="muted">作用域只有 3 个：全局 / 后台 / 前端；全局优先级最高。</div>
         <div style={{ height: 12 }} />
-        <ShortcutsEditor value={shortcutsText} onChange={setShortcutsText} allowedTargets={["admin"]} />
+        <ShortcutsEditor value={siteShortcutsText} onChange={setSiteShortcutsText} allowedTargets={["admin", "web"]} />
         <div style={{ height: 10 }} />
         <label>
-          高级：shortcuts_json（JSON）
-          <textarea value={shortcutsText} onChange={(e) => setShortcutsText(e.target.value)} />
+          高级：site.shortcuts_json（JSON）
+          <textarea value={siteShortcutsText} onChange={(e) => setSiteShortcutsText(e.target.value)} />
         </label>
-        {parseError ? <div className="muted" style={{ color: "#ffb4b4" }}>{parseError}</div> : null}
+        {siteShortcutsParseError ? <div className="muted" style={{ color: "#ffb4b4" }}>{siteShortcutsParseError}</div> : null}
         <div style={{ height: 10 }} />
         <div className="nav">
-          <button className="chip chip-primary" onClick={() => void saveShortcuts()} disabled={saving || !parsed.ok || !shortcutsDirty}>
+          <button className="chip chip-primary" onClick={() => void saveSiteShortcuts()} disabled={saving || !parsedSiteShortcuts.ok || !siteShortcutsDirty}>
             {saving ? "保存中…" : "保存快捷键"}
           </button>
           <button
             className="chip"
             onClick={() => {
-              setShortcutsText("");
+              setSiteShortcutsText("");
             }}
             disabled={saving}
           >
-            清空覆盖
+            清空快捷键
           </button>
         </div>
       </div>

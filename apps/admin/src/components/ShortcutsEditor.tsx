@@ -1,17 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import type { AdminActionId, AdminContextKey } from "../shortcuts/actions";
+import type { AdminActionId } from "../shortcuts/actions";
 import { ADMIN_ACTIONS } from "../shortcuts/actions";
 import { normalizeRecordedChord } from "../shortcuts/shortcuts";
 import { SelectBox } from "./SelectBox";
-
-type WebContextKey =
-  | "web.global"
-  | "web.home"
-  | "web.articles"
-  | "web.post"
-  | "web.projects"
-  | "web.tools"
-  | "web.about";
 
 type WebActionId =
   | "openCommandPalette"
@@ -28,47 +19,32 @@ type WebActionId =
   | "forward";
 
 type ActionId = AdminActionId | WebActionId | string;
-type ContextKey = AdminContextKey | WebContextKey | string;
+type ShortcutScope = "global" | "admin" | "web";
 
 type ShortcutConfig = {
   global?: Record<string, string>;
+  admin?: Record<string, string>;
+  web?: Record<string, string>;
   contexts?: Record<string, Record<string, string>>;
 };
 
 const WEB_ACTIONS: Array<{
   id: WebActionId;
   label: string;
-  scopes: WebContextKey[];
   defaultBinding?: string;
 }> = [
-  { id: "openCommandPalette", label: "打开命令面板", scopes: ["web.global", "web.home", "web.articles", "web.post", "web.projects", "web.tools", "web.about"], defaultBinding: "?" },
-  { id: "focusSearch", label: "聚焦搜索", scopes: ["web.global", "web.home", "web.articles", "web.post", "web.projects", "web.tools", "web.about"], defaultBinding: "/" },
-  { id: "toggleLightDark", label: "切换 light/dark", scopes: ["web.global", "web.home", "web.articles", "web.post", "web.projects", "web.tools", "web.about"], defaultBinding: "shift+d" },
-  { id: "goHome", label: "跳转首页", scopes: ["web.global", "web.home", "web.articles", "web.post", "web.projects", "web.tools", "web.about"], defaultBinding: "g h" },
-  { id: "goArticles", label: "跳转文章列表", scopes: ["web.global", "web.home", "web.articles", "web.post", "web.projects", "web.tools", "web.about"], defaultBinding: "g a" },
-  { id: "goProjects", label: "跳转项目页", scopes: ["web.global", "web.home", "web.articles", "web.post", "web.projects", "web.tools", "web.about"], defaultBinding: "g p" },
-  { id: "goTools", label: "跳转工具中心", scopes: ["web.global", "web.home", "web.articles", "web.post", "web.projects", "web.tools", "web.about"], defaultBinding: "g t" },
-  { id: "goAbout", label: "跳转关于我", scopes: ["web.global", "web.home", "web.articles", "web.post", "web.projects", "web.tools", "web.about"], defaultBinding: "g o" },
-  { id: "postPrev", label: "上一篇（文章页）", scopes: ["web.post"], defaultBinding: "k" },
-  { id: "postNext", label: "下一篇（文章页）", scopes: ["web.post"], defaultBinding: "j" },
-  { id: "back", label: "后退", scopes: ["web.global", "web.home", "web.articles", "web.post", "web.projects", "web.tools", "web.about"], defaultBinding: "g b" },
-  { id: "forward", label: "前进", scopes: ["web.global", "web.home", "web.articles", "web.post", "web.projects", "web.tools", "web.about"], defaultBinding: "g n" }
-];
-
-const ALL_CONTEXTS: Array<{ key: ContextKey; label: string }> = [
-  { key: "global", label: "全局（global）" },
-  { key: "web.global", label: "Web：全局（web.global）" },
-  { key: "web.home", label: "Web：首页（web.home）" },
-  { key: "web.articles", label: "Web：文章列表（web.articles）" },
-  { key: "web.post", label: "Web：文章页（web.post）" },
-  { key: "web.projects", label: "Web：项目页（web.projects）" },
-  { key: "web.tools", label: "Web：工具页（web.tools）" },
-  { key: "web.about", label: "Web：关于页（web.about）" },
-  { key: "admin.global", label: "Admin：全局（admin.global）" },
-  { key: "admin.posts", label: "Admin：文章列表（admin.posts）" },
-  { key: "admin.edit", label: "Admin：编辑器（admin.edit）" },
-  { key: "admin.settings", label: "Admin：设置（admin.settings）" },
-  { key: "admin.account", label: "Admin：账号（admin.account）" }
+  { id: "openCommandPalette", label: "打开命令面板", defaultBinding: "?" },
+  { id: "focusSearch", label: "聚焦搜索", defaultBinding: "/" },
+  { id: "toggleLightDark", label: "切换 light/dark", defaultBinding: "shift+d" },
+  { id: "goHome", label: "跳转首页", defaultBinding: "g h" },
+  { id: "goArticles", label: "跳转文章列表", defaultBinding: "g a" },
+  { id: "goProjects", label: "跳转项目页", defaultBinding: "g p" },
+  { id: "goTools", label: "跳转工具中心", defaultBinding: "g t" },
+  { id: "goAbout", label: "跳转关于我", defaultBinding: "g o" },
+  { id: "postPrev", label: "上一篇（文章页）", defaultBinding: "k" },
+  { id: "postNext", label: "下一篇（文章页）", defaultBinding: "j" },
+  { id: "back", label: "后退", defaultBinding: "g b" },
+  { id: "forward", label: "前进", defaultBinding: "g n" }
 ];
 
 function parseJson(text: string): { ok: true; value: ShortcutConfig } | { ok: false; error: string } {
@@ -87,14 +63,27 @@ function formatJson(value: ShortcutConfig): string {
   return JSON.stringify(value ?? {}, null, 2);
 }
 
-function getScopeMap(sc: ShortcutConfig, contextKey: ContextKey): Record<string, string> {
-  if (contextKey === "global") {
+function getScopeMap(sc: ShortcutConfig, scope: ShortcutScope): Record<string, string> {
+  if (scope === "global") {
     if (!sc.global || typeof sc.global !== "object") sc.global = {};
     return sc.global;
   }
-  if (!sc.contexts || typeof sc.contexts !== "object") sc.contexts = {};
-  if (!sc.contexts[String(contextKey)] || typeof sc.contexts[String(contextKey)] !== "object") sc.contexts[String(contextKey)] = {};
-  return sc.contexts[String(contextKey)];
+
+  if (scope === "admin") {
+    if (!sc.admin || typeof sc.admin !== "object") sc.admin = {};
+    const legacy = sc.contexts?.["admin.global"];
+    if (!Object.keys(sc.admin).length && legacy && typeof legacy === "object") Object.assign(sc.admin, legacy);
+    return sc.admin;
+  }
+
+  if (scope === "web") {
+    if (!sc.web || typeof sc.web !== "object") sc.web = {};
+    const legacy = sc.contexts?.["web.global"];
+    if (!Object.keys(sc.web).length && legacy && typeof legacy === "object") Object.assign(sc.web, legacy);
+    return sc.web;
+  }
+
+  return {};
 }
 
 function reservedHint(spec: string): string {
@@ -112,71 +101,100 @@ export function ShortcutsEditor(props: {
   allowedTargets: Array<"web" | "admin">;
 }) {
   const parsed = useMemo(() => parseJson(props.value), [props.value]);
-  const [contextKey, setContextKey] = useState<ContextKey>("admin.global");
+  const [scope, setScope] = useState<ShortcutScope>(() => {
+    const allowed = new Set(props.allowedTargets);
+    if (allowed.has("admin") && allowed.has("web")) return "global";
+    if (allowed.has("admin")) return "admin";
+    if (allowed.has("web")) return "web";
+    return "global";
+  });
 
   const [recording, setRecording] = useState<null | { kind: "chord" | "seq"; actionKey: string }>(null);
   const [seqPreview, setSeqPreview] = useState<string[]>([]);
   const seqTimerRef = useRef<number | null>(null);
   const seqRef = useRef<string[]>([]);
 
-  const contexts = useMemo(() => {
+  const scopes = useMemo(() => {
     const allowed = new Set(props.allowedTargets);
-    return ALL_CONTEXTS.filter((c) => {
-      if (c.key === "global") return true;
-      if (String(c.key).startsWith("web.") && allowed.has("web")) return true;
-      if (String(c.key).startsWith("admin.") && allowed.has("admin")) return true;
-      return false;
-    });
+    const out: Array<{ key: ShortcutScope; label: string }> = [{ key: "global", label: "全局（global）" }];
+    if (allowed.has("admin")) out.push({ key: "admin", label: "后台（admin）" });
+    if (allowed.has("web")) out.push({ key: "web", label: "前端（web）" });
+    return out;
   }, [props.allowedTargets]);
 
   useEffect(() => {
     const allowed = new Set(props.allowedTargets);
-    if (String(contextKey).startsWith("web.") && !allowed.has("web")) setContextKey("admin.global");
-    if (String(contextKey).startsWith("admin.") && !allowed.has("admin")) setContextKey("global");
-  }, [contextKey, props.allowedTargets]);
+    if (scope === "web" && !allowed.has("web")) setScope("global");
+    if (scope === "admin" && !allowed.has("admin")) setScope("global");
+  }, [scope, props.allowedTargets]);
 
-  const allowedActions = useMemo(() => {
-    const allowed = new Set(props.allowedTargets);
-    const out: Array<{ id: ActionId; label: string; defaultBinding?: string }> = [];
-    if (allowed.has("admin")) {
-      for (const a of ADMIN_ACTIONS) {
-        if (a.id === "setWebStyle" || a.id === "setAdminStyle") continue;
-        out.push({ id: a.id, label: `Admin：${a.label}`, defaultBinding: a.defaultBinding });
-      }
-    }
-    if (allowed.has("web")) {
-      for (const a of WEB_ACTIONS) out.push({ id: a.id, label: `Web：${a.label}`, defaultBinding: a.defaultBinding });
+  type ActionOption = { id: ActionId; label: string; defaultBinding: string | undefined };
+
+  const adminActions = useMemo(() => {
+    const out: ActionOption[] = [];
+    for (const a of ADMIN_ACTIONS) {
+      if (a.id === "setWebStyle" || a.id === "setAdminStyle") continue;
+      out.push({ id: a.id, label: a.label, defaultBinding: a.defaultBinding });
     }
     out.sort((a, b) => a.label.localeCompare(b.label));
     return out;
-  }, [props.allowedTargets]);
+  }, []);
 
-  const actionsForContext = useMemo(() => {
-    const ctx = String(contextKey);
-    const allowed = new Set(props.allowedTargets);
-    const out: Array<{ id: ActionId; label: string; defaultBinding?: string }> = [];
-    if (ctx === "global") return allowedActions;
-    if (ctx.startsWith("admin.") && allowed.has("admin")) {
-      for (const a of ADMIN_ACTIONS) {
-        if (!a.scopes.includes(ctx as any)) continue;
-        out.push({ id: a.id, label: a.label, defaultBinding: a.defaultBinding });
-      }
-    }
-    if (ctx.startsWith("web.") && allowed.has("web")) {
-      for (const a of WEB_ACTIONS) {
-        if (!a.scopes.includes(ctx as any)) continue;
-        out.push({ id: a.id, label: a.label, defaultBinding: a.defaultBinding });
-      }
-    }
+  const webActions = useMemo(() => {
+    const out: ActionOption[] = WEB_ACTIONS.map((a) => ({ id: a.id, label: a.label, defaultBinding: a.defaultBinding }));
     out.sort((a, b) => a.label.localeCompare(b.label));
-    return out.length ? out : allowedActions;
-  }, [allowedActions, contextKey, props.allowedTargets]);
+    return out;
+  }, []);
+
+  const globalActions = useMemo(() => {
+    const allowed = new Set(props.allowedTargets);
+    const map = new Map<string, { id: ActionId; adminLabel?: string; webLabel?: string; defaultBinding: string | undefined }>();
+
+    if (allowed.has("admin")) {
+      for (const a of adminActions) {
+        const id = String(a.id);
+        const cur = map.get(id) ?? { id: a.id, defaultBinding: undefined };
+        cur.adminLabel = a.label;
+        if (cur.defaultBinding === undefined) cur.defaultBinding = a.defaultBinding;
+        map.set(id, cur);
+      }
+    }
+
+    if (allowed.has("web")) {
+      for (const a of webActions) {
+        const id = String(a.id);
+        const cur = map.get(id) ?? { id: a.id, defaultBinding: undefined };
+        cur.webLabel = a.label;
+        if (cur.defaultBinding === undefined) cur.defaultBinding = a.defaultBinding;
+        map.set(id, cur);
+      }
+    }
+
+    const out: ActionOption[] = [];
+    for (const v of map.values()) {
+      const inAdmin = !!v.adminLabel;
+      const inWeb = !!v.webLabel;
+      const baseLabel = (v.adminLabel ?? v.webLabel ?? String(v.id)).trim();
+      const label = inAdmin && inWeb ? `通用：${baseLabel}` : inAdmin ? `后台：${baseLabel}` : `前端：${baseLabel}`;
+      out.push({ id: v.id, label, defaultBinding: v.defaultBinding });
+    }
+
+    out.sort((a, b) => a.label.localeCompare(b.label));
+    return out;
+  }, [adminActions, webActions, props.allowedTargets]);
+
+  const actionsForScope = useMemo((): ActionOption[] => {
+    if (scope === "global") return globalActions;
+    if (scope === "admin") return adminActions;
+    if (scope === "web") return webActions;
+    return globalActions;
+  }, [adminActions, globalActions, scope, webActions]);
 
   const scopeMap = useMemo(() => {
     if (!parsed.ok) return {};
     const sc = JSON.parse(JSON.stringify(parsed.value ?? {})) as ShortcutConfig;
-    return getScopeMap(sc, contextKey);
-  }, [parsed, contextKey]);
+    return getScopeMap(sc, scope);
+  }, [parsed, scope]);
 
   const rows = useMemo(() => {
     const entries = Object.entries(scopeMap ?? {});
@@ -206,7 +224,7 @@ export function ShortcutsEditor(props: {
 
   function setBinding(actionKey: string, spec: string) {
     mutate((sc) => {
-      const m = getScopeMap(sc, contextKey);
+      const m = getScopeMap(sc, scope);
       if (!spec.trim()) {
         delete m[actionKey];
       } else {
@@ -217,7 +235,7 @@ export function ShortcutsEditor(props: {
 
   function deleteRow(actionKey: string) {
     mutate((sc) => {
-      const m = getScopeMap(sc, contextKey);
+      const m = getScopeMap(sc, scope);
       delete m[actionKey];
     });
   }
@@ -225,7 +243,7 @@ export function ShortcutsEditor(props: {
   function renameAction(oldKey: string, nextKey: string) {
     if (oldKey === nextKey) return;
     mutate((sc) => {
-      const m = getScopeMap(sc, contextKey);
+      const m = getScopeMap(sc, scope);
       const val = Object.prototype.hasOwnProperty.call(m, oldKey) ? m[oldKey] : undefined;
       delete m[oldKey];
       // 保留空字符串：用户经常先选 Action，再录制按键。
@@ -235,10 +253,10 @@ export function ShortcutsEditor(props: {
 
   function addRow() {
     const existing = new Set(rows.map((r) => r.key));
-    const pick = actionsForContext.find((a) => !existing.has(String(a.id)));
+    const pick = actionsForScope.find((a) => !existing.has(String(a.id)));
     const nextKey = String(pick?.id ?? "focusSearch");
     mutate((sc) => {
-      const m = getScopeMap(sc, contextKey);
+      const m = getScopeMap(sc, scope);
       if (!m[nextKey]) m[nextKey] = "";
     });
   }
@@ -307,9 +325,9 @@ export function ShortcutsEditor(props: {
       <div className="field">
         作用域
         <SelectBox
-          value={String(contextKey)}
-          options={contexts.map((c) => ({ value: String(c.key), label: c.label }))}
-          onChange={(v) => setContextKey(v)}
+          value={String(scope)}
+          options={scopes.map((c) => ({ value: String(c.key), label: c.label }))}
+          onChange={(v) => setScope(v as ShortcutScope)}
           ariaLabel="作用域"
         />
       </div>
@@ -323,7 +341,7 @@ export function ShortcutsEditor(props: {
           const hint = reservedHint(r.spec);
           const usedKeys = new Set(rows.map((x) => x.key));
           const rowOptions = (() => {
-            const base = actionsForContext.map((a) => {
+            const base = actionsForScope.map((a) => {
               const value = String(a.id);
               return {
                 value,
@@ -331,7 +349,7 @@ export function ShortcutsEditor(props: {
                 disabled: usedKeys.has(value) && value !== r.key
               };
             });
-            if (!base.some((o) => o.value === r.key)) base.push({ value: r.key, label: `自定义：${r.key}` });
+            if (!base.some((o) => o.value === r.key)) base.push({ value: r.key, label: `自定义：${r.key}`, disabled: false });
             return base;
           })();
           return (
@@ -382,7 +400,7 @@ export function ShortcutsEditor(props: {
               <input
                 value={r.spec}
                 onChange={(e) => setBinding(r.key, e.target.value)}
-                placeholder={actionsForContext.find((a) => String(a.id) === r.key)?.defaultBinding || "例如：mod+s / g p / ?"}
+                placeholder={actionsForScope.find((a) => String(a.id) === r.key)?.defaultBinding || "例如：mod+s / g p / ?"}
               />
               {hint ? <div className="muted" style={{ marginTop: 6 }}>{hint}</div> : null}
               {conflict && conflict.length > 1 ? (

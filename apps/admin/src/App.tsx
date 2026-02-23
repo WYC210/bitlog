@@ -329,6 +329,8 @@ export function App() {
     </div>
   ) : route.page === "account" ? (
     <AccountPage
+      cfg={cfg}
+      onCfg={setCfg}
       prefs={prefs}
       onPrefs={setPrefs}
       onError={(m) => showToast(m, "error")}
