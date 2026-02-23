@@ -937,6 +937,32 @@ body[data-page="post"] .layout > aside {
   visibility: hidden;
   transition: all 0.3s ease;
   z-index: 100;
+  overflow: visible;
+}
+
+.scroll-to-top-ring {
+  position: absolute;
+  inset: -6px;
+  width: calc(100% + 12px);
+  height: calc(100% + 12px);
+  pointer-events: none;
+  transform: rotate(-90deg);
+  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.22));
+}
+
+.scroll-to-top-ring-track {
+  stroke: color-mix(in srgb, var(--primary) 22%, transparent);
+}
+
+.scroll-to-top-ring-indicator {
+  stroke: var(--primary);
+  transition: stroke-dashoffset 120ms linear;
+}
+
+/* Keep the arrow icon above the ring (avoid affecting the injected ring SVG). */
+.scroll-to-top > svg:not(.scroll-to-top-ring) {
+  position: relative;
+  z-index: 1;
 }
 
 .scroll-to-top.visible {
@@ -954,16 +980,29 @@ body[data-page="post"] .layout > aside {
   box-shadow: var(--focus), 0 8px 20px rgba(75, 107, 255, 0.4);
 }
 
-.scroll-to-top svg {
+.scroll-to-top > svg:not(.scroll-to-top-ring) {
   width: 24px;
   height: 24px;
 }
 
+@media (max-width: 860px) {
+  /* Leave room for the mobile command palette FAB ("?") at bottom-right. */
+  .scroll-to-top {
+    bottom: calc(76px + env(safe-area-inset-bottom));
+  }
+}
+
 @media (max-width: 640px) {
   .scroll-to-top {
-    bottom: 20px;
+    bottom: calc(76px + env(safe-area-inset-bottom));
     right: 20px;
     width: 44px;
     height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-to-top-ring-indicator {
+    transition: none;
   }
 }

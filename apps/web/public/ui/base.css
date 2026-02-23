@@ -760,7 +760,17 @@ mark {
   .header-right {
     order: 3;
     flex: 1 0 100%;
-    justify-content: space-between;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    row-gap: 10px;
+  }
+  .header-right > #themeToggle {
+    order: 1;
+    margin-left: auto;
+  }
+  .header-right > .nav-main {
+    order: 2;
+    flex: 1 0 100%;
   }
   .nav {
     flex-wrap: nowrap;
