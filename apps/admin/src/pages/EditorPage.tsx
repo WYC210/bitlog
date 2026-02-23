@@ -428,7 +428,7 @@ export function EditorPage(props: {
       if (props.prefs) props.onPrefs({ ...props.prefs, editorLayout: next });
     } catch (e) {
       const err = e as ApiError;
-      props.onError(err.message || "保存布局失败");
+      showToast(err.message || "保存布局失败", "error");
     }
   }
 
@@ -457,7 +457,7 @@ export function EditorPage(props: {
         if (p.publish_at) setPublishAtLocal(utcMsToZonedInput(p.publish_at, tz));
       } catch (e) {
         const err = e as ApiError;
-        props.onError(err.message || "加载失败");
+        showToast(err.message || "加载失败", "error");
       } finally {
         setLoading(false);
       }
@@ -681,9 +681,8 @@ export function EditorPage(props: {
   }, [previewHtml]);
 
   async function save(overrides?: { status?: typeof status; publishAtLocal?: string }) {
-    props.onError("");
     if (!title.trim() || !content.trim()) {
-      props.onError("title/content 不能为空");
+      showToast("title/content 不能为空", "error");
       return;
     }
     setSaving(true);
@@ -736,7 +735,6 @@ export function EditorPage(props: {
     } catch (e) {
       const err = e as ApiError;
       showToast(err.message || "保存失败", "error");
-      props.onError(err.message || "保存失败");
     } finally {
       setSaving(false);
     }

@@ -541,101 +541,7 @@ export function SettingsPage(props: {
   return (
     <div className="grid">
       <div className="card">
-        <h2 style={{ margin: "0 0 8px" }}>关于页配置（/about）</h2>
-        <div className="muted">存储在 settings 表中（JSON，多行）。/about 页面会读取并展示。</div>
-        <div style={{ height: 10 }} />
-        <div className="nav" style={{ marginBottom: 10 }}>
-          <button className="chip" type="button" onClick={() => void formatAboutJson()} disabled={formattingAboutJson}>
-            {formattingAboutJson ? "格式化中..." : "格式化 JSON"}
-          </button>
-          <button className="chip chip-primary" type="button" onClick={() => void saveAbout()} disabled={saving}>
-            {saving ? "保存中..." : "保存 /about"}
-          </button>
-        </div>
-
-        <div className="row">
-          <label>
-            侧边栏：每日新闻
-            <SelectBox
-              value={aboutSidebarDailyNewsEnabled ? "1" : "0"}
-              options={[
-                { value: "1", label: "开启" },
-                { value: "0", label: "关闭" }
-              ]}
-              onChange={(v) => setAboutSidebarDailyNewsEnabled(v === "1")}
-            />
-          </label>
-          <label>
-            侧边栏：历史上的今日
-            <SelectBox
-              value={aboutSidebarHistoryTodayEnabled ? "1" : "0"}
-              options={[
-                { value: "1", label: "开启" },
-                { value: "0", label: "关闭" }
-              ]}
-              onChange={(v) => setAboutSidebarHistoryTodayEnabled(v === "1")}
-            />
-          </label>
-          <label>
-            侧边栏：旅行足迹
-            <SelectBox
-              value={aboutSidebarTravelEnabled ? "1" : "0"}
-              options={[
-                { value: "1", label: "开启" },
-                { value: "0", label: "关闭" }
-              ]}
-              onChange={(v) => setAboutSidebarTravelEnabled(v === "1")}
-            />
-          </label>
-        </div>
-
-        <AboutSkillsEditor value={aboutTechStackJson} onChange={(v) => setAboutTechStackJson(v)} />
-        <div style={{ height: 16 }} />
-        <AboutVisitedPlacesEditor value={aboutVisitedPlacesJson} onChange={(v) => setAboutVisitedPlacesJson(v)} />
-        <div style={{ height: 16 }} />
-        <AboutExperienceEditor value={aboutTimelineJson} onChange={(v) => setAboutTimelineJson(v)} />
-
-        <details style={{ marginTop: 12 }}>
-          <summary className="muted" style={{ cursor: "pointer" }}>
-            高级：JSON
-          </summary>
-
-        <label>
-          <div style={{ fontWeight: 700 }}>技能专长（JSON）</div>
-          <CodeEditor
-            value={aboutTechStackJson}
-            onChange={(v) => setAboutTechStackJson(v)}
-            onSave={() => void saveAbout()}
-            placeholder={`[\n  {\n    \"title\": \"前端开发\",\n    \"description\": \"精通现代前端技术栈，擅长构建高性能 Web 应用。\",\n    \"tags\": [\"React\", \"Vue\", \"TypeScript\"],\n    \"icon\": \"frontend\"\n  },\n  {\n    \"title\": \"UI/UX 设计\",\n    \"description\": \"注重用户体验，擅长将设计理念转化为界面实现。\",\n    \"tags\": [\"Figma\", \"Tailwind\", \"CSS\"],\n    \"icon\": \"design\"\n  }\n]\n\n// 兼容写法：也支持 items 字段\n// { \"title\": \"Backend\", \"items\": [\"Hono\", \"SQLite\"] }`}
-          />
-        </label>
-
-        <div style={{ height: 10 }} />
-        <label>
-          <div style={{ fontWeight: 700 }}>旅行足迹（地点列表 JSON）</div>
-          <CodeEditor
-            value={aboutVisitedPlacesJson}
-            onChange={(v) => setAboutVisitedPlacesJson(v)}
-            onSave={() => void saveAbout()}
-            placeholder={`[\n  \"中国-北京\",\n  \"中国-广东\"\n]`}
-          />
-        </label>
-
-        <div style={{ height: 10 }} />
-        <label>
-          <div style={{ fontWeight: 700 }}>工作经历（JSON）</div>
-          <CodeEditor
-            value={aboutTimelineJson}
-            onChange={(v) => setAboutTimelineJson(v)}
-            onSave={() => void saveAbout()}
-            placeholder={`[\n  {\n    \"date\": \"2023 - 至今\",\n    \"title\": \"高级前端工程师\",\n    \"company\": \"某科技公司\",\n    \"description\": \"负责核心产品的前端架构设计与开发，带领团队完成多个重要项目。\"\n  },\n  {\n    \"date\": \"2021 - 2023\",\n    \"title\": \"前端工程师\",\n    \"company\": \"某互联网公司\",\n    \"description\": \"参与多个 Web 应用的开发，积累了丰富的前端开发经验。\"\n  }\n]`}
-          />
-        </label>
-        </details>
-      </div>
-
-      <div className="card">
-        <h2 style={{ margin: "0 0 8px" }}>站点设置</h2>
+        <h2 style={{ margin: "0 0 8px" }}>1. 站点设置</h2>
         <div className="muted">提示：保存会触发缓存软失效（cache_version 递增）。</div>
         <div style={{ height: 12 }} />
         <h3 style={{ margin: "6px 0 4px" }}>基础</h3>
@@ -778,7 +684,7 @@ export function SettingsPage(props: {
       </div>
 
       <div className="card">
-        <h2 style={{ margin: "0 0 8px" }}>项目页（GitHub / Gitee）</h2>
+        <h2 style={{ margin: "0 0 8px" }}>2. 项目页（GitHub / Gitee）</h2>
         <div className="muted">只在服务端保存 Token，不会暴露给访客浏览器。</div>
         <div style={{ height: 12 }} />
         <div className="row">
@@ -892,7 +798,7 @@ export function SettingsPage(props: {
       </div>
 
       <div className="card">
-        <h2 style={{ margin: "0 0 8px" }}>工具中心（访客可见）</h2>
+        <h2 style={{ margin: "0 0 8px" }}>3. 工具中心（访客可见）</h2>
         <div className="muted">支持启用/禁用、拖动排序（↑↓）、新增/编辑/删除；保存会触发 cache_version 递增。</div>
         <div style={{ height: 12 }} />
 
@@ -1115,6 +1021,100 @@ export function SettingsPage(props: {
             {saving ? "新增中..." : "新增"}
           </button>
         </div>
+      </div>
+
+      <div className="card">
+        <h2 style={{ margin: "0 0 8px" }}>4. 关于页配置（/about）</h2>
+        <div className="muted">存储在 settings 表中（JSON，多行）。/about 页面会读取并展示。</div>
+        <div style={{ height: 10 }} />
+        <div className="nav" style={{ marginBottom: 10 }}>
+          <button className="chip" type="button" onClick={() => void formatAboutJson()} disabled={formattingAboutJson}>
+            {formattingAboutJson ? "格式化中..." : "格式化 JSON"}
+          </button>
+          <button className="chip chip-primary" type="button" onClick={() => void saveAbout()} disabled={saving}>
+            {saving ? "保存中..." : "保存 /about"}
+          </button>
+        </div>
+
+        <div className="row">
+          <label>
+            侧边栏：每日新闻
+            <SelectBox
+              value={aboutSidebarDailyNewsEnabled ? "1" : "0"}
+              options={[
+                { value: "1", label: "开启" },
+                { value: "0", label: "关闭" }
+              ]}
+              onChange={(v) => setAboutSidebarDailyNewsEnabled(v === "1")}
+            />
+          </label>
+          <label>
+            侧边栏：历史上的今日
+            <SelectBox
+              value={aboutSidebarHistoryTodayEnabled ? "1" : "0"}
+              options={[
+                { value: "1", label: "开启" },
+                { value: "0", label: "关闭" }
+              ]}
+              onChange={(v) => setAboutSidebarHistoryTodayEnabled(v === "1")}
+            />
+          </label>
+          <label>
+            侧边栏：旅行足迹
+            <SelectBox
+              value={aboutSidebarTravelEnabled ? "1" : "0"}
+              options={[
+                { value: "1", label: "开启" },
+                { value: "0", label: "关闭" }
+              ]}
+              onChange={(v) => setAboutSidebarTravelEnabled(v === "1")}
+            />
+          </label>
+        </div>
+
+        <AboutSkillsEditor value={aboutTechStackJson} onChange={(v) => setAboutTechStackJson(v)} />
+        <div style={{ height: 16 }} />
+        <AboutVisitedPlacesEditor value={aboutVisitedPlacesJson} onChange={(v) => setAboutVisitedPlacesJson(v)} />
+        <div style={{ height: 16 }} />
+        <AboutExperienceEditor value={aboutTimelineJson} onChange={(v) => setAboutTimelineJson(v)} />
+
+        <details style={{ marginTop: 12 }}>
+          <summary className="muted" style={{ cursor: "pointer" }}>
+            高级：JSON
+          </summary>
+
+        <label>
+          <div style={{ fontWeight: 700 }}>技能专长（JSON）</div>
+          <CodeEditor
+            value={aboutTechStackJson}
+            onChange={(v) => setAboutTechStackJson(v)}
+            onSave={() => void saveAbout()}
+            placeholder={`[\n  {\n    \"title\": \"前端开发\",\n    \"description\": \"精通现代前端技术栈，擅长构建高性能 Web 应用。\",\n    \"tags\": [\"React\", \"Vue\", \"TypeScript\"],\n    \"icon\": \"frontend\"\n  },\n  {\n    \"title\": \"UI/UX 设计\",\n    \"description\": \"注重用户体验，擅长将设计理念转化为界面实现。\",\n    \"tags\": [\"Figma\", \"Tailwind\", \"CSS\"],\n    \"icon\": \"design\"\n  }\n]\n\n// 兼容写法：也支持 items 字段\n// { \"title\": \"Backend\", \"items\": [\"Hono\", \"SQLite\"] }`}
+          />
+        </label>
+
+        <div style={{ height: 10 }} />
+        <label>
+          <div style={{ fontWeight: 700 }}>旅行足迹（地点列表 JSON）</div>
+          <CodeEditor
+            value={aboutVisitedPlacesJson}
+            onChange={(v) => setAboutVisitedPlacesJson(v)}
+            onSave={() => void saveAbout()}
+            placeholder={`[\n  \"中国-北京\",\n  \"中国-广东\"\n]`}
+          />
+        </label>
+
+        <div style={{ height: 10 }} />
+        <label>
+          <div style={{ fontWeight: 700 }}>工作经历（JSON）</div>
+          <CodeEditor
+            value={aboutTimelineJson}
+            onChange={(v) => setAboutTimelineJson(v)}
+            onSave={() => void saveAbout()}
+            placeholder={`[\n  {\n    \"date\": \"2023 - 至今\",\n    \"title\": \"高级前端工程师\",\n    \"company\": \"某科技公司\",\n    \"description\": \"负责核心产品的前端架构设计与开发，带领团队完成多个重要项目。\"\n  },\n  {\n    \"date\": \"2021 - 2023\",\n    \"title\": \"前端工程师\",\n    \"company\": \"某互联网公司\",\n    \"description\": \"参与多个 Web 应用的开发，积累了丰富的前端开发经验。\"\n  }\n]`}
+          />
+        </label>
+        </details>
       </div>
     </div>
   );

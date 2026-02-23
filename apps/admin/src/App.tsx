@@ -29,6 +29,8 @@ export function App() {
   const [user, setUser] = useState<{ adminId: string; username: string } | null>(null);
   const [prefs, setPrefs] = useState<AdminPrefs | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
+  const toastTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const [theme, setThemeState] = useState<"light" | "dark">(() => getTheme());
   const [cmdOpen, setCmdOpen] = useState(false);
 
@@ -262,7 +264,22 @@ export function App() {
     return () => window.removeEventListener("keydown", onKeydown);
   }, [shortcutSpecs, theme, user]);
 
-  useEffect(() => setError(null), [route.page]);
+  const showToast = React.useCallback((msg: string, type: "success" | "error" = "error") => {
+    const text = String(msg ?? "").trim();
+    if (!text) return;
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setToast({ msg: text, type });
+    toastTimerRef.current = setTimeout(() => setToast(null), 3500);
+  }, []);
+
+  useEffect(() => {
+    setError(null);
+    setToast(null);
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+      toastTimerRef.current = null;
+    }
+  }, [route.page]);
   const authed = !!user;
 
   const pageInfo = useMemo(() => {
@@ -314,7 +331,7 @@ export function App() {
     <AccountPage
       prefs={prefs}
       onPrefs={setPrefs}
-      onError={(m) => setError(m || null)}
+      onError={(m) => showToast(m, "error")}
       onForceRelogin={() => {
         setUser(null);
         setPrefs(null);
@@ -322,17 +339,17 @@ export function App() {
       }}
     />
   ) : route.page === "settings" ? (
-    <SettingsPage cfg={cfg} onCfg={setCfg} onError={(m) => setError(m || null)} />
+    <SettingsPage cfg={cfg} onCfg={setCfg} onError={(m) => showToast(m, "error")} />
   ) : route.page === "edit" ? (
     <EditorPage
       id={(route as any).id}
       cfg={cfg}
       prefs={prefs}
       onPrefs={setPrefs}
-      onError={(m) => setError(m || null)}
+      onError={(m) => showToast(m, "error")}
     />
   ) : (
-    <PostsPage cfg={cfg} onError={(m) => setError(m || null)} />
+    <PostsPage cfg={cfg} onError={(m) => showToast(m, "error")} />
   );
 
   if (!authed) {
@@ -341,6 +358,7 @@ export function App() {
 
   return (
     <div className="app">
+      {toast ? <div className={`toast toast-${toast.type}`}>{toast.msg}</div> : null}
       <aside className="sidebar" aria-label="侧边栏导航">
         <div className="brand">
           <div className="brand-left">
@@ -533,11 +551,6 @@ export function App() {
 
         <section className="content">
           <div className="content-full">
-            {error ? (
-              <div className="card danger" style={{ marginBottom: 12 }}>
-                {error}
-              </div>
-            ) : null}
             {mainContent}
           </div>
         </section>
