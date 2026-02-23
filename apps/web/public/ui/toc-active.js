@@ -33,11 +33,12 @@
     .map((el) => {
       const id = String(el.getAttribute("data-toc-group") || "").trim();
       const toggle = el.querySelector("button.toc-toggle");
-      return { el, id, toggle };
+      const children = el.querySelector(".toc-children");
+      const hasChildren = !!(children && children.querySelector("a.toc-link-h3"));
+      return { el, id, toggle, hasChildren };
     })
     .filter((g) => g.id);
   const groupById = new Map(groupMeta.map((g) => [g.id, g]));
-  const manual = new Map(); // groupId -> "open" | "closed"
 
   const items = links
     .map((link) => {
@@ -56,7 +57,7 @@
 
   function syncToggle(groupId) {
     const g = groupById.get(groupId);
-    if (!g || !g.toggle) return;
+    if (!g || !g.toggle || !g.hasChildren) return;
     try {
       g.toggle.setAttribute("aria-expanded", g.el.classList.contains("is-open") ? "true" : "false");
     } catch {
@@ -67,38 +68,34 @@
   function setGroupOpen(groupId, open, reason) {
     const g = groupById.get(groupId);
     if (!g) return;
-    g.el.classList.toggle("is-open", !!open);
+    g.el.classList.toggle("is-open", !!(open && g.hasChildren));
     syncToggle(groupId);
-    if (reason === "manual") {
-      manual.set(groupId, open ? "open" : "closed");
-    }
   }
 
   function applyAutoOpen(groupId) {
     if (!groupId) return;
     for (const g of groupMeta) {
-      const pinned = manual.get(g.id) || "";
       if (g.id === groupId) {
-        if (pinned !== "closed") setGroupOpen(g.id, true, "auto");
+        setGroupOpen(g.id, true, "auto");
       } else {
-        if (pinned !== "open") setGroupOpen(g.id, false, "auto");
+        setGroupOpen(g.id, false, "auto");
       }
     }
   }
 
   function setActive(nextId) {
     const id = String(nextId || "");
-    if (!id || id === activeId) return;
-    activeId = id;
     const groupId = itemById.get(id)?.group ?? "";
     applyAutoOpen(groupId);
+    if (!id || id === activeId) return;
+    activeId = id;
     for (const it of items) {
       it.link.classList.toggle("active", it.id === id);
     }
   }
 
   for (const g of groupMeta) {
-    if (!g.toggle) continue;
+    if (!g.toggle || !g.hasChildren) continue;
     g.toggle.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
