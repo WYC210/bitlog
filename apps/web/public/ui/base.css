@@ -753,30 +753,29 @@ mark {
   .header-left {
     order: 1;
   }
-  .header-center {
-    order: 2;
-    flex: 1 0 100%;
-  }
+
+  /* Put theme toggle on the same row as the brand (app-bar style). */
   .header-right {
-    order: 3;
-    flex: 1 0 100%;
-    justify-content: flex-start;
-    flex-wrap: wrap;
-    row-gap: 10px;
+    display: contents;
   }
-  .header-right > #themeToggle {
-    order: 1;
+
+  #themeToggle {
+    order: 2;
     margin-left: auto;
   }
-  .header-right > .nav-main {
-    order: 2;
+
+  .header-center {
+    order: 3;
     flex: 1 0 100%;
   }
+
+  .nav-main {
+    order: 4;
+    flex: 1 0 100%;
+  }
+
   .nav {
     flex-wrap: nowrap;
-  }
-  .nav-main {
-    flex: 1 1 auto;
   }
   .hero-title {
     font-size: 40px;

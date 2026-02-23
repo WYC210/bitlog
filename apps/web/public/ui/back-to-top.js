@@ -40,6 +40,21 @@
   ring.appendChild(indicator);
   btn.insertBefore(ring, btn.firstChild);
 
+  function syncRingGeometry() {
+    try {
+      const w = btn.offsetWidth || btn.getBoundingClientRect().width || 48;
+      const h = btn.offsetHeight || btn.getBoundingClientRect().height || 48;
+      // Keep the ring large enough so its inner edge reaches the button edge (avoid a dark seam on dark backgrounds).
+      // `4px` works well for both 44px and 48px buttons in this UI.
+      const pad = 4;
+      ring.style.inset = `-${pad}px`;
+      ring.style.width = `calc(100% + ${pad * 2}px)`;
+      ring.style.height = `calc(100% + ${pad * 2}px)`;
+    } catch {
+      // ignore
+    }
+  }
+
   function setVisible(next) {
     const v = !!next;
     if (v === visible) return;
@@ -84,6 +99,10 @@
   });
 
   window.addEventListener("scroll", onScroll, { passive: true });
-  window.addEventListener("resize", scheduleUpdate);
+  window.addEventListener("resize", () => {
+    syncRingGeometry();
+    scheduleUpdate();
+  });
+  syncRingGeometry();
   onScroll();
 })();
