@@ -887,6 +887,7 @@ export function SwitchMenu(props: {
           ) : (
             items.map((it, i) => {
               const isSelected = i === wrapIndex(activeIndex, items.length);
+              const chord = chordByHash[it.hash];
               return (
                 <button
                 key={it.id}
@@ -904,15 +905,12 @@ export function SwitchMenu(props: {
                   setOpen(false);
                 }}
                 >
-                  <div className="switch-tile-top">
-                    <div className="switch-tile-title">
-                      <span className="switch-tile-ico" aria-hidden="true">
-                        {iconForHash(it.hash)}
-                      </span>
-                      <span>{it.title}</span>
-                    </div>
-                  </div>
-                  <div className="switch-tile-bottom">
+                  <div className="switch-tile-center">
+                    <span className="switch-tile-ico" aria-hidden="true">
+                      {iconForHash(it.hash)}
+                    </span>
+                    <div className="switch-tile-title">{it.title}</div>
+                    {chord ? <kbd className="switch-tile-kbd">{chord}</kbd> : null}
                     <div className="switch-tile-desc">{it.desc}</div>
                   </div>
                 </button>

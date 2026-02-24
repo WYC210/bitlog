@@ -388,12 +388,13 @@ html.theme-transition-active {
     radial-gradient(420px 260px at 82% 18%, color-mix(in srgb, var(--blsw-accent) 10%, transparent), transparent 70%),
     linear-gradient(to bottom right, rgba(255, 255, 255, 0.12), rgba(0, 0, 0, 0.32));
   border: 1px solid transparent;
-  padding: 14px 14px 12px;
+  padding: 16px 14px 14px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: center;
+  gap: 12px;
   cursor: pointer;
-  text-align: left;
+  text-align: center;
   transition:
     transform 220ms cubic-bezier(0.2, 1, 0.2, 1),
     filter 220ms cubic-bezier(0.2, 1, 0.2, 1),
@@ -403,23 +404,37 @@ html.theme-transition-active {
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   color: rgba(255, 255, 255, 0.92);
+  position: relative;
+  overflow: hidden;
+}
+
+.blsw-tile-center {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
 }
 
 .blsw-tile-ico {
-  width: 34px;
-  height: 34px;
-  border-radius: 14px;
+  width: 52px;
+  height: 52px;
+  border-radius: 18px;
   display: grid;
   place-items: center;
   flex: 0 0 auto;
   color: rgba(255, 255, 255, 0.92);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(255, 255, 255, 0.06);
+  border: none;
+  background:
+    radial-gradient(180px 120px at 30% 20%, color-mix(in srgb, var(--blsw-accent) 20%, transparent), transparent 70%),
+    rgba(255, 255, 255, 0.06);
 }
 
 .blsw-tile-ico svg {
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -453,20 +468,34 @@ html.theme-transition-active {
 
 .blsw-tile-title {
   font-weight: 900;
-  font-size: 18px;
+  font-size: 20px;
   line-height: 1.1;
   letter-spacing: 0.2px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  max-width: 18ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.blsw-tile-kbd {
+  font: 12px/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  color: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 999px;
+  padding: 8px 10px;
 }
 
 .blsw-tile-desc {
-  margin-top: 8px;
   color: rgba(255, 255, 255, 0.7);
   font-weight: 750;
   font-size: 13px;
   line-height: 1.35;
+  max-width: 28ch;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
 }
 
 /* Dial */

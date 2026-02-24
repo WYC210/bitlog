@@ -659,14 +659,12 @@
           btn.setAttribute("data-idx", String(i));
           btn.setAttribute("aria-selected", "false");
           btn.style.setProperty("--blsw-accent", accentForId(a.id));
+          const binding = String(a.binding || "").trim();
           btn.innerHTML = `
-            <div class="blsw-tile-top">
-              <div class="blsw-tile-title">
-                <span class="blsw-tile-ico" aria-hidden="true">${iconSvg(a.id)}</span>
-                <span>${escapeHtml(String(a.label || ""))}</span>
-              </div>
-            </div>
-            <div class="blsw-tile-bottom">
+            <div class="blsw-tile-center">
+              <span class="blsw-tile-ico" aria-hidden="true">${iconSvg(a.id)}</span>
+              <div class="blsw-tile-title">${escapeHtml(String(a.label || ""))}</div>
+              ${binding ? `<kbd class="blsw-tile-kbd">${escapeHtml(binding)}</kbd>` : ""}
               <div class="blsw-tile-desc">${escapeHtml(String(a.desc || ""))}</div>
             </div>
           `;

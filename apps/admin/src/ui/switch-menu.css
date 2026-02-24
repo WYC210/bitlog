@@ -379,12 +379,13 @@
       color-mix(in srgb, #000 32%, transparent)
     );
   border: var(--border-w) solid color-mix(in srgb, var(--switch-accent) 16%, var(--border));
-  padding: 14px 14px 12px;
+  padding: 16px 14px 14px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: center;
+  gap: 12px;
   cursor: pointer;
-  text-align: left;
+  text-align: center;
   transition:
     transform 220ms cubic-bezier(0.2, 1, 0.2, 1),
     filter 220ms cubic-bezier(0.2, 1, 0.2, 1),
@@ -393,25 +394,37 @@
   outline: none;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
+  position: relative;
+  overflow: hidden;
+}
+
+.switch-tile-center {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
 }
 
 .switch-tile-ico {
-  width: 34px;
-  height: 34px;
-  border-radius: 14px;
+  width: 52px;
+  height: 52px;
+  border-radius: 18px;
   display: grid;
   place-items: center;
   flex: 0 0 auto;
   color: color-mix(in srgb, var(--switch-accent) 86%, var(--text));
-  border: var(--border-w) solid color-mix(in srgb, var(--switch-accent) 22%, var(--border));
+  border: none;
   background:
     radial-gradient(180px 120px at 30% 20%, color-mix(in srgb, var(--switch-accent) 20%, transparent), transparent 70%),
     color-mix(in srgb, var(--panel) 72%, transparent);
 }
 
 .switch-tile-ico svg {
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -453,18 +466,32 @@
 
 .switch-tile-title {
   font-weight: 980;
-  font-size: 18px;
+  font-size: 20px;
   line-height: 1.1;
   letter-spacing: 0.2px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  max-width: 18ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.switch-tile-kbd {
+  font: 12px/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  color: color-mix(in srgb, var(--muted) 96%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 999px;
+  padding: 8px 10px;
 }
 
 .switch-tile-desc {
-  margin-top: 8px;
   color: color-mix(in srgb, var(--muted) 92%, transparent);
   font-weight: 750;
   font-size: 13px;
   line-height: 1.35;
+  max-width: 28ch;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
 }
