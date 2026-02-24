@@ -61,9 +61,11 @@
       return path === h || path.startsWith(h + "/");
     };
 
+    let usedActive = false;
     nav.innerHTML = items
       .map((it) => {
-        const active = mkActive(it.href, it.external);
+        const active = !usedActive && mkActive(it.href, it.external);
+        if (active) usedActive = true;
         const attrs = it.external
           ? `href="${escapeHtml(it.href)}" target="_blank" rel="noopener noreferrer"`
           : `href="${escapeHtml(it.href)}"`;
@@ -138,6 +140,7 @@
       path === "/" ? "/" : path === "/articles" ? "/articles" : path === "/projects" ? "/projects" : path === "/tools" ? "/tools" : path === "/about" ? "/about" : "";
 
     const links = document.querySelectorAll(".nav.nav-main a[href]");
+    let used = false;
     for (const a of links) {
       let p = "";
       try {
@@ -145,8 +148,13 @@
       } catch {
         // ignore
       }
-      if (want && p === want) a.classList.add("active");
-      else a.classList.remove("active");
+      const match = !!want && p === want;
+      if (match && !used) {
+        a.classList.add("active");
+        used = true;
+      } else {
+        a.classList.remove("active");
+      }
     }
   }
 

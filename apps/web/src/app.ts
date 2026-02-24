@@ -143,6 +143,38 @@ function safeClassToken(input: string): string {
   return cleaned || "custom";
 }
 
+function normalizePathname(pathname: string): string {
+  const p = String(pathname || "/");
+  if (p === "/") return "/";
+  return p.endsWith("/") ? p.slice(0, -1) : p;
+}
+
+function internalPathnameFromHref(href: string): string | null {
+  const s = String(href ?? "").trim();
+  if (!s) return null;
+  if (!s.startsWith("/")) return null;
+  if (s.startsWith("//")) return null;
+  try {
+    const u = new URL(s, "https://site.local");
+    return normalizePathname(u.pathname);
+  } catch {
+    return normalizePathname(s.split("?")[0]!.split("#")[0]!);
+  }
+}
+
+function isWebPathEnabledByNav(cfg: SiteConfig, pathname: string): boolean {
+  const want = normalizePathname(pathname);
+  const nav = Array.isArray((cfg as any)?.webNav) ? ((cfg as any).webNav as any[]) : [];
+  for (const it of nav) {
+    if (!it || typeof it !== "object") continue;
+    if ((it as any).enabled === false) continue;
+    const p = internalPathnameFromHref(String((it as any).href ?? ""));
+    if (!p) continue;
+    if (p === want) return true;
+  }
+  return false;
+}
+
 function renderSiteFooter(cfg: SiteConfig, year: string): string {
   const title = cfg.title ?? "Bitlog";
   const copyrightText = `© ${year} ${title}. All rights reserved.`;
@@ -518,6 +550,7 @@ export function createWebApp() {
 
   app.get("/", async (c) => {
     const cfg = await getConfig(c.env);
+    if (!isWebPathEnabledByNav(cfg, "/")) return c.text("Not found", 404);
     return maybeCachePage(c.req.raw, cfg, "web:home", async () => {
       const year = String(new Date().getFullYear());
       const footer = renderSiteFooter(cfg, year);
@@ -554,6 +587,7 @@ export function createWebApp() {
 
   app.get("/articles", async (c) => {
     const cfg = await getConfig(c.env);
+    if (!isWebPathEnabledByNav(cfg, "/articles")) return c.text("Not found", 404);
     const url = new URL(c.req.url);
     const q = (url.searchParams.get("q") ?? "").trim();
     const category = url.searchParams.get("category");
@@ -698,6 +732,7 @@ export function createWebApp() {
 
   app.get("/projects", async (c) => {
     const cfg = await getConfig(c.env);
+    if (!isWebPathEnabledByNav(cfg, "/projects")) return c.text("Not found", 404);
     const url = new URL(c.req.url);
     const rawPlatform = (url.searchParams.get("platform") ?? "").trim().toLowerCase();
     const platform =
@@ -826,6 +861,7 @@ ${filter}
 
   app.get("/about", async (c) => {
     const cfg = await getConfig(c.env);
+    if (!isWebPathEnabledByNav(cfg, "/about")) return c.text("Not found", 404);
     return maybeCachePage(c.req.raw, cfg, "web:about", async () => {
       const year = String(new Date().getFullYear());
       const footer = renderSiteFooter(cfg, year);
@@ -856,6 +892,7 @@ ${filter}
 
   app.get("/tools", async (c) => {
     const cfg = await getConfig(c.env);
+    if (!isWebPathEnabledByNav(cfg, "/tools")) return c.text("Not found", 404);
     const url = new URL(c.req.url);
     const rawGroup = String(url.searchParams.get("group") ?? "all").trim();
     const group = rawGroup ? rawGroup.toLowerCase() : "all";
@@ -951,6 +988,7 @@ ${filter}
 
   app.get("/tools/:slug", async (c) => {
     const cfg = await getConfig(c.env);
+    if (!isWebPathEnabledByNav(cfg, "/tools")) return c.text("Not found", 404);
     const slug = c.req.param("slug");
     let tool: ToolItem;
     try {
@@ -1032,6 +1070,7 @@ ${filter}
 
   app.get("/articles/:slug", async (c) => {
     const cfg = await getConfig(c.env);
+    if (!isWebPathEnabledByNav(cfg, "/articles")) return c.text("Not found", 404);
     const slug = c.req.param("slug");
     return maybeCachePage(c.req.raw, cfg, `web:post:${slug}`, async () => {
       const year = String(new Date().getFullYear());
