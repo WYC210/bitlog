@@ -753,6 +753,10 @@ html.theme-transition-active {
   white-space: nowrap;
 }
 
+#navSearchToggle {
+  display: none;
+}
+
 .nav {
   display: flex;
   align-items: center;
@@ -1150,13 +1154,23 @@ mark {
   }
 
   #themeToggle {
-    order: 2;
+    order: 3;
     margin-left: auto;
   }
 
   .header-center {
-    order: 3;
-    flex: 1 0 100%;
+    order: 2;
+    flex: 1 1 240px;
+    max-width: 360px;
+  }
+
+  .search {
+    width: 100%;
+    padding: 7px 12px;
+  }
+
+  .search input {
+    font-size: 13px;
   }
 
   .nav-main {
@@ -1178,6 +1192,35 @@ mark {
   }
   .layout {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  /* Collapse the search box into an icon when space is tight. */
+  #navSearchToggle {
+    display: inline-flex;
+    order: 2;
+    margin-left: auto;
+  }
+
+  #themeToggle {
+    order: 3;
+    margin-left: 0;
+  }
+
+  .header-center {
+    display: none;
+  }
+
+  .site-header[data-search-open="1"] .header-center {
+    display: flex;
+    order: 4;
+    flex: 1 0 100%;
+    max-width: none;
+  }
+
+  .nav-main {
+    order: 5;
   }
 }
 

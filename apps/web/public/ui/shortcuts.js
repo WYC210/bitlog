@@ -182,6 +182,9 @@
 
   function focusSearch() {
     if (!search) return;
+    try {
+      if (window.__bitlogOpenSearch) window.__bitlogOpenSearch(true);
+    } catch {}
     search.focus();
     try {
       search.select();

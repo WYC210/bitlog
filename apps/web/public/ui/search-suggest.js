@@ -47,6 +47,46 @@
     root.innerHTML = "";
   };
 
+  const header = document.querySelector(".site-header");
+  const toggleBtn = document.getElementById("navSearchToggle");
+
+  const isSearchOpen = () => (header ? header.getAttribute("data-search-open") === "1" : false);
+  const setSearchOpen = (open) => {
+    if (!header) return;
+    if (open) {
+      header.setAttribute("data-search-open", "1");
+      if (toggleBtn) toggleBtn.setAttribute("aria-expanded", "true");
+      window.setTimeout(() => {
+        try {
+          input.focus();
+          input.select();
+        } catch {}
+      }, 0);
+      return;
+    }
+    header.removeAttribute("data-search-open");
+    if (toggleBtn) toggleBtn.setAttribute("aria-expanded", "false");
+    hide();
+  };
+
+  if (toggleBtn) {
+    toggleBtn.setAttribute("aria-expanded", isSearchOpen() ? "true" : "false");
+    toggleBtn.addEventListener("click", () => setSearchOpen(!isSearchOpen()));
+  }
+
+  document.addEventListener("pointerdown", (e) => {
+    if (!toggleBtn) return;
+    if (!isSearchOpen()) return;
+    const t = e.target;
+    if (!(t instanceof Node)) return;
+    if (header && header.contains(t)) return;
+    setSearchOpen(false);
+  });
+
+  try {
+    window.__bitlogOpenSearch = (open) => setSearchOpen(open !== false);
+  } catch {}
+
   const showLoading = (q) => {
     root.hidden = false;
     root.innerHTML = `<div class="search-suggest__meta">搜索：<strong>${escapeHtml(q)}</strong> …</div>`;
@@ -117,6 +157,7 @@
   input.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
       hide();
+      if (toggleBtn) setSearchOpen(false);
       input.blur();
     }
   });
@@ -135,4 +176,3 @@
     hide();
   });
 })();
-
