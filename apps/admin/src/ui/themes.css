@@ -343,8 +343,8 @@ html[data-ui-style="brutal"] body {
 
 html[data-ui-style="brutal"] .logo {
   background: linear-gradient(135deg, rgba(255, 45, 85, 0.95), rgba(255, 214, 0, 0.85));
-  box-shadow: 14px 14px 0 rgba(0, 0, 0, 0.45);
-  border-radius: 8px;
+  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.45), 0 0 28px rgba(255, 45, 85, 0.18);
+  border-radius: 12px;
 }
 
 html[data-ui-style="brutal"] .btn,
@@ -531,4 +531,3 @@ html[data-ui-style="terminal"][data-theme="light"] body {
     ),
     var(--bg);
 }
-

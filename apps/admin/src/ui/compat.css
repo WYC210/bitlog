@@ -52,6 +52,13 @@ textarea:focus-visible {
 .content-full {
   grid-column: 1 / -1;
   min-width: 0;
+  width: min(1120px, 100%);
+  justify-self: center;
+}
+
+.content-full-wide {
+  width: 100%;
+  justify-self: stretch;
 }
 
 .chip-primary {
@@ -75,4 +82,25 @@ textarea:focus-visible {
 
 .card.danger {
   border-color: color-mix(in srgb, var(--danger) 45%, var(--border));
+}
+
+/* Sidebar collapsed: keep it "pure icons" (no boxed brand/nav backgrounds). */
+html[data-sidebar="collapsed"] .brand {
+  box-shadow: none;
+}
+
+html[data-sidebar="collapsed"] .logo {
+  box-shadow: none !important;
+}
+
+html[data-sidebar="collapsed"] .sidebar .nav a {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+html[data-sidebar="collapsed"] .sidebar .nav a:hover {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
 }

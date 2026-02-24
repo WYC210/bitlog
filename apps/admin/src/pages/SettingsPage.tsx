@@ -22,6 +22,7 @@ export function SettingsPage(props: {
   cfg: SiteConfig | null;
   onCfg: (c: SiteConfig) => void;
   onError: (m: string) => void;
+  section?: "site" | "projects" | "tools" | "about" | null;
 }) {
   const ABOUT_KEY_TECH_STACK = "about.tech_stack_json";
   const ABOUT_KEY_VISITED_PLACES = "about.visited_places_json";
@@ -40,6 +41,17 @@ export function SettingsPage(props: {
   const [footerIcpLink, setFooterIcpLink] = useState(props.cfg?.footerIcpLink ?? "https://beian.miit.gov.cn/");
   const [webStyle, setWebStyle] = useState<UiStyle>(props.cfg?.webStyle ?? "current");
   const [adminStyle, setAdminStyle] = useState<UiStyle>(props.cfg?.adminStyle ?? "current");
+  const SWITCH_MENU_LAYOUT_KEY = "bitlog:admin:switchMenu:layout";
+  const SWITCH_MENU_BINDINGS_KEY = "bitlog:admin:switchMenu:bindings";
+  const [switchMenuLayout, setSwitchMenuLayout] = useState<"arc" | "grid">(() => {
+    try {
+      const raw = String(localStorage.getItem(SWITCH_MENU_LAYOUT_KEY) || "").toLowerCase();
+      return raw === "grid" ? "grid" : "arc";
+    } catch {
+      return "arc";
+    }
+  });
+  const [switchBindingsCount, setSwitchBindingsCount] = useState(0);
   const [autoSummaryEnabled, setAutoSummaryEnabled] = useState(false);
   const [saving, setSaving] = useState(false);
   const [projectsCfg, setProjectsCfg] = useState<ProjectsConfigAdminView | null>(null);
@@ -93,6 +105,25 @@ export function SettingsPage(props: {
     { value: "brutal", label: "brutal" },
     { value: "terminal", label: "terminal" }
   ];
+
+  const refreshSwitchBindingsCount = () => {
+    try {
+      const raw = localStorage.getItem(SWITCH_MENU_BINDINGS_KEY);
+      if (!raw) {
+        setSwitchBindingsCount(0);
+        return;
+      }
+      const v = JSON.parse(raw);
+      const n = v && typeof v === "object" ? Object.keys(v).length : 0;
+      setSwitchBindingsCount(n);
+    } catch {
+      setSwitchBindingsCount(0);
+    }
+  };
+
+  useEffect(() => {
+    refreshSwitchBindingsCount();
+  }, []);
 
   async function formatJs(code: string): Promise<string> {
     const prettierMod = (await import("prettier/standalone")) as any;
@@ -538,9 +569,78 @@ export function SettingsPage(props: {
     }
   }
 
+  const section = props.section ?? null;
+  const showOverview = section === null;
+  const showSite = section === "site";
+  const showProjects = section === "projects";
+  const showTools = section === "tools";
+  const showAbout = section === "about";
+
   return (
-    <div className="grid">
-      <div className="card">
+    <div>
+      <div className="nav" style={{ marginBottom: 12 }}>
+        <a className={`chip ${showOverview ? "active" : ""}`} href="#/settings">
+          概览
+        </a>
+        <a className={`chip ${showSite ? "active" : ""}`} href="#/settings/site">
+          站点配置
+        </a>
+        <a className={`chip ${showProjects ? "active" : ""}`} href="#/settings/projects">
+          Projects
+        </a>
+        <a className={`chip ${showTools ? "active" : ""}`} href="#/settings/tools">
+          Tools
+        </a>
+        <a className={`chip ${showAbout ? "active" : ""}`} href="#/settings/about">
+          About
+        </a>
+      </div>
+
+      <div className="grid">
+        {showOverview ? (
+          <div className="card">
+            <h2 style={{ margin: "0 0 8px" }}>设置</h2>
+            <div className="muted">这里把内容拆成 4 个页面，避免在一个页面里滚太长。</div>
+            <div style={{ height: 12 }} />
+            <div className="grid" style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>
+              <a className="embed-card" href="#/settings/site">
+                <div className="embed-card__row">
+                  <div className="embed-card__main">
+                    <div className="embed-card__title">站点配置</div>
+                    <div className="embed-card__desc">域名 / 时区 / UI 风格 / Footer / Allowlist 等</div>
+                  </div>
+                </div>
+              </a>
+              <a className="embed-card" href="#/settings/projects">
+                <div className="embed-card__row">
+                  <div className="embed-card__main">
+                    <div className="embed-card__title">Projects</div>
+                    <div className="embed-card__desc">GitHub / Gitee 相关设置与展示</div>
+                  </div>
+                </div>
+              </a>
+              <a className="embed-card" href="#/settings/tools">
+                <div className="embed-card__row">
+                  <div className="embed-card__main">
+                    <div className="embed-card__title">Tools</div>
+                    <div className="embed-card__desc">工具中心：分组 / 链接 / 客户端代码</div>
+                  </div>
+                </div>
+              </a>
+              <a className="embed-card" href="#/settings/about">
+                <div className="embed-card__row">
+                  <div className="embed-card__main">
+                    <div className="embed-card__title">About</div>
+                    <div className="embed-card__desc">关于页：技能 / 足迹 / 经历 + 侧边栏开关</div>
+                  </div>
+                </div>
+              </a>
+            </div>
+          </div>
+        ) : null}
+
+        {showSite ? (
+          <div className="card">
         <h2 style={{ margin: "0 0 8px" }}>1. 站点设置</h2>
         <div className="muted">提示：保存会触发缓存软失效（cache_version 递增）。</div>
         <div style={{ height: 12 }} />
@@ -629,6 +729,63 @@ export function SettingsPage(props: {
         </div>
 
         <div style={{ height: 16 }} />
+        <h3 style={{ margin: "6px 0 4px" }}>SWITCH 菜单</h3>
+        <div className="row">
+          <label>
+            菜单布局
+            <SelectBox
+              value={switchMenuLayout}
+              options={[
+                { value: "arc", label: "弧形滚轮" },
+                { value: "grid", label: "竖排两列" }
+              ]}
+              onChange={(v) => setSwitchMenuLayout(v === "grid" ? "grid" : "arc")}
+            />
+          </label>
+          <label>
+            呼出快捷键
+            <input value={"Alt + `"} readOnly className="input" style={{ opacity: 0.85 }} />
+          </label>
+        </div>
+        <div className="nav">
+          <button
+            className="chip chip-primary"
+            type="button"
+            onClick={() => {
+              try {
+                localStorage.setItem(SWITCH_MENU_LAYOUT_KEY, switchMenuLayout);
+              } catch {
+                // ignore
+              }
+              props.onError("");
+              refreshSwitchBindingsCount();
+              alert("已保存 SWITCH 菜单设置");
+            }}
+          >
+            保存菜单设置
+          </button>
+          <button
+            className="chip"
+            type="button"
+            onClick={() => {
+              if (!confirm("确定清空 SWITCH 菜单的页面绑定吗？")) return;
+              try {
+                localStorage.removeItem(SWITCH_MENU_BINDINGS_KEY);
+              } catch {
+                // ignore
+              }
+              refreshSwitchBindingsCount();
+              alert("已清空绑定");
+            }}
+          >
+            清空绑定
+          </button>
+          <span className="muted" style={{ alignSelf: "center" }}>
+            已绑定 {switchBindingsCount} 个
+          </span>
+        </div>
+
+        <div style={{ height: 16 }} />
         <label>
           <h3 style={{ margin: "6px 0 4px" }}>嵌入域名白名单</h3>
           嵌入域名白名单（每行一个；留空=禁用）
@@ -682,7 +839,9 @@ export function SettingsPage(props: {
           </button>
         </div>
       </div>
+        ) : null}
 
+        {showProjects ? (
       <div className="card">
         <h2 style={{ margin: "0 0 8px" }}>2. 项目页（GitHub / Gitee）</h2>
         <div className="muted">只在服务端保存 Token，不会暴露给访客浏览器。</div>
@@ -796,7 +955,9 @@ export function SettingsPage(props: {
           </button>
         </div>
       </div>
+        ) : null}
 
+        {showTools ? (
       <div className="card">
         <h2 style={{ margin: "0 0 8px" }}>3. 工具中心（访客可见）</h2>
         <div className="muted">支持启用/禁用、拖动排序（↑↓）、新增/编辑/删除；保存会触发 cache_version 递增。</div>
@@ -1022,7 +1183,9 @@ export function SettingsPage(props: {
           </button>
         </div>
       </div>
+        ) : null}
 
+        {showAbout ? (
       <div className="card">
         <h2 style={{ margin: "0 0 8px" }}>4. 关于页配置（/about）</h2>
         <div className="muted">存储在 settings 表中（JSON，多行）。/about 页面会读取并展示。</div>
@@ -1116,6 +1279,8 @@ export function SettingsPage(props: {
         </label>
         </details>
       </div>
+        ) : null}
+    </div>
     </div>
   );
 }

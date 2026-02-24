@@ -1,0 +1,650 @@
+<!doctype html>
+<html lang="zh-Hans" data-ui-style="terminal" data-theme="dark" data-sidebar="expanded">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bitlog Admin · Settings (Figure 2)</title>
+
+    <!-- Reuse existing admin CSS (no project code modifications). -->
+    <link rel="stylesheet" href="../../apps/admin/src/ui/base.css" />
+    <link rel="stylesheet" href="../../apps/admin/src/ui/themes.css" />
+    <link rel="stylesheet" href="../../apps/admin/src/ui/compat.css" />
+    <link rel="stylesheet" href="../../apps/admin/src/ui/editor.css" />
+    <link rel="stylesheet" href="../../apps/admin/src/ui/command-palette.css" />
+
+    <style>
+      /* Demo-only: hide any placeholder elements and keep behavior self-contained. */
+      .demo-hidden {
+        display: none !important;
+      }
+
+      /* Ensure SelectBox popovers are hidden by default (toggled via JS). */
+      .selectbox-popover[hidden] {
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar" aria-label="侧边栏导航">
+        <div class="brand">
+          <div class="brand-left">
+            <div class="logo" aria-hidden="true"></div>
+            <div class="brand-title">
+              <strong>Bitlog Admin</strong>
+              <span id="brandStyle">terminal</span>
+            </div>
+          </div>
+          <button
+            class="iconbtn"
+            type="button"
+            id="sidebarToggle"
+            aria-label="折叠/展开侧边栏"
+            title="折叠/展开"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M3 4h7v16H3z" />
+              <path d="M14 4h7v16h-7z" />
+            </svg>
+          </button>
+        </div>
+
+        <nav class="nav" aria-label="主菜单">
+          <a href="#/posts" aria-current="false">
+            <span class="ico" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 4h16v6H4z" />
+                <path d="M4 14h16v6H4z" />
+              </svg>
+            </span>
+            <span>
+              <div class="lbl">文章</div>
+              <div class="sub">列表 / 编辑</div>
+            </span>
+            <span class="meta">P</span>
+          </a>
+
+          <a href="#/posts/new" aria-current="false">
+            <span class="ico" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 5v14" />
+                <path d="M5 12h14" />
+              </svg>
+            </span>
+            <span>
+              <div class="lbl">新建</div>
+              <div class="sub">快速发布</div>
+            </span>
+            <span class="meta">⌘N</span>
+          </a>
+
+          <a href="#/settings" aria-current="page">
+            <span class="ico" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" />
+                <path
+                  d="M19.4 15a7.7 7.7 0 0 0 .1-1l2-1.1-2-3.5-2.3.4a7.7 7.7 0 0 0-1.7-1l-.7-2.2H9.2l-.7 2.2a7.7 7.7 0 0 0-1.7 1L4.5 9.4l-2 3.5L4.5 14a7.7 7.7 0 0 0 .1 1l-2 1.1 2 3.5 2.3-.4a7.7 7.7 0 0 0 1.7 1l.7 2.2h5.6l.7-2.2a7.7 7.7 0 0 0 1.7-1l2.3.4 2-3.5-2-1.1Z"
+                />
+              </svg>
+            </span>
+            <span>
+              <div class="lbl">设置</div>
+              <div class="sub">站点 / 工具</div>
+            </span>
+            <span class="meta">S</span>
+          </a>
+
+          <a href="#/account" aria-current="false">
+            <span class="ico" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21a8 8 0 1 0-16 0" />
+                <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z" />
+              </svg>
+            </span>
+            <span>
+              <div class="lbl">账号</div>
+              <div class="sub">安全 / 偏好</div>
+            </span>
+            <span class="meta">@</span>
+          </a>
+        </nav>
+
+        <div class="sidebar-footer">
+          <div class="me">
+            <div class="me-text">
+              <strong>@admin</strong>
+              <small>Site-level UI</small>
+            </div>
+            <button class="iconbtn" type="button" aria-label="退出登录" title="退出登录" data-toast="已退出（demo）">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M10 17l5-5-5-5" />
+                <path d="M15 12H3" />
+                <path d="M21 3v18" />
+              </svg>
+            </button>
+          </div>
+          <a class="btn btn-site" href="/articles" title="前往站点" aria-label="前往站点">
+            <span class="btn-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 12h18" />
+                <path d="M12 3v18" />
+              </svg>
+            </span>
+            <span class="btn-label">前往站点</span>
+          </a>
+        </div>
+      </aside>
+
+      <div class="sidebar-backdrop" aria-hidden="true" id="sidebarBackdrop"></div>
+
+      <main class="main" id="main">
+        <header class="topbar" aria-label="页面头部">
+          <div class="title">
+            <button class="iconbtn sidebar-toggle" type="button" id="mobileSidebarToggle" aria-label="菜单" title="菜单">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M4 6h16" />
+                <path d="M4 12h16" />
+                <path d="M4 18h16" />
+              </svg>
+            </button>
+            <h1>设置</h1>
+            <div class="crumb">站点 / Settings</div>
+          </div>
+          <div class="actions">
+            <button class="iconbtn" type="button" aria-label="命令面板" title="命令面板（?）" data-toast="Command Palette（demo）">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M4 4h16v16H4z" />
+                <path d="M8 9h8" />
+                <path d="M8 13h6" />
+                <path d="M8 17h5" />
+              </svg>
+            </button>
+            <button class="iconbtn" id="themeToggle" type="button" aria-label="切换主题" title="切换主题">
+              <span data-theme-icon="dark" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </span>
+              <span data-theme-icon="light" aria-hidden="true" class="demo-hidden">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2" />
+                  <path
+                    d="M12 2v2m0 16v2m10-10h-2M4 12H2m15.07-7.07-1.41 1.41M8.34 15.66l-1.41 1.41m0-11.31 1.41 1.41m8.32 8.32 1.41 1.41"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                  />
+                </svg>
+              </span>
+            </button>
+          </div>
+        </header>
+
+        <section class="content">
+          <div class="content-full">
+            <div class="grid">
+              <div class="card">
+                <h2 style="margin: 0 0 8px">1. 站点设置</h2>
+                <div class="muted">提示：保存会触发缓存软失效（cache_version 递增）。</div>
+
+                <div style="height: 12px"></div>
+                <h3 style="margin: 6px 0 4px">基础</h3>
+                <div class="row">
+                  <label>
+                    站点域名（必填）
+                    <input value="https://wyc.indevs.in" />
+                  </label>
+                  <label>
+                    时区
+                    <input value="Asia/Shanghai" list="timezone-list" />
+                    <datalist id="timezone-list">
+                      <option value="Asia/Shanghai"></option>
+                      <option value="UTC"></option>
+                      <option value="Asia/Tokyo"></option>
+                      <option value="America/Los_Angeles"></option>
+                      <option value="America/New_York"></option>
+                      <option value="Europe/London"></option>
+                    </datalist>
+                  </label>
+                </div>
+
+                <div style="height: 10px"></div>
+                <div class="row">
+                  <label>
+                    缓存 TTL（秒，1-3600）
+                    <input value="60" />
+                  </label>
+                  <label>
+                    （占位）
+                    <input value="" readonly style="opacity: 0.6" />
+                  </label>
+                </div>
+
+                <div style="height: 10px"></div>
+                <div class="row">
+                  <label>
+                    自动生成摘要（摘要为空时自动从正文截取前 150 字）
+                    <div class="selectbox" id="autoSummarySelect" data-value="0">
+                      <button
+                        class="select selectbox-trigger"
+                        type="button"
+                        aria-haspopup="listbox"
+                        aria-expanded="false"
+                        aria-controls="selectbox-auto-summary"
+                      >
+                        <span class="selectbox-value">关闭</span>
+                        <span class="selectbox-icon" aria-hidden="true">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="m6 9 6 6 6-6"></path>
+                          </svg>
+                        </span>
+                      </button>
+                      <div class="selectbox-popover" role="listbox" id="selectbox-auto-summary" aria-label="自动生成摘要" hidden>
+                        <button type="button" class="selectbox-item" role="option" aria-selected="false" data-value="1">
+                          <span class="selectbox-item-label">开启</span>
+                          <span class="selectbox-check" aria-hidden="true" style="opacity: 0">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <path d="M20 6 9 17l-5-5"></path>
+                            </svg>
+                          </span>
+                        </button>
+                        <button type="button" class="selectbox-item" role="option" aria-selected="true" data-value="0">
+                          <span class="selectbox-item-label">关闭</span>
+                          <span class="selectbox-check" aria-hidden="true" style="opacity: 1">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <path d="M20 6 9 17l-5-5"></path>
+                            </svg>
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+                  </label>
+                  <label>
+                    （占位）
+                    <input value="" readonly style="opacity: 0.6" />
+                  </label>
+                </div>
+
+                <div class="nav">
+                  <button class="chip chip-primary" type="button" data-toast="已保存基础设置（demo）">保存基础设置</button>
+                </div>
+
+                <div style="height: 16px"></div>
+                <h3 style="margin: 6px 0 4px">UI 风格</h3>
+                <div class="row">
+                  <label>
+                    Web 风格
+                    <div class="selectbox" id="webStyleSelect" data-value="glass">
+                      <button
+                        class="select selectbox-trigger"
+                        type="button"
+                        aria-haspopup="listbox"
+                        aria-expanded="false"
+                        aria-controls="selectbox-web-style"
+                      >
+                        <span class="selectbox-value">glass</span>
+                        <span class="selectbox-icon" aria-hidden="true">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="m6 9 6 6 6-6"></path>
+                          </svg>
+                        </span>
+                      </button>
+                      <div class="selectbox-popover" role="listbox" id="selectbox-web-style" aria-label="Web 风格" hidden>
+                        <button type="button" class="selectbox-item" role="option" aria-selected="false" data-value="current">
+                          <span class="selectbox-item-label">current（默认）</span>
+                          <span class="selectbox-check" aria-hidden="true" style="opacity: 0">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <path d="M20 6 9 17l-5-5"></path>
+                            </svg>
+                          </span>
+                        </button>
+                        <button type="button" class="selectbox-item" role="option" aria-selected="false" data-value="classic">
+                          <span class="selectbox-item-label">classic</span>
+                          <span class="selectbox-check" aria-hidden="true" style="opacity: 0">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <path d="M20 6 9 17l-5-5"></path>
+                            </svg>
+                          </span>
+                        </button>
+                        <button type="button" class="selectbox-item" role="option" aria-selected="true" data-value="glass">
+                          <span class="selectbox-item-label">glass</span>
+                          <span class="selectbox-check" aria-hidden="true" style="opacity: 1">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <path d="M20 6 9 17l-5-5"></path>
+                            </svg>
+                          </span>
+                        </button>
+                        <button type="button" class="selectbox-item" role="option" aria-selected="false" data-value="brutal">
+                          <span class="selectbox-item-label">brutal</span>
+                          <span class="selectbox-check" aria-hidden="true" style="opacity: 0">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <path d="M20 6 9 17l-5-5"></path>
+                            </svg>
+                          </span>
+                        </button>
+                        <button type="button" class="selectbox-item" role="option" aria-selected="false" data-value="terminal">
+                          <span class="selectbox-item-label">terminal</span>
+                          <span class="selectbox-check" aria-hidden="true" style="opacity: 0">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <path d="M20 6 9 17l-5-5"></path>
+                            </svg>
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+                  </label>
+                  <label>
+                    Admin 风格
+                    <div class="selectbox" id="adminStyleSelect" data-value="terminal">
+                      <button
+                        class="select selectbox-trigger"
+                        type="button"
+                        aria-haspopup="listbox"
+                        aria-expanded="false"
+                        aria-controls="selectbox-admin-style"
+                      >
+                        <span class="selectbox-value">terminal</span>
+                        <span class="selectbox-icon" aria-hidden="true">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="m6 9 6 6 6-6"></path>
+                          </svg>
+                        </span>
+                      </button>
+                      <div class="selectbox-popover" role="listbox" id="selectbox-admin-style" aria-label="Admin 风格" hidden>
+                        <button type="button" class="selectbox-item" role="option" aria-selected="false" data-value="current">
+                          <span class="selectbox-item-label">current（默认）</span>
+                          <span class="selectbox-check" aria-hidden="true" style="opacity: 0">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <path d="M20 6 9 17l-5-5"></path>
+                            </svg>
+                          </span>
+                        </button>
+                        <button type="button" class="selectbox-item" role="option" aria-selected="false" data-value="classic">
+                          <span class="selectbox-item-label">classic</span>
+                          <span class="selectbox-check" aria-hidden="true" style="opacity: 0">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <path d="M20 6 9 17l-5-5"></path>
+                            </svg>
+                          </span>
+                        </button>
+                        <button type="button" class="selectbox-item" role="option" aria-selected="false" data-value="glass">
+                          <span class="selectbox-item-label">glass</span>
+                          <span class="selectbox-check" aria-hidden="true" style="opacity: 0">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <path d="M20 6 9 17l-5-5"></path>
+                            </svg>
+                          </span>
+                        </button>
+                        <button type="button" class="selectbox-item" role="option" aria-selected="false" data-value="brutal">
+                          <span class="selectbox-item-label">brutal</span>
+                          <span class="selectbox-check" aria-hidden="true" style="opacity: 0">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <path d="M20 6 9 17l-5-5"></path>
+                            </svg>
+                          </span>
+                        </button>
+                        <button type="button" class="selectbox-item" role="option" aria-selected="true" data-value="terminal">
+                          <span class="selectbox-item-label">terminal</span>
+                          <span class="selectbox-check" aria-hidden="true" style="opacity: 1">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <path d="M20 6 9 17l-5-5"></path>
+                            </svg>
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+                  </label>
+                </div>
+
+                <div class="nav">
+                  <button class="chip chip-primary" type="button" data-toast="已保存 UI 风格（demo）">保存 UI 风格</button>
+                </div>
+
+                <div style="height: 16px"></div>
+                <label>
+                  <h3 style="margin: 6px 0 4px">嵌入域名白名单</h3>
+                  嵌入域名白名单（每行一个；留空=禁用）
+                  <textarea spellcheck="false">github.com
+www.youtube.com
+www.youtube-nocookie.com
+player.bilibili.com</textarea>
+                </label>
+                <div class="nav">
+                  <button class="chip chip-primary" type="button" data-toast="已保存白名单（demo）">保存白名单</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div class="toast toast-success demo-hidden" id="demoToast" role="status" aria-live="polite"></div>
+
+    <script>
+      (function () {
+        const root = document.documentElement;
+        const sidebarToggle = document.getElementById("sidebarToggle");
+        const mobileSidebarToggle = document.getElementById("mobileSidebarToggle");
+        const sidebarBackdrop = document.getElementById("sidebarBackdrop");
+        const themeToggle = document.getElementById("themeToggle");
+        const brandStyle = document.getElementById("brandStyle");
+
+        const toastEl = document.getElementById("demoToast");
+        let toastTimer = null;
+
+        const isMobile = () => window.matchMedia?.("(max-width: 860px)")?.matches ?? false;
+
+        const storageGet = (k) => {
+          try {
+            return localStorage.getItem(k);
+          } catch {
+            return null;
+          }
+        };
+
+        const storageSet = (k, v) => {
+          try {
+            localStorage.setItem(k, v);
+          } catch {
+            // ignore
+          }
+        };
+
+        const state = {
+          uiStyle: storageGet("demo-ui-style") || root.getAttribute("data-ui-style") || "terminal",
+          theme: storageGet("demo-theme") || root.getAttribute("data-theme") || "dark",
+          sidebar:
+            storageGet("demo-sidebar") ||
+            root.getAttribute("data-sidebar") ||
+            (isMobile() ? "collapsed" : "expanded"),
+          webStyle: storageGet("demo-web-style") || "glass",
+          autoSummary: storageGet("demo-auto-summary") || "0"
+        };
+
+        const applyThemeIcon = () => {
+          const darkIcon = themeToggle?.querySelector('[data-theme-icon="dark"]');
+          const lightIcon = themeToggle?.querySelector('[data-theme-icon="light"]');
+          if (!darkIcon || !lightIcon) return;
+          if (state.theme === "dark") {
+            darkIcon.classList.remove("demo-hidden");
+            lightIcon.classList.add("demo-hidden");
+          } else {
+            darkIcon.classList.add("demo-hidden");
+            lightIcon.classList.remove("demo-hidden");
+          }
+        };
+
+        const apply = () => {
+          root.setAttribute("data-ui-style", state.uiStyle);
+          root.setAttribute("data-theme", state.theme);
+          root.setAttribute("data-sidebar", state.sidebar);
+          if (brandStyle) brandStyle.textContent = state.uiStyle;
+          applyThemeIcon();
+        };
+
+        const showToast = (msg, type) => {
+          if (!toastEl) return;
+          toastEl.textContent = String(msg || "");
+          toastEl.classList.remove("demo-hidden");
+          toastEl.classList.toggle("toast-success", type !== "error");
+          toastEl.classList.toggle("toast-error", type === "error");
+          if (toastTimer) window.clearTimeout(toastTimer);
+          toastTimer = window.setTimeout(() => {
+            toastEl.classList.add("demo-hidden");
+          }, 1400);
+        };
+
+        const setSidebar = (next) => {
+          state.sidebar = next;
+          storageSet("demo-sidebar", next);
+          apply();
+        };
+
+        const toggleSidebar = () => {
+          setSidebar(state.sidebar === "collapsed" ? "expanded" : "collapsed");
+        };
+
+        const closeSidebarOnMobile = () => {
+          if (!isMobile()) return;
+          if (state.sidebar === "collapsed") return;
+          setSidebar("collapsed");
+        };
+
+        sidebarToggle?.addEventListener("click", toggleSidebar);
+        mobileSidebarToggle?.addEventListener("click", toggleSidebar);
+        sidebarBackdrop?.addEventListener("click", closeSidebarOnMobile);
+        window.addEventListener("keydown", (e) => {
+          if (e.key === "Escape") closeSidebarOnMobile();
+        });
+
+        themeToggle?.addEventListener("click", () => {
+          state.theme = state.theme === "dark" ? "light" : "dark";
+          storageSet("demo-theme", state.theme);
+          apply();
+        });
+
+        const selectboxes = Array.from(document.querySelectorAll(".selectbox"));
+        let openSelectbox = null;
+
+        const closeSelectbox = (sb, focusTrigger) => {
+          if (!sb) return;
+          const trigger = sb.querySelector(".selectbox-trigger");
+          const pop = sb.querySelector(".selectbox-popover");
+          if (pop) pop.hidden = true;
+          if (trigger) {
+            trigger.classList.remove("is-open");
+            trigger.setAttribute("aria-expanded", "false");
+            if (focusTrigger) trigger.focus();
+          }
+          if (openSelectbox === sb) openSelectbox = null;
+        };
+
+        const openSelectboxAt = (sb) => {
+          if (!sb) return;
+          const trigger = sb.querySelector(".selectbox-trigger");
+          const pop = sb.querySelector(".selectbox-popover");
+          if (!trigger || !pop) return;
+          if (openSelectbox && openSelectbox !== sb) closeSelectbox(openSelectbox, false);
+          pop.hidden = false;
+          trigger.classList.add("is-open");
+          trigger.setAttribute("aria-expanded", "true");
+          openSelectbox = sb;
+        };
+
+        const setSelectboxValue = (sb, nextValue) => {
+          if (!sb) return;
+          sb.setAttribute("data-value", String(nextValue || ""));
+          const triggerValue = sb.querySelector(".selectbox-trigger .selectbox-value");
+          const items = Array.from(sb.querySelectorAll(".selectbox-item"));
+          let label = String(nextValue || "");
+
+          for (const it of items) {
+            const v = it.getAttribute("data-value") || "";
+            const selected = v === String(nextValue || "");
+            it.classList.toggle("is-selected", selected);
+            it.setAttribute("aria-selected", selected ? "true" : "false");
+            const check = it.querySelector(".selectbox-check");
+            if (check) check.style.opacity = selected ? "1" : "0";
+            if (selected) {
+              const lbl = it.querySelector(".selectbox-item-label")?.textContent || "";
+              if (lbl) label = lbl;
+            }
+          }
+
+          if (triggerValue) triggerValue.textContent = label;
+        };
+
+        for (const sb of selectboxes) {
+          const trigger = sb.querySelector(".selectbox-trigger");
+          const pop = sb.querySelector(".selectbox-popover");
+          if (!trigger || !pop) continue;
+
+          trigger.addEventListener("click", () => {
+            const isOpen = !pop.hidden;
+            if (isOpen) closeSelectbox(sb, false);
+            else openSelectboxAt(sb);
+          });
+
+          const items = Array.from(sb.querySelectorAll(".selectbox-item"));
+          for (const it of items) {
+            it.addEventListener("click", () => {
+              const v = it.getAttribute("data-value") || "";
+              setSelectboxValue(sb, v);
+              closeSelectbox(sb, true);
+
+              if (sb.id === "adminStyleSelect") {
+                state.uiStyle = v || "current";
+                storageSet("demo-ui-style", state.uiStyle);
+                apply();
+              } else if (sb.id === "webStyleSelect") {
+                state.webStyle = v || "current";
+                storageSet("demo-web-style", state.webStyle);
+              } else if (sb.id === "autoSummarySelect") {
+                state.autoSummary = v === "1" ? "1" : "0";
+                storageSet("demo-auto-summary", state.autoSummary);
+              }
+            });
+          }
+        }
+
+        document.addEventListener(
+          "pointerdown",
+          (e) => {
+            if (!openSelectbox) return;
+            const t = e.target;
+            if (t && openSelectbox.contains(t)) return;
+            closeSelectbox(openSelectbox, false);
+          },
+          true
+        );
+
+        document.addEventListener("keydown", (e) => {
+          if (e.key !== "Escape") return;
+          if (!openSelectbox) return;
+          e.preventDefault();
+          closeSelectbox(openSelectbox, true);
+        });
+
+        const toastButtons = Array.from(document.querySelectorAll("[data-toast]"));
+        for (const el of toastButtons) {
+          el.addEventListener("click", () => {
+            showToast(el.getAttribute("data-toast") || "已完成（demo）", "success");
+          });
+        }
+
+        // Apply initial state.
+        setSelectboxValue(document.getElementById("adminStyleSelect"), state.uiStyle);
+        setSelectboxValue(document.getElementById("webStyleSelect"), state.webStyle);
+        setSelectboxValue(document.getElementById("autoSummarySelect"), state.autoSummary);
+        apply();
+      })();
+    </script>
+  </body>
+</html>

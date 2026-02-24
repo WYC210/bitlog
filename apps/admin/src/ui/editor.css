@@ -2,6 +2,100 @@
    Keep this file focused on classes used by EditorPage/MarkdownEditor.
 */
 
+.topbar-editor {
+  justify-content: flex-start;
+}
+
+.topbar-editor .actions {
+  margin-left: auto;
+}
+
+.topbar-toolbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 6px;
+}
+
+.topbar-toolbox::-webkit-scrollbar {
+  height: 8px;
+}
+
+.topbar-toolbox::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--border) 55%, transparent);
+  border-radius: 999px;
+}
+
+.topbar-toolbox .iconbtn {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  flex: 0 0 auto;
+}
+
+.topbar-toolbox .iconbtn svg {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.topbar-toolbox-divider {
+  width: 1px;
+  height: 26px;
+  flex: 0 0 auto;
+  background: color-mix(in srgb, var(--segmented-divider) 90%, transparent);
+  border-radius: 999px;
+  opacity: 0.9;
+}
+
+.topbar-toolbox-label {
+  display: none;
+  font-size: 12px;
+  font-weight: 850;
+  letter-spacing: 0.2px;
+  line-height: 1;
+  color: color-mix(in srgb, var(--text) 92%, transparent);
+  white-space: nowrap;
+}
+
+@media (min-width: 861px) {
+  .topbar-toolbox .iconbtn {
+    width: auto;
+    min-width: 44px;
+    padding: 0 12px;
+    gap: 10px;
+    justify-content: flex-start;
+  }
+
+  .topbar-toolbox-label {
+    display: inline;
+  }
+}
+
+@media (max-width: 520px) {
+  .topbar-toolbox {
+    padding: 0 2px;
+    gap: 8px;
+  }
+
+  .topbar-toolbox .iconbtn {
+    width: 40px;
+    height: 40px;
+    border-radius: 14px;
+    padding: 0;
+    justify-content: center;
+    gap: 0;
+  }
+}
+
 .grid--editor {
   display: grid;
   gap: 14px;

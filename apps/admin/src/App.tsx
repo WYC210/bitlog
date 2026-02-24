@@ -10,6 +10,8 @@ import { SettingsPage } from "./pages/SettingsPage";
 import { AccountPage } from "./pages/AccountPage";
 import { applyThemeWithTransition, getTheme } from "./ui/theme";
 import { CommandPalette } from "./components/CommandPalette";
+import type { SwitchMenuItem } from "./components/SwitchMenu";
+import { SwitchMenu } from "./components/SwitchMenu";
 import type { AdminActionId } from "./shortcuts/actions";
 import { getAdminContextKey, getActionBinding, getEffectiveBindings, isTypingTarget, matchChord, mergeShortcuts, parseSeq, parseShortcutsJson, SeqBuffer } from "./shortcuts/shortcuts";
 
@@ -33,12 +35,17 @@ export function App() {
   const toastTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const [theme, setThemeState] = useState<"light" | "dark">(() => getTheme());
   const [cmdOpen, setCmdOpen] = useState(false);
+  const sidebarHoverExpandedRef = React.useRef(false);
 
   const isMobileSidebar = () => window.matchMedia?.("(max-width: 860px)")?.matches ?? false;
 
-  const setSidebarState = (next: "collapsed" | "expanded") => {
+  const setSidebarAttr = (next: "collapsed" | "expanded") => {
     const root = document.documentElement;
     root.setAttribute("data-sidebar", next);
+  };
+
+  const setSidebarState = (next: "collapsed" | "expanded") => {
+    setSidebarAttr(next);
     try {
       localStorage.setItem("ui-admin-sidebar", next);
     } catch {
@@ -281,15 +288,23 @@ export function App() {
     }
   }, [route.page]);
   const authed = !!user;
+  const showEditorToolbox = authed && route.page === "edit";
 
   const pageInfo = useMemo(() => {
     if (!authed) return { title: "登录", crumb: "Auth / Login" };
-    if (route.page === "settings") return { title: "设置", crumb: "站点 / Settings" };
+    if (route.page === "settings") {
+      const section = (route as any)?.section ?? null;
+      if (section === "site") return { title: "站点设置", crumb: "设置 / Site" };
+      if (section === "projects") return { title: "Projects", crumb: "设置 / Projects" };
+      if (section === "tools") return { title: "Tools", crumb: "设置 / Tools" };
+      if (section === "about") return { title: "About", crumb: "设置 / About" };
+      return { title: "设置", crumb: "站点 / Settings" };
+    }
     if (route.page === "account") return { title: "账号", crumb: "安全 / Preferences" };
     if (route.page === "edit" && (route as any).id === "new") return { title: "新建", crumb: "写作 / New" };
     if (route.page === "edit") return { title: "编辑", crumb: "写作 / Edit" };
     return { title: "文章", crumb: "内容管理 / Posts" };
-  }, [authed, route.page, (route as any).id]);
+  }, [authed, route.page, (route as any).id, (route as any).section]);
 
   const currentPageKey =
     route.page === "edit" && (route as any).id === "new"
@@ -297,6 +312,19 @@ export function App() {
       : route.page === "edit"
         ? "posts"
         : route.page;
+
+  const switchMenuItems = useMemo<SwitchMenuItem[]>(
+    () => [
+      { id: "posts", title: "文章", desc: "管理文章 / 草稿 / 发布", hash: "#/posts" },
+      { id: "new", title: "新建文章", desc: "开始写一篇新的文章", hash: "#/posts/new" },
+      { id: "settings-site", title: "站点配置", desc: "站点基础 / UI 风格 / Footer 等", hash: "#/settings/site" },
+      { id: "settings-projects", title: "Projects", desc: "GitHub / Gitee 项目页配置", hash: "#/settings/projects" },
+      { id: "settings-tools", title: "Tools", desc: "工具中心：分组 / 链接 / 客户端代码", hash: "#/settings/tools" },
+      { id: "settings-about", title: "About", desc: "关于页：技能 / 足迹 / 经历 + 侧边栏开关", hash: "#/settings/about" },
+      { id: "account", title: "账号", desc: "后台偏好 / 快捷键 / 安全", hash: "#/account" }
+    ],
+    []
+  );
 
   const mainContent = !authed ? (
     <div className="center-wrap">
@@ -341,7 +369,7 @@ export function App() {
       }}
     />
   ) : route.page === "settings" ? (
-    <SettingsPage cfg={cfg} onCfg={setCfg} onError={(m) => showToast(m, "error")} />
+    <SettingsPage cfg={cfg} onCfg={setCfg} onError={(m) => showToast(m, "error")} section={(route as any).section ?? null} />
   ) : route.page === "edit" ? (
     <EditorPage
       id={(route as any).id}
@@ -361,7 +389,39 @@ export function App() {
   return (
     <div className="app">
       {toast ? <div className={`toast toast-${toast.type}`}>{toast.msg}</div> : null}
-      <aside className="sidebar" aria-label="侧边栏导航">
+      <aside
+        className="sidebar"
+        aria-label="侧边栏导航"
+        onMouseEnter={() => {
+          if (isMobileSidebar()) return;
+          const root = document.documentElement;
+          if (root.getAttribute("data-sidebar") === "expanded") return;
+          sidebarHoverExpandedRef.current = true;
+          setSidebarAttr("expanded");
+        }}
+        onMouseLeave={() => {
+          if (isMobileSidebar()) return;
+          if (!sidebarHoverExpandedRef.current) return;
+          sidebarHoverExpandedRef.current = false;
+          setSidebarAttr("collapsed");
+        }}
+        onFocusCapture={() => {
+          if (isMobileSidebar()) return;
+          const root = document.documentElement;
+          if (root.getAttribute("data-sidebar") === "expanded") return;
+          sidebarHoverExpandedRef.current = true;
+          setSidebarAttr("expanded");
+        }}
+        onBlurCapture={(e) => {
+          if (isMobileSidebar()) return;
+          if (!sidebarHoverExpandedRef.current) return;
+          const el = e.currentTarget;
+          const next = e.relatedTarget as Node | null;
+          if (next && el.contains(next)) return;
+          sidebarHoverExpandedRef.current = false;
+          setSidebarAttr("collapsed");
+        }}
+      >
         <div className="brand">
           <div className="brand-left">
             <div className="logo" aria-hidden="true"></div>
@@ -370,20 +430,6 @@ export function App() {
               <span>{cfg?.adminStyle ?? "current"}</span>
             </div>
           </div>
-          <button
-            className="iconbtn"
-            type="button"
-            aria-label="折叠/展开侧边栏"
-            title="折叠/展开"
-            onClick={() => {
-              toggleSidebar();
-            }}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M3 4h7v16H3z" />
-              <path d="M14 4h7v16h-7z" />
-            </svg>
-          </button>
         </div>
 
         <nav className="nav" aria-label="主菜单">
@@ -412,7 +458,7 @@ export function App() {
               <div className="lbl">新建</div>
               <div className="sub">快速发布</div>
             </span>
-            <span className="meta">⌘N</span>
+            <span className="meta">N</span>
           </a>
 
           <a href="#/settings" aria-current={currentPageKey === "settings" ? "page" : "false"} onClick={closeSidebarOnMobile}>
@@ -487,7 +533,7 @@ export function App() {
       <div className="sidebar-backdrop" aria-hidden="true" onClick={closeSidebarOnMobile} />
 
       <main className="main" id="main">
-        <header className="topbar" aria-label="页面头部">
+        <header className={`topbar${showEditorToolbox ? " topbar-editor" : ""}`} aria-label="页面头部">
           <div className="title">
             <button className="iconbtn sidebar-toggle" type="button" aria-label="菜单" title="菜单" onClick={toggleSidebar}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
@@ -499,6 +545,97 @@ export function App() {
             <h1>{pageInfo.title}</h1>
             <div className="crumb">{pageInfo.crumb}</div>
           </div>
+          {showEditorToolbox ? (
+            <div className="topbar-toolbox" role="toolbar" aria-label="写作工具">
+              <button
+                className="iconbtn"
+                type="button"
+                aria-label="模糊"
+                title="模糊：||text||"
+                onClick={() => window.dispatchEvent(new CustomEvent("bitlog:admin:editorTool", { detail: { kind: "blur" } }))}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                  <path d="M3 12h18" />
+                  <path d="M7 8h10" />
+                  <path d="M7 16h10" />
+                </svg>
+                <span className="topbar-toolbox-label">模糊</span>
+              </button>
+              <button
+                className="iconbtn"
+                type="button"
+                aria-label="行内代码"
+                title="行内代码：`code`"
+                onClick={() =>
+                  window.dispatchEvent(new CustomEvent("bitlog:admin:editorTool", { detail: { kind: "inlineCode" } }))
+                }
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                  <path d="m8 9-3 3 3 3" />
+                  <path d="m16 9 3 3-3 3" />
+                </svg>
+                <span className="topbar-toolbox-label">行内代码</span>
+              </button>
+              <button
+                className="iconbtn"
+                type="button"
+                aria-label="代码块"
+                title="代码块：```ts"
+                onClick={() =>
+                  window.dispatchEvent(new CustomEvent("bitlog:admin:editorTool", { detail: { kind: "codeBlock" } }))
+                }
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                  <path d="m8 9-3 3 3 3" />
+                  <path d="m16 9 3 3-3 3" />
+                  <path d="M12 7v10" />
+                </svg>
+                <span className="topbar-toolbox-label">代码块</span>
+              </button>
+              <span className="topbar-toolbox-divider" aria-hidden="true" />
+              <button
+                className="iconbtn"
+                type="button"
+                aria-label="链接"
+                title="链接：[text](url)"
+                onClick={() => window.dispatchEvent(new CustomEvent("bitlog:admin:editorTool", { detail: { kind: "link" } }))}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                  <path d="M10 13a5 5 0 0 1 0-7l1-1a5 5 0 0 1 7 7l-1 1" />
+                  <path d="M14 11a5 5 0 0 1 0 7l-1 1a5 5 0 0 1-7-7l1-1" />
+                </svg>
+                <span className="topbar-toolbox-label">链接</span>
+              </button>
+              <button
+                className="iconbtn"
+                type="button"
+                aria-label="图片"
+                title="图片：![](url)"
+                onClick={() => window.dispatchEvent(new CustomEvent("bitlog:admin:editorTool", { detail: { kind: "image" } }))}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                  <rect x="3" y="5" width="18" height="14" rx="2" />
+                  <path d="M8 11h.01" />
+                  <path d="M21 15l-5-5L5 21" />
+                </svg>
+                <span className="topbar-toolbox-label">图片</span>
+              </button>
+              <button
+                className="iconbtn"
+                type="button"
+                aria-label="嵌入"
+                title="嵌入：@[provider](value)"
+                onClick={() => window.dispatchEvent(new CustomEvent("bitlog:admin:editorTool", { detail: { kind: "embed" } }))}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                  <path d="M8 17l-5-5 5-5" />
+                  <path d="M16 7l5 5-5 5" />
+                  <path d="M12 4l-2 16" />
+                </svg>
+                <span className="topbar-toolbox-label">嵌入</span>
+              </button>
+            </div>
+          ) : null}
           <div className="actions">
             <button
               className="iconbtn"
@@ -552,7 +689,7 @@ export function App() {
         </header>
 
         <section className="content">
-          <div className="content-full">
+          <div className={`content-full${route.page === "edit" ? " content-full-wide" : ""}`}>
             {mainContent}
           </div>
         </section>
@@ -571,6 +708,8 @@ export function App() {
           setThemeState(next);
         }}
       />
+
+      <SwitchMenu enabled={authed} items={switchMenuItems} />
     </div>
   );
 }

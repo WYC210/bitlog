@@ -126,7 +126,9 @@ html[data-sidebar="collapsed"] .brand {
   justify-content: center;
   align-items: center;
   gap: 8px;
-  padding: 10px 8px;
+  padding: 6px 0;
+  border: none;
+  background: transparent;
 }
 
 html[data-sidebar="collapsed"] .brand-left {
@@ -149,6 +151,7 @@ html[data-sidebar="collapsed"] .sidebar .iconbtn {
   border-right: var(--border-w) solid var(--border);
   background: var(--sidebar-bg);
   backdrop-filter: blur(10px);
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.03);
 }
 
 .main {
@@ -448,11 +451,11 @@ html.theme-transition-active {
   text-decoration: none;
   color: var(--text);
   display: grid;
-  grid-template-columns: 40px 1fr auto;
+  grid-template-columns: 52px 1fr auto;
   align-items: center;
-  gap: 8px;
-  padding: 8px 8px;
-  border-radius: 12px;
+  gap: 10px;
+  padding: 10px 10px;
+  border-radius: 16px;
   border: var(--border-w) solid transparent;
 }
 
@@ -462,23 +465,41 @@ html.theme-transition-active {
 }
 
 .sidebar .nav a[aria-current="page"] {
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
-  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+  background: transparent;
+  border-color: transparent;
+}
+
+.sidebar .nav a[aria-current="page"] .ico {
+  background: color-mix(in srgb, var(--accent) 16%, var(--ico-bg));
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--ico-border));
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent),
+    0 18px 46px color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.sidebar .nav a[aria-current="page"] .ico svg {
+  stroke: color-mix(in srgb, var(--accent) 90%, var(--text));
+}
+
+.sidebar .nav a[aria-current="page"] .lbl {
+  color: color-mix(in srgb, var(--text) 88%, var(--accent));
 }
 
 .ico {
-  width: 34px;
-  height: 34px;
-  border-radius: 12px;
+  width: 46px;
+  height: 46px;
+  border-radius: 999px;
   display: grid;
   place-items: center;
   background: var(--ico-bg);
   border: var(--border-w) solid var(--ico-border);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.25);
 }
 
 .lbl {
-  font-weight: 750;
-  font-size: 13px;
+  font-weight: 900;
+  font-size: 15px;
+  letter-spacing: 0.2px;
 }
 
 .sub,
@@ -487,16 +508,41 @@ html.theme-transition-active {
   color: var(--muted2);
 }
 
+.sidebar .nav .meta {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  border: var(--border-w) solid var(--pill-border);
+  background: color-mix(in srgb, var(--panel) 55%, transparent);
+  color: color-mix(in srgb, var(--muted2) 92%, transparent);
+  font-weight: 900;
+  letter-spacing: 0.2px;
+}
+
 html[data-sidebar="collapsed"] .sidebar .nav a {
-  grid-template-columns: 34px;
-  justify-content: center;
-  padding: 6px;
+  grid-template-columns: 1fr;
+  justify-items: center;
+  padding: 8px;
+  gap: 0;
 }
 
 html[data-sidebar="collapsed"] .sidebar .lbl,
 html[data-sidebar="collapsed"] .sidebar .sub,
 html[data-sidebar="collapsed"] .sidebar .meta {
   display: none;
+}
+
+html[data-sidebar="collapsed"] .sidebar .ico {
+  width: 46px;
+  height: 46px;
+}
+
+html[data-sidebar="collapsed"] .sidebar .nav a .ico svg {
+  width: 20px;
+  height: 20px;
+  display: block;
 }
 
 .sidebar-footer {

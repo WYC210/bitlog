@@ -21,9 +21,6 @@ export function EditorPage(props: {
   onPrefs: (p: AdminPrefs | null) => void;
   onError: (m: string) => void;
 }) {
-  type ToolboxDock = "left" | "top";
-  const TOOLBOX_DOCK_KEY = "bitlog_admin_editor_toolbox_dock";
-
   const isNew = props.id === "new";
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
@@ -52,22 +49,6 @@ export function EditorPage(props: {
   const [layout, setLayout] = useState<AdminPrefs["editorLayout"]>(props.prefs?.editorLayout ?? "split");
   const [markdownFocused, setMarkdownFocused] = useState(false);
   const sidebarPrevRef = useRef<"collapsed" | "expanded" | null>(null);
-
-  const [toolboxDock, setToolboxDock] = useState<ToolboxDock>(() => {
-    if (typeof window === "undefined") return "left";
-    const v = window.localStorage.getItem(TOOLBOX_DOCK_KEY);
-    return v === "top" ? "top" : "left";
-  });
-  const [toolboxDragging, setToolboxDragging] = useState(false);
-  const [toolboxDragTarget, setToolboxDragTarget] = useState<ToolboxDock>(() => {
-    if (typeof window === "undefined") return "left";
-    const v = window.localStorage.getItem(TOOLBOX_DOCK_KEY);
-    return v === "top" ? "top" : "left";
-  });
-  const toolboxDragTargetRef = useRef<ToolboxDock>(toolboxDragTarget);
-  const toolboxPointerIdRef = useRef<number | null>(null);
-  const toolboxRailRef = useRef<HTMLElement | null>(null);
-  const [toolboxRailExpanded, setToolboxRailExpanded] = useState(false);
 
   const [previewHtml, setPreviewHtml] = useState<string>("");
   const [previewing, setPreviewing] = useState(false);
@@ -265,56 +246,7 @@ export function EditorPage(props: {
     };
   }, []);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    window.localStorage.setItem(TOOLBOX_DOCK_KEY, toolboxDock);
-  }, [toolboxDock]);
-
-  useEffect(() => {
-    if (!toolboxDragging) return;
-
-    const onMove = (e: PointerEvent) => {
-      if (toolboxPointerIdRef.current !== null && e.pointerId !== toolboxPointerIdRef.current) return;
-      const card = editorCardRef.current?.getBoundingClientRect() ?? null;
-      const nearTop = card ? e.clientY - card.top < 120 : e.clientY < 140;
-      const next: ToolboxDock = nearTop ? "top" : "left";
-      if (toolboxDragTargetRef.current === next) return;
-      toolboxDragTargetRef.current = next;
-      setToolboxDragTarget(next);
-    };
-
-    const onUp = (e: PointerEvent) => {
-      if (toolboxPointerIdRef.current !== null && e.pointerId !== toolboxPointerIdRef.current) return;
-      setToolboxDock(toolboxDragTargetRef.current);
-      setToolboxDragging(false);
-      toolboxPointerIdRef.current = null;
-    };
-
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
-    window.addEventListener("pointercancel", onUp);
-    return () => {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-      window.removeEventListener("pointercancel", onUp);
-    };
-  }, [toolboxDragging]);
-
-  function onToolboxDragStart(e: React.PointerEvent<HTMLDivElement>) {
-    if (e.pointerType === "mouse" && e.button !== 0) return;
-    e.preventDefault();
-    toolboxDragTargetRef.current = toolboxDock;
-    setToolboxDragTarget(toolboxDock);
-    toolboxPointerIdRef.current = e.pointerId;
-    setToolboxDragging(true);
-    try {
-      e.currentTarget.setPointerCapture(e.pointerId);
-    } catch {
-      // ignore
-    }
-  }
-
-  function applySnippet(kind: "blur" | "inlineCode" | "codeBlock" | "link" | "image" | "embed") {
+  const applySnippet = useCallback((kind: "blur" | "inlineCode" | "codeBlock" | "link" | "image" | "embed") => {
     const editor = editorRef.current;
     if (!editor) return;
     const selected = editor.getSelectionText();
@@ -358,67 +290,18 @@ export function EditorPage(props: {
       const rep = `@[${provider}](${value})`;
       editor.replaceSelection(rep, 2, 2 + provider.length);
     }
-  }
+  }, []);
 
-  function renderToolboxActions() {
-    return (
-      <div className="toolbox-actions">
-        <div className="toolbox-group" aria-label="格式">
-          <button className="toolbox-btn" onClick={() => applySnippet("blur")} title="文字模糊：||text||">
-            <span className="toolbox-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
-            </span>
-            <span className="toolbox-label">模糊</span>
-          </button>
-          <button className="toolbox-btn" onClick={() => applySnippet("inlineCode")} title="行内代码：`code`">
-            <span className="toolbox-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-            </span>
-            <span className="toolbox-label">行内代码</span>
-          </button>
-          <button className="toolbox-btn" onClick={() => applySnippet("codeBlock")} title="代码块：```ts">
-            <span className="toolbox-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="10" x2="14" y1="13" y2="13"/><line x1="8" x2="16" y1="17" y2="17"/><line x1="8" x2="10" y1="9" y2="9"/></svg>
-            </span>
-            <span className="toolbox-label">代码块</span>
-          </button>
-        </div>
-
-        <div className="toolbox-group" aria-label="插入">
-          <button className="toolbox-btn" onClick={() => applySnippet("link")} title="链接：[text](url)">
-            <span className="toolbox-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-            </span>
-            <span className="toolbox-label">链接</span>
-          </button>
-          <button className="toolbox-btn" onClick={() => applySnippet("image")} title="图片：![](url)">
-            <span className="toolbox-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
-            </span>
-            <span className="toolbox-label">图片</span>
-          </button>
-          <button className="toolbox-btn" onClick={() => applySnippet("embed")} title="嵌入：@[provider](value)">
-            <span className="toolbox-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></svg>
-            </span>
-            <span className="toolbox-label">嵌入</span>
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  function renderToolboxHandle() {
-    return (
-      <div
-        className={`toolbox-handle${toolboxDragging ? " is-dragging" : ""}`}
-        title="拖动到顶部：停靠为工具条"
-        onPointerDown={onToolboxDragStart}
-      >
-        ⋮⋮
-      </div>
-    );
-  }
+  useEffect(() => {
+    const onTool = (e: Event) => {
+      const kind = String((e as any)?.detail?.kind ?? "");
+      if (!kind) return;
+      if (!["blur", "inlineCode", "codeBlock", "link", "image", "embed"].includes(kind)) return;
+      applySnippet(kind as any);
+    };
+    window.addEventListener("bitlog:admin:editorTool", onTool as any);
+    return () => window.removeEventListener("bitlog:admin:editorTool", onTool as any);
+  }, [applySnippet]);
 
   async function setLayoutAndPersist(next: AdminPrefs["editorLayout"]) {
     setLayout(next);
@@ -766,49 +649,15 @@ export function EditorPage(props: {
 
   if (loading) return <div className="card">加载中...</div>;
 
-  const railAllowed = layout !== "preview";
-  const railPreview = railAllowed && toolboxDragging && toolboxDragTarget === "left" && toolboxDock !== "left";
-  const topPreview = toolboxDragging && toolboxDragTarget === "top" && toolboxDock !== "top";
-  const railOpen = railAllowed && (toolboxDock === "left" || railPreview);
-  const topOpen = toolboxDock === "top" || topPreview;
-  const railExpanded = railOpen && toolboxDock === "left" && toolboxRailExpanded && !toolboxDragging;
-
   return (
     <div
-      className={`grid grid--editor layout--${layout}${markdownFocused ? " focus-md" : ""}${
-        railOpen ? " toolbox-left" : ""
-      }${railExpanded ? " toolbox-rail-expanded" : ""}`}
+      className={`grid grid--editor layout--${layout}${markdownFocused ? " focus-md" : ""}`}
     >
       {toast && (
         <div className={`toast toast-${toast.type}`}>{toast.msg}</div>
       )}
       {layout !== "preview" ? (
         <>
-          {railOpen && (
-            <aside
-              className={`toolbox toolbox-rail${toolboxDock === "left" ? " is-active" : ""}${railPreview ? " is-preview" : ""}`}
-              aria-label="编辑工具栏（侧边）"
-              aria-hidden={!railOpen}
-              ref={toolboxRailRef as any}
-              onMouseEnter={() => setToolboxRailExpanded(true)}
-              onMouseLeave={() => {
-                const el = toolboxRailRef.current;
-                if (el && el.contains(document.activeElement)) return;
-                setToolboxRailExpanded(false);
-              }}
-              onFocusCapture={() => setToolboxRailExpanded(true)}
-              onBlurCapture={(e) => {
-                const el = toolboxRailRef.current;
-                if (!el) return;
-                const next = e.relatedTarget as Node | null;
-                if (next && el.contains(next)) return;
-                setToolboxRailExpanded(false);
-              }}
-            >
-              {renderToolboxHandle()}
-              <div className="toolbox-rail-scroll">{renderToolboxActions()}</div>
-            </aside>
-          )}
         <div className="card editor-card" ref={editorCardRef}>
 
           <div className="nav">
@@ -825,17 +674,6 @@ export function EditorPage(props: {
               {saving ? "保存中..." : "保存"}
             </button>
             {layoutButtons}
-          </div>
-
-          <div className={`toolbox-top-slot${topOpen ? " is-open" : ""}${topPreview ? " is-preview" : ""}`}>
-            <div
-              className={`toolbox toolbox-top${toolboxDock === "top" ? " is-active" : ""}${topPreview ? " is-preview" : ""}`}
-              aria-label="编辑工具栏（顶部）"
-              aria-hidden={!topOpen}
-            >
-              {renderToolboxHandle()}
-              <div className="toolbox-top-scroll">{renderToolboxActions()}</div>
-            </div>
           </div>
 
           <div className="editor-meta">
