@@ -817,3 +817,18 @@
     grid-template-columns: var(--toolbox-rail-w-collapsed, 64px) minmax(0, 1fr) minmax(0, 1fr);
   }
 }
+
+@media (max-width: 860px) {
+  .grid--editor.layout--split {
+    grid-template-columns: 1fr;
+  }
+
+  .grid--editor.layout--split.toolbox-left,
+  .grid--editor.layout--split.toolbox-left.toolbox-rail-expanded {
+    grid-template-columns: 1fr;
+  }
+
+  .grid--editor.layout--split .toolbox-rail {
+    display: none;
+  }
+}
