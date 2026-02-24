@@ -54,7 +54,6 @@ html[data-ui-style="current"] body {
 
 html[data-ui-style="current"] .logo {
   background: linear-gradient(135deg, rgba(75, 107, 255, 0.95), rgba(125, 162, 255, 0.7));
-  box-shadow: 0 16px 70px rgba(75, 107, 255, 0.25);
   border-radius: 14px;
 }
 
@@ -246,7 +245,6 @@ html[data-ui-style="glass"] .card {
 
 html[data-ui-style="glass"] .logo {
   background: linear-gradient(135deg, rgba(124, 58, 237, 0.95), rgba(56, 189, 248, 0.75));
-  box-shadow: 0 16px 70px rgba(124, 58, 237, 0.25);
   border-radius: 14px;
 }
 
@@ -343,7 +341,6 @@ html[data-ui-style="brutal"] body {
 
 html[data-ui-style="brutal"] .logo {
   background: linear-gradient(135deg, rgba(255, 45, 85, 0.95), rgba(255, 214, 0, 0.85));
-  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.45), 0 0 28px rgba(255, 45, 85, 0.18);
   border-radius: 12px;
 }
 
@@ -364,7 +361,6 @@ html[data-ui-style="brutal"] .segmented {
 }
 
 html[data-ui-style="brutal"] .nav a {
-  box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.45);
   background: rgba(255, 255, 255, 0.02);
 }
 
@@ -470,7 +466,11 @@ html[data-ui-style="terminal"] body {
 
 html[data-ui-style="terminal"] .logo {
   background: linear-gradient(135deg, rgba(0, 255, 106, 0.95), rgba(0, 255, 255, 0.55));
-  box-shadow: 0 0 0 2px rgba(0, 255, 106, 0.12), 0 0 30px rgba(0, 255, 106, 0.22);
+}
+
+/* Shadowless: rely on borders; keep focus ring via --focus. */
+html[data-ui-style] {
+  --shadow: 0 0 0 rgba(0, 0, 0, 0);
 }
 
 html[data-ui-style="terminal"] .topbar .title h1 {

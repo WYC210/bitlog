@@ -607,7 +607,6 @@
   background: color-mix(in srgb, var(--panel) 92%, transparent);
   margin-top: 0.18em;
   flex: 0 0 auto;
-  box-shadow: 0 10px 18px color-mix(in srgb, var(--accent) 12%, transparent);
 }
 
 .md-prose li.task-list-item > input[type="checkbox"]:checked {

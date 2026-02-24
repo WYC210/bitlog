@@ -640,6 +640,7 @@ export function SettingsPage(props: {
         ) : null}
 
         {showSite ? (
+          <div className="settings-grid">
           <div className="card">
         <h2 style={{ margin: "0 0 8px" }}>1. 站点设置</h2>
         <div className="muted">提示：保存会触发缓存软失效（cache_version 递增）。</div>
@@ -674,10 +675,6 @@ export function SettingsPage(props: {
             缓存 TTL（秒，1-3600）
             <input value={cacheTtl} onChange={(e) => setCacheTtl(e.target.value)} />
           </label>
-          <label>
-            （占位）
-            <input value="" readOnly style={{ opacity: 0.6 }} />
-          </label>
         </div>
         <div style={{ height: 10 }} />
         <div className="row">
@@ -691,10 +688,6 @@ export function SettingsPage(props: {
               ]}
               onChange={(v) => setAutoSummaryEnabled(v === "1")}
             />
-          </label>
-          <label>
-            （占位）
-            <input value="" readOnly style={{ opacity: 0.6 }} />
           </label>
         </div>
         <div className="nav">
@@ -727,7 +720,8 @@ export function SettingsPage(props: {
             {saving ? "保存中..." : "保存 UI 风格"}
           </button>
         </div>
-
+      </div>
+      <div className="card">
         <div style={{ height: 16 }} />
         <h3 style={{ margin: "6px 0 4px" }}>SWITCH 菜单</h3>
         <div className="row">
@@ -828,16 +822,13 @@ export function SettingsPage(props: {
               placeholder="https://beian.miit.gov.cn/"
             />
           </label>
-          <label>
-            （占位）
-            <input value="" readOnly style={{ opacity: 0.6 }} />
-          </label>
         </div>
         <div className="nav">
           <button className="chip chip-primary" onClick={() => void saveFooter()} disabled={saving}>
             {saving ? "保存中..." : "保存底部"}
           </button>
         </div>
+      </div>
       </div>
         ) : null}
 

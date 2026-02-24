@@ -96,9 +96,6 @@
   background:
     radial-gradient(420px 260px at 18% 12%, color-mix(in srgb, var(--switch-accent) 16%, transparent), transparent 64%),
     linear-gradient(to bottom right, color-mix(in srgb, var(--panel) 86%, transparent), color-mix(in srgb, #000 35%, transparent));
-  box-shadow:
-    0 18px 56px rgba(0, 0, 0, 0.5),
-    0 0 46px color-mix(in srgb, var(--switch-accent) 8%, transparent);
   border: none;
   padding: 14px 14px 12px;
   display: flex;
@@ -109,8 +106,7 @@
   transition:
     transform 220ms cubic-bezier(0.2, 1, 0.2, 1),
     filter 220ms cubic-bezier(0.2, 1, 0.2, 1),
-    opacity 220ms cubic-bezier(0.2, 1, 0.2, 1),
-    box-shadow 220ms cubic-bezier(0.2, 1, 0.2, 1);
+    opacity 220ms cubic-bezier(0.2, 1, 0.2, 1);
   user-select: none;
   outline: none;
   backdrop-filter: blur(10px);
@@ -141,15 +137,9 @@
 }
 
 .switch-tile:hover {
-  box-shadow:
-    0 22px 70px rgba(0, 0, 0, 0.55),
-    0 0 60px color-mix(in srgb, var(--switch-accent) 10%, transparent);
 }
 
 .switch-tile[aria-selected="true"] {
-  box-shadow:
-    0 26px 90px rgba(0, 0, 0, 0.64),
-    0 0 120px color-mix(in srgb, var(--switch-accent) 18%, transparent);
 }
 
 .switch-tile:focus-visible {
@@ -170,4 +160,3 @@
   font-size: 13px;
   line-height: 1.35;
 }
-
