@@ -391,10 +391,11 @@
     <script src="/ui/search-suggest.js?__cv={{CACHE_VERSION}}"></script>
     <script src="/ui/code-copy.js?__cv={{CACHE_VERSION}}"></script>
     <script>
-      (function () {
-        window.__bitlogShortcutsText = {{SHORTCUTS_TEXT}};
-        return;
-        const shortcutsText = {{SHORTCUTS_TEXT}};
+	      (function () {
+	        window.__bitlogShortcutsText = {{SHORTCUTS_TEXT}};
+	        window.__bitlogWebNav = {{WEB_NAV_JSON}};
+	        return;
+	        const shortcutsText = {{SHORTCUTS_TEXT}};
         const page = document.body?.dataset?.page || "global";
         const search = document.getElementById("navSearch");
 
@@ -515,5 +516,6 @@
       })();
     </script>
     <script src="/ui/shortcuts.js?__cv={{CACHE_VERSION}}"></script>
+    <script src="/ui/spa-nav.js?__cv={{CACHE_VERSION}}"></script>
   </body>
 </html>

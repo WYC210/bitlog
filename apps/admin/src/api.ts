@@ -34,6 +34,7 @@ export type SiteConfig = {
   commandMenuLayout: "arc" | "grid" | "dial" | "cmd";
   commandMenuConfirmMode: "enter" | "release";
   shortcutsJson: string | null;
+  webNav: Array<{ id: string; label: string; href: string; enabled: boolean; external?: boolean }>;
   footerCopyrightUrl: string | null;
   footerIcpText: string | null;
   footerIcpLink: string | null;

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import type { AdminToolItem, ApiError, ProjectsConfigAdminView, SiteConfig, ToolKind, UiStyle } from "../api";
 import { CodeEditor } from "../components/CodeEditor";
+import { NoticeDialog } from "../components/NoticeDialog";
 import { AboutExperienceEditor } from "../components/about/AboutExperienceEditor";
 import { AboutSkillsEditor } from "../components/about/AboutSkillsEditor";
 import { AboutVisitedPlacesEditor } from "../components/about/AboutVisitedPlacesEditor";
@@ -17,6 +18,8 @@ import {
   updateProjectsConfigAdmin,
   updateSettings
 } from "../api";
+
+type WebNavItem = { id: string; label: string; href: string; enabled: boolean; external?: boolean };
 
 export function SettingsPage(props: {
   cfg: SiteConfig | null;
@@ -44,11 +47,25 @@ export function SettingsPage(props: {
   const SWITCH_MENU_BINDINGS_KEY = "bitlog:admin:switchMenu:bindings";
   const UI_COMMAND_MENU_LAYOUT_KEY = "ui.command_menu_layout";
   const UI_COMMAND_MENU_CONFIRM_MODE_KEY = "ui.command_menu_confirm_mode";
+  const UI_WEB_NAV_KEY = "ui.web_nav_json";
+  const [webNav, setWebNav] = useState<WebNavItem[]>(
+    props.cfg?.webNav?.length
+      ? (props.cfg.webNav as any)
+      : [
+          { id: "home", label: "首页", href: "/", enabled: true },
+          { id: "articles", label: "文章", href: "/articles", enabled: true },
+          { id: "projects", label: "项目", href: "/projects", enabled: true },
+          { id: "tools", label: "工具中心", href: "/tools", enabled: true },
+          { id: "about", label: "关于我", href: "/about", enabled: true }
+        ]
+  );
+  const [webNavBuiltinToAdd, setWebNavBuiltinToAdd] = useState<"home" | "articles" | "projects" | "tools" | "about">("home");
   const [switchMenuLayout, setSwitchMenuLayout] = useState<"arc" | "grid" | "dial" | "cmd">(props.cfg?.commandMenuLayout ?? "arc");
   const [switchMenuConfirmMode, setSwitchMenuConfirmMode] = useState<"enter" | "release">(props.cfg?.commandMenuConfirmMode ?? "enter");
   const [switchBindingsCount, setSwitchBindingsCount] = useState(0);
   const [autoSummaryEnabled, setAutoSummaryEnabled] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [notice, setNotice] = useState<{ title: string; message: string } | null>(null);
   const [projectsCfg, setProjectsCfg] = useState<ProjectsConfigAdminView | null>(null);
   const [ghEnabled, setGhEnabled] = useState(true);
   const [ghUsername, setGhUsername] = useState("");
@@ -227,6 +244,7 @@ export function SettingsPage(props: {
     setAdminStyle(props.cfg.adminStyle ?? "current");
     setSwitchMenuLayout(props.cfg.commandMenuLayout ?? "arc");
     setSwitchMenuConfirmMode(props.cfg.commandMenuConfirmMode ?? "enter");
+    if (props.cfg.webNav) setWebNav(props.cfg.webNav as any);
   }, [props.cfg]);
 
   useEffect(() => {
@@ -285,6 +303,140 @@ export function SettingsPage(props: {
     })();
   }, []);
 
+  function openNotice(message: string, title = "提示") {
+    setNotice({ title, message });
+  }
+
+  function defaultWebNav(): WebNavItem[] {
+    return [
+      { id: "home", label: "首页", href: "/", enabled: true },
+      { id: "articles", label: "文章", href: "/articles", enabled: true },
+      { id: "projects", label: "项目", href: "/projects", enabled: true },
+      { id: "tools", label: "工具中心", href: "/tools", enabled: true },
+      { id: "about", label: "关于我", href: "/about", enabled: true }
+    ];
+  }
+
+  function isValidWebNavHref(href: string): boolean {
+    const h = String(href ?? "").trim();
+    if (!h) return false;
+    if (h.startsWith("/")) return !h.startsWith("//");
+    return /^https?:\/\//i.test(h);
+  }
+
+  function normalizeWebNav(items: WebNavItem[]): WebNavItem[] {
+    const out: WebNavItem[] = [];
+    const seen = new Set<string>();
+    for (const it of items ?? []) {
+      const id = String(it?.id ?? "").trim();
+      const label = String(it?.label ?? "").trim();
+      const href = String(it?.href ?? "").trim();
+      if (!id || seen.has(id)) continue;
+      if (!label) continue;
+      if (!isValidWebNavHref(href)) continue;
+      seen.add(id);
+      out.push({
+        id,
+        label,
+        href,
+        enabled: it?.enabled === false ? false : true,
+        external: /^https?:\/\//i.test(href) || it?.external === true ? true : false
+      });
+      if (out.length >= 24) break;
+    }
+    return out;
+  }
+
+  function validateWebNav(items: WebNavItem[]): string | null {
+    const seen = new Set<string>();
+    const list = items ?? [];
+    if (list.length > 24) return "导航项最多 24 个";
+    for (let i = 0; i < list.length; i++) {
+      const it = list[i] as any;
+      const id = String(it?.id ?? "").trim();
+      const label = String(it?.label ?? "").trim();
+      const href = String(it?.href ?? "").trim();
+      if (!id) return `第 ${i + 1} 项：缺少 id`;
+      if (seen.has(id)) return `存在重复 id：${id}`;
+      seen.add(id);
+      if (!label) return `第 ${i + 1} 项：标题不能为空`;
+      if (!isValidWebNavHref(href)) return `第 ${i + 1} 项：链接不合法（需要以 / 开头或 http(s)://）`;
+    }
+    return null;
+  }
+
+  function setWebNavItem(idx: number, patch: Partial<WebNavItem>) {
+    setWebNav((prev) => prev.map((it, i) => (i === idx ? ({ ...it, ...patch } as any) : it)));
+  }
+
+  function moveWebNavItem(idx: number, delta: number) {
+    setWebNav((prev) => {
+      const next = [...prev];
+      const to = idx + delta;
+      if (to < 0 || to >= next.length) return prev;
+      const it = next[idx];
+      if (!it) return prev;
+      next.splice(idx, 1);
+      next.splice(to, 0, it);
+      return next;
+    });
+  }
+
+  function removeWebNavItem(idx: number) {
+    setWebNav((prev) => prev.filter((_, i) => i !== idx));
+  }
+
+  function addBuiltinWebNavItem(id: "home" | "articles" | "projects" | "tools" | "about") {
+    if (webNav.some((x) => x.id === id)) {
+      openNotice(`已存在内置项：${id}`);
+      return;
+    }
+    const it = defaultWebNav().find((x) => x.id === id);
+    if (!it) return;
+    setWebNav((prev) => [...prev, it]);
+  }
+
+  function addCustomWebNavItem() {
+    const base = `custom:${Date.now()}`;
+    let id = base;
+    let n = 1;
+    while (webNav.some((x) => x.id === id) && n < 50) {
+      n++;
+      id = `${base}:${n}`;
+    }
+    if (webNav.some((x) => x.id === id)) {
+      openNotice("自定义 id 生成失败，请重试");
+      return;
+    }
+    setWebNav((prev) => [...prev, { id, label: "自定义", href: "/", enabled: true }]);
+  }
+
+  async function saveWebNav() {
+    props.onError("");
+    setSaving(true);
+    try {
+      const invalid = validateWebNav(webNav);
+      if (invalid) {
+        props.onError(invalid);
+        return;
+      }
+      const next = normalizeWebNav(webNav);
+      if (next.length === 0) {
+        props.onError("前台导航不能为空");
+        return;
+      }
+      await updateSettings({ [UI_WEB_NAV_KEY]: next });
+      const newCfg = await getConfig();
+      props.onCfg(newCfg);
+      openNotice("已保存（cache_version 已递增）");
+    } catch (e) {
+      const err = e as ApiError;
+      props.onError(err.message || "保存失败");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function saveAbout() {
     props.onError("");
     setSaving(true);
@@ -307,7 +459,7 @@ export function SettingsPage(props: {
       });
       const newCfg = await getConfig();
       props.onCfg(newCfg);
-      alert("已保存（cache_version 已递增）");
+      openNotice("已保存（cache_version 已递增）");
     } catch (e) {
       const err = e as ApiError;
       props.onError(err.message || "保存失败");
@@ -341,7 +493,7 @@ export function SettingsPage(props: {
       } catch {
         // ignore
       }
-      alert("已保存（cache_version 已递增）");
+      openNotice("已保存（cache_version 已递增）");
     } catch (e) {
       const err = e as ApiError;
       props.onError(err.message || "保存失败");
@@ -360,7 +512,7 @@ export function SettingsPage(props: {
       });
       const newCfg = await getConfig();
       props.onCfg(newCfg);
-      alert("已保存（cache_version 已递增）");
+      openNotice("已保存（cache_version 已递增）");
     } catch (e) {
       const err = e as ApiError;
       props.onError(err.message || "保存失败");
@@ -391,7 +543,7 @@ export function SettingsPage(props: {
       });
       const newCfg = await getConfig();
       props.onCfg(newCfg);
-      alert("已保存（cache_version 已递增）");
+      openNotice("已保存（cache_version 已递增）");
     } catch (e) {
       const err = e as ApiError;
       props.onError(err.message || "保存失败");
@@ -408,7 +560,7 @@ export function SettingsPage(props: {
       await updateSettings({ "site.embed_allowlist": allowlistHosts });
       const newCfg = await getConfig();
       props.onCfg(newCfg);
-      alert("已保存（cache_version 已递增）");
+      openNotice("已保存（cache_version 已递增）");
     } catch (e) {
       const err = e as ApiError;
       props.onError(err.message || "保存失败");
@@ -442,7 +594,7 @@ export function SettingsPage(props: {
       });
       const newCfg = await getConfig();
       props.onCfg(newCfg);
-      alert("已保存（cache_version 已递增）");
+      openNotice("已保存（cache_version 已递增）");
     } catch (e) {
       const err = e as ApiError;
       props.onError(err.message || "保存失败");
@@ -477,7 +629,7 @@ export function SettingsPage(props: {
       setGtToken("");
       setGhClearToken(false);
       setGtClearToken(false);
-      alert("已保存（cache_version 已递增）");
+      openNotice("已保存（cache_version 已递增）");
     } catch (e) {
       const err = e as ApiError;
       props.onError(err.message || "保存失败");
@@ -592,7 +744,7 @@ export function SettingsPage(props: {
         enabled: true
       });
       await refreshTools();
-      alert("已新增（cache_version 已递增）");
+      openNotice("已新增（cache_version 已递增）");
     } catch (e) {
       const err = e as ApiError;
       props.onError(err.message || "新增失败");
@@ -610,6 +762,14 @@ export function SettingsPage(props: {
 
   return (
     <div>
+      <NoticeDialog
+        open={!!notice}
+        title={notice?.title ?? "提示"}
+        message={notice?.message ?? ""}
+        onOpenChange={(open) => {
+          if (!open) setNotice(null);
+        }}
+      />
       <div className="nav" style={{ marginBottom: 12 }}>
         <a className={`chip ${showOverview ? "active" : ""}`} href="#/settings">
           概览
@@ -722,7 +882,7 @@ export function SettingsPage(props: {
           <div className="settings-grid">
           <div className="card">
         <h2 style={{ margin: "0 0 8px" }}>1. 站点设置</h2>
-        <div className="muted">提示：保存会触发缓存软失效（cache_version 递增）。</div>
+        <div className="muted">提示：保存会触发缓存软失效。</div>
         <div style={{ height: 12 }} />
         <h3 style={{ margin: "6px 0 4px" }}>基础</h3>
         <div className="row">
@@ -799,10 +959,117 @@ export function SettingsPage(props: {
             {saving ? "保存中..." : "保存 UI 风格"}
           </button>
         </div>
+        <div style={{ height: 16 }} />
+        <h3 style={{ margin: "6px 0 4px" }}>前台导航</h3>
+        <div className="muted">控制前台顶部导航 + 快捷键菜单（Alt + `）。支持隐藏/显示、调整顺序、添加/删除自定义项。</div>
+        <div style={{ height: 10 }} />
+        <div className="nav" style={{ flexWrap: "wrap", gap: 10 }}>
+          <button className="chip" type="button" onClick={() => addCustomWebNavItem()} disabled={saving}>
+            + 自定义
+          </button>
+          <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span className="muted" style={{ fontSize: 12 }}>
+              添加内置
+            </span>
+            <SelectBox
+              value={webNavBuiltinToAdd}
+              options={[
+                { value: "home", label: "首页" },
+                { value: "articles", label: "文章" },
+                { value: "projects", label: "项目" },
+                { value: "tools", label: "工具中心" },
+                { value: "about", label: "关于我" }
+              ]}
+              onChange={(v) => setWebNavBuiltinToAdd(v === "articles" || v === "projects" || v === "tools" || v === "about" ? v : "home")}
+            />
+          </label>
+          <button className="chip" type="button" onClick={() => addBuiltinWebNavItem(webNavBuiltinToAdd)} disabled={saving}>
+            添加
+          </button>
+          <button className="chip" type="button" onClick={() => setWebNav(defaultWebNav())} disabled={saving}>
+            重置默认
+          </button>
+          <button className="chip chip-primary" type="button" onClick={() => void saveWebNav()} disabled={saving}>
+            {saving ? "保存中..." : "保存导航"}
+          </button>
+        </div>
+        <div style={{ height: 10 }} />
+        <div className="grid" style={{ gap: 10 }}>
+          {webNav.map((it, idx) => {
+            const hrefOk = isValidWebNavHref(it.href);
+            const external = /^https?:\/\//i.test(String(it.href || "").trim());
+            return (
+              <div key={`${it.id}:${idx}`} className="card" style={{ padding: 12, background: "rgba(255,255,255,0.02)" }}>
+                <div className="nav" style={{ justifyContent: "space-between", flexWrap: "wrap" }}>
+                  <div className="nav">
+                    <button className="chip" type="button" onClick={() => moveWebNavItem(idx, -1)} disabled={idx === 0 || saving} title="上移">
+                      ↑
+                    </button>
+                    <button
+                      className="chip"
+                      type="button"
+                      onClick={() => moveWebNavItem(idx, 1)}
+                      disabled={idx >= webNav.length - 1 || saving}
+                      title="下移"
+                    >
+                      ↓
+                    </button>
+                    <button
+                      className={`chip ${it.enabled ? "chip-primary" : ""}`}
+                      type="button"
+                      onClick={() => setWebNavItem(idx, { enabled: !it.enabled })}
+                      disabled={saving}
+                    >
+                      {it.enabled ? "显示" : "隐藏"}
+                    </button>
+                  </div>
+                  <div className="nav">
+                    <span className="muted" style={{ alignSelf: "center" }}>
+                      {it.id}
+                      {external ? "（外链）" : ""}
+                    </span>
+                    <button
+                      className="chip"
+                      type="button"
+                      onClick={() => {
+                        if (!confirm("确定删除这个导航项吗？")) return;
+                        removeWebNavItem(idx);
+                      }}
+                      disabled={saving}
+                    >
+                      删除
+                    </button>
+                  </div>
+                </div>
+                <div style={{ height: 10 }} />
+                <div className="row">
+                  <label>
+                    标题
+                    <input value={it.label} onChange={(e) => setWebNavItem(idx, { label: e.target.value })} disabled={saving} />
+                  </label>
+                  <label>
+                    链接
+                    <input
+                      value={it.href}
+                      onChange={(e) => setWebNavItem(idx, { href: e.target.value })}
+                      disabled={saving}
+                      placeholder="/about 或 https://example.com"
+                    />
+                  </label>
+                </div>
+                {!hrefOk ? (
+                  <div className="muted" style={{ marginTop: 8, color: "rgba(239, 68, 68, 0.9)" }}>
+                    链接不合法：需要以 / 开头（站内）或 http(s)://（外链）
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
       </div>
       <div className="card">
         <div style={{ height: 16 }} />
-        <h3 style={{ margin: "6px 0 4px" }}>SWITCH 菜单</h3>
+        <h3 style={{ margin: "6px 0 4px" }}>快捷菜单</h3>
         <div className="row">
           <label>
             菜单布局
@@ -841,14 +1108,14 @@ export function SettingsPage(props: {
             className="chip"
             type="button"
             onClick={() => {
-              if (!confirm("确定清空 SWITCH 菜单的页面绑定吗？")) return;
+              if (!confirm("确定清空快捷菜单的页面绑定吗？")) return;
               try {
                 localStorage.removeItem(SWITCH_MENU_BINDINGS_KEY);
               } catch {
                 // ignore
               }
               refreshSwitchBindingsCount();
-              alert("已清空绑定");
+              openNotice("已清空绑定");
             }}
           >
             清空绑定

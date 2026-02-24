@@ -21,6 +21,7 @@ type SiteConfig = {
   commandMenuLayout: "arc" | "grid" | "dial" | "cmd";
   commandMenuConfirmMode: "enter" | "release";
   shortcutsJson: string | null;
+  webNav: Array<{ id: string; label: string; href: string; enabled: boolean; external?: boolean }>;
   footerCopyrightUrl: string | null;
   footerIcpText: string | null;
   footerIcpLink: string | null;
@@ -533,7 +534,8 @@ export function createWebApp() {
         "{{UI_WEB_STYLE}}": escapeHtml(String(cfg.webStyle ?? "current")),
         "{{CMD_LAYOUT}}": escapeHtml(String(cfg.commandMenuLayout ?? "arc")),
         "{{CMD_CONFIRM}}": escapeHtml(String(cfg.commandMenuConfirmMode ?? "enter")),
-        "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? "")
+        "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? ""),
+        "{{WEB_NAV_JSON}}": JSON.stringify((cfg as any).webNav ?? [])
       });
 
       return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
@@ -686,7 +688,8 @@ export function createWebApp() {
         "{{UI_WEB_STYLE}}": escapeHtml(String(cfg.webStyle ?? "current")),
         "{{CMD_LAYOUT}}": escapeHtml(String(cfg.commandMenuLayout ?? "arc")),
         "{{CMD_CONFIRM}}": escapeHtml(String(cfg.commandMenuConfirmMode ?? "enter")),
-        "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? "")
+        "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? ""),
+        "{{WEB_NAV_JSON}}": JSON.stringify((cfg as any).webNav ?? [])
       });
 
       return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
@@ -798,6 +801,7 @@ export function createWebApp() {
         "{{CMD_LAYOUT}}": escapeHtml(String(cfg.commandMenuLayout ?? "arc")),
         "{{CMD_CONFIRM}}": escapeHtml(String(cfg.commandMenuConfirmMode ?? "enter")),
         "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? ""),
+        "{{WEB_NAV_JSON}}": JSON.stringify((cfg as any).webNav ?? []),
         "{{PAGE_ID}}": "projects",
         "{{SEARCH_VALUE}}": "",
         "{{NAV_HOME_ACTIVE}}": "",
@@ -810,7 +814,7 @@ export function createWebApp() {
         "{{MAIN_CONTENT}}": `
 ${filter}
 <div class="cards-grid">
-  ${cards || `<div class="meta">暂无项目（请先在后台 设置 → 项目页 配置账号）</div>`}
+  ${cards || `<div class="meta">暂无项目</div>`}
 </div>
 `.trim(),
         "{{SITE_FOOTER}}": footer,
@@ -832,6 +836,7 @@ ${filter}
         "{{CMD_LAYOUT}}": escapeHtml(String(cfg.commandMenuLayout ?? "arc")),
         "{{CMD_CONFIRM}}": escapeHtml(String(cfg.commandMenuConfirmMode ?? "enter")),
         "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? ""),
+        "{{WEB_NAV_JSON}}": JSON.stringify((cfg as any).webNav ?? []),
         "{{PAGE_ID}}": "about",
         "{{SEARCH_VALUE}}": "",
         "{{NAV_HOME_ACTIVE}}": "",
@@ -921,6 +926,7 @@ ${filter}
         "{{CMD_LAYOUT}}": escapeHtml(String(cfg.commandMenuLayout ?? "arc")),
         "{{CMD_CONFIRM}}": escapeHtml(String(cfg.commandMenuConfirmMode ?? "enter")),
         "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? ""),
+        "{{WEB_NAV_JSON}}": JSON.stringify((cfg as any).webNav ?? []),
         "{{PAGE_ID}}": "tools",
         "{{SEARCH_VALUE}}": "",
         "{{NAV_HOME_ACTIVE}}": "",
@@ -933,7 +939,7 @@ ${filter}
         "{{MAIN_CONTENT}}": `
 ${filter}
 <div class="cards-grid">
-  ${cards || `<div class="meta">暂无工具（请先在后台 设置 → 工具中心 新增）</div>`}
+  ${cards || `<div class="meta">暂无工具</div>`}
 </div>
 `.trim(),
         "{{SITE_FOOTER}}": footer,
@@ -960,6 +966,7 @@ ${filter}
         "{{CMD_LAYOUT}}": escapeHtml(String(cfg.commandMenuLayout ?? "arc")),
         "{{CMD_CONFIRM}}": escapeHtml(String(cfg.commandMenuConfirmMode ?? "enter")),
         "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? ""),
+        "{{WEB_NAV_JSON}}": JSON.stringify((cfg as any).webNav ?? []),
         "{{PAGE_ID}}": "tools",
         "{{SEARCH_VALUE}}": "",
         "{{NAV_HOME_ACTIVE}}": "",
@@ -1001,6 +1008,7 @@ ${filter}
       "{{CMD_LAYOUT}}": escapeHtml(String(cfg.commandMenuLayout ?? "arc")),
       "{{CMD_CONFIRM}}": escapeHtml(String(cfg.commandMenuConfirmMode ?? "enter")),
       "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? ""),
+      "{{WEB_NAV_JSON}}": JSON.stringify((cfg as any).webNav ?? []),
       "{{PAGE_ID}}": "tools",
       "{{SEARCH_VALUE}}": "",
       "{{NAV_HOME_ACTIVE}}": "",
@@ -1086,7 +1094,8 @@ ${filter}
         "{{UI_WEB_STYLE}}": escapeHtml(String(cfg.webStyle ?? "current")),
         "{{CMD_LAYOUT}}": escapeHtml(String(cfg.commandMenuLayout ?? "arc")),
         "{{CMD_CONFIRM}}": escapeHtml(String(cfg.commandMenuConfirmMode ?? "enter")),
-        "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? "")
+        "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? ""),
+        "{{WEB_NAV_JSON}}": JSON.stringify((cfg as any).webNav ?? [])
       });
 
       return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });

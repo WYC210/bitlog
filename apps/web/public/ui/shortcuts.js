@@ -30,6 +30,62 @@
       .replaceAll("'", "&#39;");
   }
 
+  function getWebNavConfig() {
+    const raw = window.__bitlogWebNav;
+    if (Array.isArray(raw)) return raw;
+    if (typeof raw === "string") {
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed;
+      } catch {
+        // ignore
+      }
+    }
+    return null;
+  }
+
+  function normalizePathname(pathname) {
+    const p = String(pathname || "/");
+    if (p === "/") return "/";
+    return p.endsWith("/") ? p.slice(0, -1) : p;
+  }
+
+  function normalizeWebNavItem(raw) {
+    if (!raw || typeof raw !== "object") return null;
+    const id = String(raw.id || "").trim();
+    const label = String(raw.label || "").trim();
+    const href = String(raw.href || "").trim();
+    if (!id || !label || !href) return null;
+    const enabled = raw.enabled === false ? false : true;
+    const external = raw.external === true || /^https?:\/\//i.test(href);
+    return { id, label, href, enabled, external };
+  }
+
+  function listEnabledNavItems() {
+    const cfg = getWebNavConfig();
+    if (!cfg) return [];
+    const out = [];
+    const seen = new Set();
+    for (const it of cfg) {
+      const n = normalizeWebNavItem(it);
+      if (!n || !n.enabled) continue;
+      if (seen.has(n.id)) continue;
+      seen.add(n.id);
+      out.push(n);
+      if (out.length >= 24) break;
+    }
+    return out;
+  }
+
+  function pickNavHrefByIdOrPath(id, path) {
+    const items = listEnabledNavItems();
+    const byId = items.find((x) => x.id === id);
+    if (byId) return byId.href;
+    const want = normalizePathname(path);
+    const byPath = items.find((x) => !x.external && normalizePathname(x.href) === want);
+    return byPath ? byPath.href : null;
+  }
+
   const sc = parseShortcuts();
   const contexts = (sc && typeof sc === "object" && sc.contexts && typeof sc.contexts === "object") ? sc.contexts : {};
   const global = (sc && typeof sc === "object" && sc.global && typeof sc.global === "object") ? sc.global : {};
@@ -138,7 +194,15 @@
   }
 
   function go(href) {
-    window.location.href = href;
+    const target = String(href || "").trim();
+    if (!target) return;
+    try {
+      if (window.__bitlogSpaNavigate) {
+        window.__bitlogSpaNavigate(target, { history: "push" });
+        return;
+      }
+    } catch {}
+    window.location.href = target;
   }
 
   (function maybeAutoFocusSearch() {
@@ -286,6 +350,39 @@
       { id: "forward", label: "前进", desc: "history.forward()", binding: specs.forward, run: () => history.forward() }
     ];
 
+    const core = [
+      { navId: "home", actionId: "goHome", fallback: "/" },
+      { navId: "articles", actionId: "goArticles", fallback: "/articles" },
+      { navId: "projects", actionId: "goProjects", fallback: "/projects" },
+      { navId: "tools", actionId: "goTools", fallback: "/tools" },
+      { navId: "about", actionId: "goAbout", fallback: "/about" }
+    ];
+
+    for (const c of core) {
+      const a = actions.find((x) => x && x.id === c.actionId);
+      if (!a) continue;
+      const href = pickNavHrefByIdOrPath(c.navId, c.fallback);
+      if (!href) {
+        a.enabled = false;
+        continue;
+      }
+      a.enabled = true;
+      a.desc = `鎵撳紑 ${href}`;
+      a.run = () => go(href);
+    }
+
+    const nav = listEnabledNavItems();
+    for (const it of nav) {
+      if (["home", "articles", "projects", "tools", "about"].includes(it.id)) continue;
+      actions.push({
+        id: `nav:${it.id}`,
+        label: `璺宠浆${it.label}`,
+        desc: `鎵撳紑 ${it.href}`,
+        binding: "",
+        run: () => go(it.href)
+      });
+    }
+
     if (page === "post" && (canPostPrev || canPostNext)) {
       actions.push({
         id: "postPrev",
@@ -422,15 +519,16 @@
     }
 
     overlay.addEventListener("mousedown", (e) => {
-      if (e.target === overlay) window.__bitlogCmdpOpen(false);
+      if (e.target !== overlay) return;
+      // Prevent click-through: if we close on mousedown, the mouseup/click can land on the page behind.
+      e.preventDefault();
     });
-    overlay.addEventListener(
-      "pointerdown",
-      (e) => {
-        if (e.target === overlay) window.__bitlogCmdpOpen(false);
-      },
-      { passive: true }
-    );
+    overlay.addEventListener("click", (e) => {
+      if (e.target !== overlay) return;
+      e.preventDefault();
+      e.stopPropagation();
+      window.__bitlogCmdpOpen(false);
+    });
     closeBtn.addEventListener("click", () => window.__bitlogCmdpOpen(false));
     input.addEventListener("input", render);
 
@@ -819,19 +917,88 @@
       return false;
     };
 
+    let swallowClickOnce = false;
+    overlay.addEventListener(
+      "click",
+      (e) => {
+        if (!swallowClickOnce) return;
+        swallowClickOnce = false;
+        e.preventDefault();
+        e.stopPropagation();
+      },
+      true
+    );
+
+    // Mobile swipe (arc): horizontal drag to switch selection.
+    const swipe = { tracking: false, pointerId: null, startX: 0, startY: 0, lastStep: 0, didSwipe: false };
+    const SWIPE_ACTIVATE_PX = 34;
+    const SWIPE_STEP_PX = 62;
     overlay.addEventListener(
       "pointerdown",
       (e) => {
         if (!state.open) return;
-        if (isInsideMenuArea(e.target)) return;
-        close();
+        if (e.pointerType === "mouse") return;
+        if (state.layout !== "arc") return;
+        swipe.tracking = true;
+        swipe.pointerId = e.pointerId;
+        swipe.startX = e.clientX;
+        swipe.startY = e.clientY;
+        swipe.lastStep = 0;
+        swipe.didSwipe = false;
       },
       { passive: true }
     );
+    overlay.addEventListener(
+      "pointermove",
+      (e) => {
+        if (!swipe.tracking) return;
+        if (swipe.pointerId !== null && e.pointerId !== swipe.pointerId) return;
+        const dx = e.clientX - swipe.startX;
+        const dy = e.clientY - swipe.startY;
+        if (Math.abs(dy) > 46 && Math.abs(dy) > Math.abs(dx)) {
+          swipe.tracking = false;
+          swipe.pointerId = null;
+          return;
+        }
+        if (Math.abs(dx) < SWIPE_ACTIVATE_PX) return;
+        const step = Math.trunc(dx / SWIPE_STEP_PX);
+        const diff = step - swipe.lastStep;
+        if (diff === 0) return;
+        swipe.didSwipe = true;
+        swipe.lastStep = step;
+        const n = state.visible.length;
+        if (n <= 0) return;
+        state.active = wrapIndex(state.active + -diff, n);
+        renderSelection();
+      },
+      { passive: true }
+    );
+    const endSwipe = (e) => {
+      if (!swipe.tracking) return;
+      if (swipe.pointerId !== null && e.pointerId !== swipe.pointerId) return;
+      swipe.tracking = false;
+      swipe.pointerId = null;
+      if (swipe.didSwipe) swallowClickOnce = true;
+    };
+    overlay.addEventListener("pointerup", endSwipe, { passive: true });
+    overlay.addEventListener("pointercancel", endSwipe, { passive: true });
 
-    overlay.addEventListener("mousedown", (e) => {
+    overlay.addEventListener(
+      "mousedown",
+      (e) => {
+        if (!state.open) return;
+        if (isInsideMenuArea(e.target)) return;
+        // Prevent click-through: if we close on mousedown, the click can land on the page behind.
+        e.preventDefault();
+      },
+      { passive: false }
+    );
+
+    overlay.addEventListener("click", (e) => {
       if (!state.open) return;
       if (isInsideMenuArea(e.target)) return;
+      e.preventDefault();
+      e.stopPropagation();
       close();
     });
 
@@ -1202,29 +1369,34 @@
       return;
     }
 
-    if (matchChord(e, specs.goHome) || matchSeq(parseSeq(specs.goHome))) {
+    const hrefHome = pickNavHrefByIdOrPath("home", "/");
+    if (hrefHome && (matchChord(e, specs.goHome) || matchSeq(parseSeq(specs.goHome)))) {
       e.preventDefault();
-      go("/");
+      go(hrefHome);
       return;
     }
-    if (matchChord(e, specs.goArticles) || matchSeq(parseSeq(specs.goArticles))) {
+    const hrefArticles = pickNavHrefByIdOrPath("articles", "/articles");
+    if (hrefArticles && (matchChord(e, specs.goArticles) || matchSeq(parseSeq(specs.goArticles)))) {
       e.preventDefault();
-      go("/articles");
+      go(hrefArticles);
       return;
     }
-    if (matchChord(e, specs.goProjects) || matchSeq(parseSeq(specs.goProjects))) {
+    const hrefProjects = pickNavHrefByIdOrPath("projects", "/projects");
+    if (hrefProjects && (matchChord(e, specs.goProjects) || matchSeq(parseSeq(specs.goProjects)))) {
       e.preventDefault();
-      go("/projects");
+      go(hrefProjects);
       return;
     }
-    if (matchChord(e, specs.goTools) || matchSeq(parseSeq(specs.goTools))) {
+    const hrefTools = pickNavHrefByIdOrPath("tools", "/tools");
+    if (hrefTools && (matchChord(e, specs.goTools) || matchSeq(parseSeq(specs.goTools)))) {
       e.preventDefault();
-      go("/tools");
+      go(hrefTools);
       return;
     }
-    if (matchChord(e, specs.goAbout) || matchSeq(parseSeq(specs.goAbout))) {
+    const hrefAbout = pickNavHrefByIdOrPath("about", "/about");
+    if (hrefAbout && (matchChord(e, specs.goAbout) || matchSeq(parseSeq(specs.goAbout)))) {
       e.preventDefault();
-      go("/about");
+      go(hrefAbout);
       return;
     }
 

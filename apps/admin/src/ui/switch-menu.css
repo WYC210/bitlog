@@ -11,6 +11,7 @@
   background: color-mix(in srgb, #000 72%, transparent);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
+  overscroll-behavior: contain;
 }
 
 .switch-scene {
@@ -123,7 +124,7 @@
   transform-style: preserve-3d;
   user-select: none;
   -webkit-user-select: none;
-  touch-action: pan-y;
+  touch-action: none;
   mask-image: radial-gradient(82% 82% at 50% 56%, #000 74%, transparent 100%);
 }
 
@@ -156,7 +157,7 @@
   overflow: visible;
   user-select: none;
   -webkit-user-select: none;
-  touch-action: pan-y;
+  touch-action: none;
   perspective: none;
   mask-image: none;
 }

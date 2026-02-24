@@ -186,7 +186,15 @@ export function CommandPalette(props: {
       aria-modal="true"
       aria-label="命令面板"
       onMouseDown={(e) => {
-        if (e.target === e.currentTarget) props.onOpenChange(false);
+        if (e.target !== e.currentTarget) return;
+        // Prevent click-through: if we close on mousedown, the mouseup/click can land on the page behind.
+        e.preventDefault();
+      }}
+      onClick={(e) => {
+        if (e.target !== e.currentTarget) return;
+        e.preventDefault();
+        e.stopPropagation();
+        props.onOpenChange(false);
       }}
     >
       <div className={`cmdp-panel${mobile ? " is-mobile" : ""}`}>
@@ -229,4 +237,3 @@ export function CommandPalette(props: {
     document.body
   );
 }
-

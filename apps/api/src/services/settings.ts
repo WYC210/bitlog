@@ -14,6 +14,7 @@ export interface SiteConfig {
   commandMenuLayout: CommandMenuLayout;
   commandMenuConfirmMode: CommandMenuConfirmMode;
   shortcutsJson: string | null;
+  webNav: WebNavItem[];
   footerCopyrightUrl: string | null;
   footerIcpText: string | null;
   footerIcpLink: string | null;
@@ -22,6 +23,14 @@ export interface SiteConfig {
 export type UiStyle = "current" | "classic" | "glass" | "brutal" | "terminal";
 export type CommandMenuLayout = "arc" | "grid" | "dial" | "cmd";
 export type CommandMenuConfirmMode = "enter" | "release";
+
+export type WebNavItem = {
+  id: string;
+  label: string;
+  href: string;
+  enabled: boolean;
+  external?: boolean;
+};
 
 const KEY_TITLE = "site.title";
 const KEY_DESCRIPTION = "site.description";
@@ -34,6 +43,7 @@ const KEY_UI_WEB_STYLE = "ui.web_style";
 const KEY_UI_ADMIN_STYLE = "ui.admin_style";
 const KEY_UI_COMMAND_MENU_LAYOUT = "ui.command_menu_layout";
 const KEY_UI_COMMAND_MENU_CONFIRM_MODE = "ui.command_menu_confirm_mode";
+const KEY_UI_WEB_NAV = "ui.web_nav_json";
 const KEY_SHORTCUTS = "site.shortcuts_json";
 const KEY_FOOTER_COPYRIGHT_URL = "site.footer_copyright_url";
 const KEY_FOOTER_ICP_TEXT = "site.footer_icp_text";
@@ -43,7 +53,11 @@ const SITE_CONFIG_CACHE_MS = 5_000;
 let siteConfigCache: { value: SiteConfig; expiresAt: number } | null = null;
 
 function cloneSiteConfig(cfg: SiteConfig): SiteConfig {
-  return { ...cfg, embedAllowlistHosts: new Set(cfg.embedAllowlistHosts) };
+  return {
+    ...cfg,
+    embedAllowlistHosts: new Set(cfg.embedAllowlistHosts),
+    webNav: (cfg.webNav ?? []).map((x) => ({ ...x }))
+  };
 }
 
 function parseUiStyle(input: string | null | undefined): UiStyle | null {
@@ -72,6 +86,69 @@ function parseCommandMenuConfirmMode(input: string | null | undefined): CommandM
   return null;
 }
 
+function normalizeWebNavHref(raw: string): { href: string; external: boolean } | null {
+  const s = String(raw ?? "").trim();
+  if (!s) return null;
+  if (s.startsWith("/")) {
+    if (s.startsWith("//")) return null;
+    return { href: s, external: false };
+  }
+  try {
+    const u = new URL(s);
+    if (u.protocol === "http:" || u.protocol === "https:") return { href: u.toString(), external: true };
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function defaultWebNav(): WebNavItem[] {
+  return [
+    { id: "home", label: "首页", href: "/", enabled: true },
+    { id: "articles", label: "文章", href: "/articles", enabled: true },
+    { id: "projects", label: "项目", href: "/projects", enabled: true },
+    { id: "tools", label: "工具中心", href: "/tools", enabled: true },
+    { id: "about", label: "关于我", href: "/about", enabled: true }
+  ];
+}
+
+function parseWebNav(input: string | null | undefined): WebNavItem[] {
+  const raw = String(input ?? "").trim();
+  if (!raw) return defaultWebNav();
+  let parsed: unknown = null;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return defaultWebNav();
+  }
+  if (!Array.isArray(parsed)) return defaultWebNav();
+
+  const out: WebNavItem[] = [];
+  const seen = new Set<string>();
+  for (const it of parsed) {
+    if (!it || typeof it !== "object") continue;
+    const obj = it as any;
+    const id = String(obj.id ?? "").trim();
+    if (!id) continue;
+    if (id.length > 80) continue;
+    if (seen.has(id)) continue;
+
+    const label = String(obj.label ?? "").trim();
+    if (!label) continue;
+    const normalized = normalizeWebNavHref(String(obj.href ?? ""));
+    if (!normalized) continue;
+
+    const enabled = obj.enabled === false ? false : true;
+    const external = obj.external === true ? true : normalized.external;
+
+    out.push({ id, label, href: normalized.href, enabled, external });
+    seen.add(id);
+    if (out.length >= 24) break;
+  }
+
+  return out.length ? out : defaultWebNav();
+}
+
 export async function getSiteConfig(db: Db): Promise<SiteConfig> {
   const now = Date.now();
   if (siteConfigCache && now < siteConfigCache.expiresAt) {
@@ -79,7 +156,7 @@ export async function getSiteConfig(db: Db): Promise<SiteConfig> {
   }
 
   const rows = await db.query<{ key: string; value: string }>(
-    sql`SELECT key, value FROM settings WHERE key IN (${KEY_TITLE}, ${KEY_DESCRIPTION}, ${KEY_BASE_URL}, ${KEY_TIMEZONE}, ${KEY_EMBED_ALLOWLIST}, ${KEY_CACHE_TTL}, ${KEY_CACHE_VERSION}, ${KEY_UI_WEB_STYLE}, ${KEY_UI_ADMIN_STYLE}, ${KEY_UI_COMMAND_MENU_LAYOUT}, ${KEY_UI_COMMAND_MENU_CONFIRM_MODE}, ${KEY_SHORTCUTS}, ${KEY_FOOTER_COPYRIGHT_URL}, ${KEY_FOOTER_ICP_TEXT}, ${KEY_FOOTER_ICP_LINK})`
+    sql`SELECT key, value FROM settings WHERE key IN (${KEY_TITLE}, ${KEY_DESCRIPTION}, ${KEY_BASE_URL}, ${KEY_TIMEZONE}, ${KEY_EMBED_ALLOWLIST}, ${KEY_CACHE_TTL}, ${KEY_CACHE_VERSION}, ${KEY_UI_WEB_STYLE}, ${KEY_UI_ADMIN_STYLE}, ${KEY_UI_COMMAND_MENU_LAYOUT}, ${KEY_UI_COMMAND_MENU_CONFIRM_MODE}, ${KEY_UI_WEB_NAV}, ${KEY_SHORTCUTS}, ${KEY_FOOTER_COPYRIGHT_URL}, ${KEY_FOOTER_ICP_TEXT}, ${KEY_FOOTER_ICP_LINK})`
   );
   const map = new Map(rows.map((r) => [r.key, r.value]));
 
@@ -101,6 +178,7 @@ export async function getSiteConfig(db: Db): Promise<SiteConfig> {
   const title = map.get(KEY_TITLE) ?? null;
   const description = map.get(KEY_DESCRIPTION) ?? null;
   const shortcutsJson = map.get(KEY_SHORTCUTS) ?? null;
+  const webNav = parseWebNav(map.get(KEY_UI_WEB_NAV) ?? null);
   const footerCopyrightUrl = map.get(KEY_FOOTER_COPYRIGHT_URL) ?? null;
   const footerIcpText = map.get(KEY_FOOTER_ICP_TEXT) ?? null;
   const footerIcpLink = map.get(KEY_FOOTER_ICP_LINK) ?? null;
@@ -118,6 +196,7 @@ export async function getSiteConfig(db: Db): Promise<SiteConfig> {
     commandMenuLayout,
     commandMenuConfirmMode,
     shortcutsJson,
+    webNav,
     footerCopyrightUrl,
     footerIcpText,
     footerIcpLink
@@ -203,6 +282,10 @@ function normalizeSettingValue(key: string, value: unknown): string {
     const mode = parseCommandMenuConfirmMode(typeof value === "string" ? value : String(value ?? ""));
     if (!mode) throw new Error("Invalid ui.command_menu_confirm_mode (allowed: enter/release)");
     return mode;
+  }
+  if (key === KEY_UI_WEB_NAV) {
+    const nav = parseWebNav(typeof value === "string" ? value : JSON.stringify(value));
+    return JSON.stringify(nav);
   }
 
   if (typeof value === "string") return value;

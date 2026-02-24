@@ -163,6 +163,13 @@ export function SwitchMenu(props: {
   const visibleRef = useRef<Array<{ it: SwitchMenuItem; idx: number }>>([]);
   const layoutPropRef = useRef<SwitchMenuLayout | undefined>(props.layout);
   const confirmPropRef = useRef<SwitchMenuConfirmMode | undefined>(props.confirmMode);
+  const swipeRef = useRef<{
+    startX: number;
+    startY: number;
+    startTs: number;
+    dragging: boolean;
+    consumeClick: boolean;
+  }>({ startX: 0, startY: 0, startTs: 0, dragging: false, consumeClick: false });
 
   useEffect(() => void (enabledRef.current = props.enabled), [props.enabled]);
   useEffect(() => void (openRef.current = open), [open]);
@@ -715,6 +722,109 @@ export function SwitchMenu(props: {
     };
   }, [open, items.length]);
 
+  useEffect(() => {
+    if (!open) return;
+    const el = stripRef.current;
+    if (!el) return;
+
+    let tracking = false;
+    let startX = 0;
+    let startY = 0;
+    let startTs = 0;
+    let lastX = 0;
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (!openRef.current) return;
+      if (layoutRef.current !== "arc") return;
+      if (bindModeRef.current) return;
+      if (items.length <= 1) return;
+      if (e.touches.length !== 1) return;
+      const t = e.touches[0];
+      if (!t) return;
+      tracking = true;
+      startX = t.clientX;
+      startY = t.clientY;
+      lastX = t.clientX;
+      startTs = performance.now();
+      swipeRef.current.dragging = false;
+      swipeRef.current.consumeClick = false;
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (!tracking) return;
+      if (layoutRef.current !== "arc") return;
+      if (e.touches.length !== 1) return;
+      const t = e.touches[0];
+      if (!t) return;
+      lastX = t.clientX;
+      const dx = t.clientX - startX;
+      const dy = t.clientY - startY;
+
+      if (!swipeRef.current.dragging) {
+        if (Math.abs(dx) < 10) return;
+        if (Math.abs(dx) < Math.abs(dy) * 1.25) return;
+        swipeRef.current.dragging = true;
+      }
+
+      if (!swipeRef.current.dragging) return;
+      swipeRef.current.consumeClick = true;
+      // Must be non-passive to stop page scrolling on some mobile webviews.
+      e.preventDefault();
+    };
+
+    const finish = (endX: number) => {
+      const dragging = swipeRef.current.dragging;
+      tracking = false;
+      swipeRef.current.dragging = false;
+
+      if (!dragging) {
+        swipeRef.current.consumeClick = false;
+        return;
+      }
+
+      swipeRef.current.consumeClick = true;
+      const dx = endX - startX;
+      const dt = Math.max(1, performance.now() - startTs);
+      const vx = dx / dt; // px/ms
+
+      const shouldStep = Math.abs(dx) >= 34 || (Math.abs(dx) >= 16 && Math.abs(vx) >= 0.35);
+      if (shouldStep) {
+        if (dx < 0) setActiveIndex((v) => wrapIndex(v + 1, items.length));
+        else setActiveIndex((v) => wrapIndex(v - 1, items.length));
+      }
+
+      // Clear soon even if no click is synthesized.
+      window.setTimeout(() => {
+        swipeRef.current.consumeClick = false;
+      }, 420);
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (!tracking) return;
+      const t = e.changedTouches?.[0];
+      const endX = t ? t.clientX : lastX;
+      finish(endX);
+    };
+
+    const onTouchCancel = () => {
+      if (!tracking) return;
+      tracking = false;
+      swipeRef.current.dragging = false;
+      swipeRef.current.consumeClick = false;
+    };
+
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchmove", onTouchMove, { passive: false });
+    el.addEventListener("touchend", onTouchEnd, { passive: true });
+    el.addEventListener("touchcancel", onTouchCancel, { passive: true });
+    return () => {
+      el.removeEventListener("touchstart", onTouchStart as any);
+      el.removeEventListener("touchmove", onTouchMove as any);
+      el.removeEventListener("touchend", onTouchEnd as any);
+      el.removeEventListener("touchcancel", onTouchCancel as any);
+    };
+  }, [open, items.length]);
+
   if (!props.enabled) return null;
 
   const accentForHash = (hash: string): string => {
@@ -826,6 +936,16 @@ export function SwitchMenu(props: {
     );
   };
 
+  const shouldCloseFromBackdropClick = (target: HTMLElement | null) => {
+    if (!target) return false;
+    if (target.closest(".switch-cmd-panel")) return false;
+    if (target.closest(".switch-tile")) return false;
+    if (target.closest(".switch-dial")) return false;
+    const layoutNow = layoutRef.current;
+    if ((layoutNow === "grid" || layoutNow === "dial") && target.closest(".switch-strip")) return false;
+    return true;
+  };
+
   const stripLayoutClass =
     layout === "arc" ? "is-arc" : layout === "grid" ? "is-grid" : layout === "cmd" ? "is-cmd" : "is-dial";
 
@@ -860,17 +980,27 @@ export function SwitchMenu(props: {
        className="switch-overlay"
        role="dialog"
        aria-modal="true"
+       onClickCapture={(e) => {
+         if (swipeRef.current.consumeClick) {
+           swipeRef.current.consumeClick = false;
+           e.preventDefault();
+           e.stopPropagation();
+           return;
+         }
+         const target = e.target as HTMLElement | null;
+         if (!shouldCloseFromBackdropClick(target)) return;
+         e.preventDefault();
+         e.stopPropagation();
+         holdArmedRef.current = false;
+         setOpen(false);
+       }}
        onPointerDownCapture={(e) => {
          if (e.pointerType === "mouse" && (e as any).button !== 0) return;
          const target = e.target as HTMLElement | null;
-         if (!target) return;
-         if (target.closest(".switch-cmd-panel")) return;
-         if (target.closest(".switch-tile")) return;
-         if (target.closest(".switch-dial")) return;
-         const layoutNow = layoutRef.current;
-         if ((layoutNow === "grid" || layoutNow === "dial") && target.closest(".switch-strip")) return;
-         holdArmedRef.current = false;
-         setOpen(false);
+         if (!shouldCloseFromBackdropClick(target)) return;
+         // Prevent click-through: keep the overlay mounted until the click handler closes it.
+         e.preventDefault();
+         e.stopPropagation();
        }}
      >
       <div className="switch-scene">
@@ -887,7 +1017,16 @@ export function SwitchMenu(props: {
           </div>
         )}
 
-        <div ref={stripRef} className={`switch-strip ${stripLayoutClass}`}>
+        <div
+          ref={stripRef}
+          className={`switch-strip ${stripLayoutClass}`}
+          onClickCapture={(e) => {
+            if (!swipeRef.current.consumeClick) return;
+            swipeRef.current.consumeClick = false;
+            e.preventDefault();
+            e.stopPropagation();
+          }}
+        >
           {layout === "cmd" ? (
             <div className="switch-cmd-panel" onMouseDown={(e) => e.stopPropagation()}>
               <div className="switch-cmd-head">

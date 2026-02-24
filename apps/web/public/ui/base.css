@@ -399,7 +399,7 @@ html.theme-transition-active {
   transform-style: preserve-3d;
   user-select: none;
   -webkit-user-select: none;
-  touch-action: pan-y;
+  touch-action: none;
   mask-image: radial-gradient(82% 82% at 50% 56%, #000 74%, transparent 100%);
 }
 
@@ -431,7 +431,7 @@ html.theme-transition-active {
   overflow: visible;
   user-select: none;
   -webkit-user-select: none;
-  touch-action: pan-y;
+  touch-action: none;
   perspective: none;
   mask-image: none;
 }

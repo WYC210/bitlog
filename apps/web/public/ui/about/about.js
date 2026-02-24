@@ -766,8 +766,13 @@ async function mountHeatmap() {
 }
 
 async function main() {
+  if (document.body?.getAttribute?.("data-page") !== "about") return;
+
   const btnHeatmap = $("aboutHeatmapReload");
-  if (btnHeatmap) btnHeatmap.addEventListener("click", () => void mountHeatmap());
+  if (btnHeatmap && !btnHeatmap.getAttribute("data-wired")) {
+    btnHeatmap.setAttribute("data-wired", "1");
+    btnHeatmap.addEventListener("click", () => void mountHeatmap());
+  }
 
   await loadConfigAndRender().catch(() => null);
   if (aboutSidebarFlags.dailyNews) refreshNewsImage();
@@ -890,4 +895,28 @@ function openImagePreview(url) {
   p.overlay.style.display = "block";
 }
 
-void main();
+let initRunning = false;
+async function initAbout() {
+  if (initRunning) return;
+  if (document.body?.getAttribute?.("data-page") !== "about") return;
+  if (!$("about-skills") && !$("about-tech")) return;
+
+  initRunning = true;
+  try {
+    await main();
+  } finally {
+    initRunning = false;
+  }
+}
+
+try {
+  window.__bitlogAboutInit = initAbout;
+} catch {
+  // ignore
+}
+
+window.addEventListener("bitlog:spa:afterSwap", () => {
+  void initAbout();
+});
+
+void initAbout();
