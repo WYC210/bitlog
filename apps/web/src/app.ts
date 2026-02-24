@@ -18,6 +18,8 @@ type SiteConfig = {
   cacheVersion: number;
   webStyle: "current" | "classic" | "glass" | "brutal" | "terminal";
   adminStyle: "current" | "classic" | "glass" | "brutal" | "terminal";
+  commandMenuLayout: "arc" | "grid" | "dial" | "cmd";
+  commandMenuConfirmMode: "enter" | "release";
   shortcutsJson: string | null;
   footerCopyrightUrl: string | null;
   footerIcpText: string | null;
@@ -72,7 +74,7 @@ type ToolItem = {
   slug: string;
   title: string;
   description: string;
-  groupKey: "games" | "apis" | "utils" | "other";
+  groupKey: string;
   kind: "link" | "page";
   url: string | null;
   icon: string | null;
@@ -128,6 +130,16 @@ function safeHref(input: string | null): string | null {
   } catch {
     return null;
   }
+}
+
+function safeClassToken(input: string): string {
+  const s = String(input ?? "").trim().toLowerCase();
+  if (!s) return "custom";
+  const cleaned = s
+    .replaceAll(/[^a-z0-9_-]+/g, "-")
+    .replaceAll(/-+/g, "-")
+    .replaceAll(/^[-_]+|[-_]+$/g, "");
+  return cleaned || "custom";
 }
 
 function renderSiteFooter(cfg: SiteConfig, year: string): string {
@@ -519,6 +531,8 @@ export function createWebApp() {
         "{{SITE_FOOTER}}": footer,
         "{{CACHE_VERSION}}": escapeHtml(cacheVersionForRequest(cfg, c.req.url)),
         "{{UI_WEB_STYLE}}": escapeHtml(String(cfg.webStyle ?? "current")),
+        "{{CMD_LAYOUT}}": escapeHtml(String(cfg.commandMenuLayout ?? "arc")),
+        "{{CMD_CONFIRM}}": escapeHtml(String(cfg.commandMenuConfirmMode ?? "enter")),
         "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? "")
       });
 
@@ -670,6 +684,8 @@ export function createWebApp() {
         "{{SITE_FOOTER}}": footer,
         "{{CACHE_VERSION}}": escapeHtml(cacheVersionForRequest(cfg, c.req.url)),
         "{{UI_WEB_STYLE}}": escapeHtml(String(cfg.webStyle ?? "current")),
+        "{{CMD_LAYOUT}}": escapeHtml(String(cfg.commandMenuLayout ?? "arc")),
+        "{{CMD_CONFIRM}}": escapeHtml(String(cfg.commandMenuConfirmMode ?? "enter")),
         "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? "")
       });
 
@@ -779,6 +795,8 @@ export function createWebApp() {
         "{{PAGE_TITLE}}": escapeHtml(cfg.title ? `${cfg.title} · 项目` : "项目"),
         "{{CACHE_VERSION}}": escapeHtml(cacheVersionForRequest(cfg, c.req.url)),
         "{{UI_WEB_STYLE}}": escapeHtml(String(cfg.webStyle ?? "current")),
+        "{{CMD_LAYOUT}}": escapeHtml(String(cfg.commandMenuLayout ?? "arc")),
+        "{{CMD_CONFIRM}}": escapeHtml(String(cfg.commandMenuConfirmMode ?? "enter")),
         "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? ""),
         "{{PAGE_ID}}": "projects",
         "{{SEARCH_VALUE}}": "",
@@ -811,6 +829,8 @@ ${filter}
         "{{PAGE_TITLE}}": escapeHtml(cfg.title ? `${cfg.title} · 关于我` : "关于我"),
         "{{CACHE_VERSION}}": escapeHtml(cacheVersionForRequest(cfg, c.req.url)),
         "{{UI_WEB_STYLE}}": escapeHtml(String(cfg.webStyle ?? "current")),
+        "{{CMD_LAYOUT}}": escapeHtml(String(cfg.commandMenuLayout ?? "arc")),
+        "{{CMD_CONFIRM}}": escapeHtml(String(cfg.commandMenuConfirmMode ?? "enter")),
         "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? ""),
         "{{PAGE_ID}}": "about",
         "{{SEARCH_VALUE}}": "",
@@ -832,20 +852,22 @@ ${filter}
   app.get("/tools", async (c) => {
     const cfg = await getConfig(c.env);
     const url = new URL(c.req.url);
-    const rawGroup = (url.searchParams.get("group") ?? "").trim().toLowerCase();
-    const group =
-      rawGroup === "games" || rawGroup === "apis" || rawGroup === "utils" || rawGroup === "other"
-        ? rawGroup
-        : rawGroup === "all"
-          ? "all"
-          : "all";
+    const rawGroup = String(url.searchParams.get("group") ?? "all").trim();
+    const group = rawGroup ? rawGroup.toLowerCase() : "all";
 
     return maybeCachePage(c.req.raw, cfg, `web:tools:${group}`, async () => {
       const year = String(new Date().getFullYear());
       const footer = renderSiteFooter(cfg, year);
-      const apiPath = group === "all" ? "/api/tools" : `/api/tools?group=${encodeURIComponent(group)}`;
-      const data = await apiJson<ApiOk<{ tools: ToolItem[] }>>(c.env, apiPath);
-      const tools = data.tools ?? [];
+      const data = await apiJson<ApiOk<{ tools: ToolItem[] }>>(c.env, "/api/tools");
+      const allTools = data.tools ?? [];
+      const tools =
+        group === "all"
+          ? allTools
+          : allTools.filter((t) => String(t.groupKey ?? "").trim().toLowerCase() === group);
+
+      const groups = Array.from(new Set(allTools.map((t) => String(t.groupKey ?? "").trim()).filter(Boolean))).sort((a, b) =>
+        a.localeCompare(b)
+      );
 
       const chip = (label: string, href: string, active: boolean) =>
         `<a class="chip${active ? " is-active" : ""}" href="${href}">${escapeHtml(label)}</a>`;
@@ -854,10 +876,7 @@ ${filter}
 <div class="section-head">
   <div class="tag-list">
     ${chip("全部", "/tools?group=all", group === "all")}
-    ${chip("games", "/tools?group=games", group === "games")}
-    ${chip("apis", "/tools?group=apis", group === "apis")}
-    ${chip("utils", "/tools?group=utils", group === "utils")}
-    ${chip("other", "/tools?group=other", group === "other")}
+    ${groups.map((g) => chip(g, `/tools?group=${encodeURIComponent(g)}`, g.trim().toLowerCase() === group)).join("\n")}
   </div>
   <div class="meta">${escapeHtml(`共 ${tools.length} 项`)}</div>
 </div>
@@ -883,8 +902,9 @@ ${filter}
           const icon = t.icon || groupIcons[t.groupKey] || groupIcons.other;
           const groupColor = groupColors[t.groupKey] || "gray";
           const groupChip = `<span class="chip chip--${groupColor === "gray" ? "teal" : groupColor}">${escapeHtml(t.groupKey)}</span>`;
+          const groupClass = safeClassToken(t.groupKey);
           return `<${el} class="card-link tool-card" ${attrs}>
-  <div class="tool-card__icon tool-card__icon--${escapeHtml(t.groupKey)}">${icon}</div>
+  <div class="tool-card__icon tool-card__icon--${escapeHtml(groupClass)}">${icon}</div>
   <div class="repo-head">
     <div class="repo-title">${escapeHtml(t.title)}</div>
     ${groupChip}
@@ -898,6 +918,8 @@ ${filter}
         "{{PAGE_TITLE}}": escapeHtml(cfg.title ? `${cfg.title} · 工具中心` : "工具中心"),
         "{{CACHE_VERSION}}": escapeHtml(cacheVersionForRequest(cfg, c.req.url)),
         "{{UI_WEB_STYLE}}": escapeHtml(String(cfg.webStyle ?? "current")),
+        "{{CMD_LAYOUT}}": escapeHtml(String(cfg.commandMenuLayout ?? "arc")),
+        "{{CMD_CONFIRM}}": escapeHtml(String(cfg.commandMenuConfirmMode ?? "enter")),
         "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? ""),
         "{{PAGE_ID}}": "tools",
         "{{SEARCH_VALUE}}": "",
@@ -935,6 +957,8 @@ ${filter}
         "{{PAGE_TITLE}}": escapeHtml(cfg.title ? `${cfg.title} · 工具未找到` : "工具未找到"),
         "{{CACHE_VERSION}}": escapeHtml(cacheVersionForRequest(cfg, c.req.url)),
         "{{UI_WEB_STYLE}}": escapeHtml(String(cfg.webStyle ?? "current")),
+        "{{CMD_LAYOUT}}": escapeHtml(String(cfg.commandMenuLayout ?? "arc")),
+        "{{CMD_CONFIRM}}": escapeHtml(String(cfg.commandMenuConfirmMode ?? "enter")),
         "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? ""),
         "{{PAGE_ID}}": "tools",
         "{{SEARCH_VALUE}}": "",
@@ -974,6 +998,8 @@ ${filter}
       "{{PAGE_TITLE}}": escapeHtml(cfg.title ? `${cfg.title} · ${tool.title}` : tool.title),
       "{{CACHE_VERSION}}": escapeHtml(cacheVersionForRequest(cfg, c.req.url)),
       "{{UI_WEB_STYLE}}": escapeHtml(String(cfg.webStyle ?? "current")),
+      "{{CMD_LAYOUT}}": escapeHtml(String(cfg.commandMenuLayout ?? "arc")),
+      "{{CMD_CONFIRM}}": escapeHtml(String(cfg.commandMenuConfirmMode ?? "enter")),
       "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? ""),
       "{{PAGE_ID}}": "tools",
       "{{SEARCH_VALUE}}": "",
@@ -1058,6 +1084,8 @@ ${filter}
         "{{SITE_FOOTER}}": footer,
         "{{CACHE_VERSION}}": escapeHtml(cacheVersionForRequest(cfg, c.req.url)),
         "{{UI_WEB_STYLE}}": escapeHtml(String(cfg.webStyle ?? "current")),
+        "{{CMD_LAYOUT}}": escapeHtml(String(cfg.commandMenuLayout ?? "arc")),
+        "{{CMD_CONFIRM}}": escapeHtml(String(cfg.commandMenuConfirmMode ?? "enter")),
         "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? "")
       });
 

@@ -295,9 +295,9 @@ export function App() {
     if (route.page === "settings") {
       const section = (route as any)?.section ?? null;
       if (section === "site") return { title: "站点设置", crumb: "设置 / Site" };
-      if (section === "projects") return { title: "Projects", crumb: "设置 / Projects" };
-      if (section === "tools") return { title: "Tools", crumb: "设置 / Tools" };
-      if (section === "about") return { title: "About", crumb: "设置 / About" };
+      if (section === "projects") return { title: "项目", crumb: "设置 / 项目" };
+      if (section === "tools") return { title: "工具", crumb: "设置 / 工具" };
+      if (section === "about") return { title: "关于", crumb: "设置 / 关于" };
       return { title: "设置", crumb: "站点 / Settings" };
     }
     if (route.page === "account") return { title: "账号", crumb: "安全 / Preferences" };
@@ -315,12 +315,17 @@ export function App() {
 
   const switchMenuItems = useMemo<SwitchMenuItem[]>(
     () => [
+      { id: "web-home", title: "前台首页", desc: "打开 /", hash: "/" },
+      { id: "web-articles", title: "前台文章", desc: "打开 /articles", hash: "/articles" },
+      { id: "web-projects", title: "前台项目", desc: "打开 /projects", hash: "/projects" },
+      { id: "web-tools", title: "前台工具", desc: "打开 /tools", hash: "/tools" },
+      { id: "web-about", title: "前台关于", desc: "打开 /about", hash: "/about" },
       { id: "posts", title: "文章", desc: "管理文章 / 草稿 / 发布", hash: "#/posts" },
       { id: "new", title: "新建文章", desc: "开始写一篇新的文章", hash: "#/posts/new" },
       { id: "settings-site", title: "站点配置", desc: "站点基础 / UI 风格 / Footer 等", hash: "#/settings/site" },
-      { id: "settings-projects", title: "Projects", desc: "GitHub / Gitee 项目页配置", hash: "#/settings/projects" },
-      { id: "settings-tools", title: "Tools", desc: "工具中心：分组 / 链接 / 客户端代码", hash: "#/settings/tools" },
-      { id: "settings-about", title: "About", desc: "关于页：技能 / 足迹 / 经历 + 侧边栏开关", hash: "#/settings/about" },
+      { id: "settings-projects", title: "项目", desc: "GitHub / Gitee 项目页配置", hash: "#/settings/projects" },
+      { id: "settings-tools", title: "工具", desc: "工具中心：分组 / 链接 / 客户端代码", hash: "#/settings/tools" },
+      { id: "settings-about", title: "关于", desc: "关于页：技能 / 足迹 / 经历 + 侧边栏开关", hash: "#/settings/about" },
       { id: "account", title: "账号", desc: "后台偏好 / 快捷键 / 安全", hash: "#/account" }
     ],
     []
@@ -709,7 +714,12 @@ export function App() {
         }}
       />
 
-      <SwitchMenu enabled={authed} items={switchMenuItems} />
+      <SwitchMenu
+        enabled={authed}
+        items={switchMenuItems}
+        layout={cfg?.commandMenuLayout}
+        confirmMode={cfg?.commandMenuConfirmMode}
+      />
     </div>
   );
 }

@@ -11,6 +11,8 @@ export interface SiteConfig {
   cacheVersion: number;
   webStyle: UiStyle;
   adminStyle: UiStyle;
+  commandMenuLayout: CommandMenuLayout;
+  commandMenuConfirmMode: CommandMenuConfirmMode;
   shortcutsJson: string | null;
   footerCopyrightUrl: string | null;
   footerIcpText: string | null;
@@ -18,6 +20,8 @@ export interface SiteConfig {
 }
 
 export type UiStyle = "current" | "classic" | "glass" | "brutal" | "terminal";
+export type CommandMenuLayout = "arc" | "grid" | "dial" | "cmd";
+export type CommandMenuConfirmMode = "enter" | "release";
 
 const KEY_TITLE = "site.title";
 const KEY_DESCRIPTION = "site.description";
@@ -28,6 +32,8 @@ const KEY_CACHE_TTL = "site.cache_public_ttl_seconds";
 const KEY_CACHE_VERSION = "site.cache_version";
 const KEY_UI_WEB_STYLE = "ui.web_style";
 const KEY_UI_ADMIN_STYLE = "ui.admin_style";
+const KEY_UI_COMMAND_MENU_LAYOUT = "ui.command_menu_layout";
+const KEY_UI_COMMAND_MENU_CONFIRM_MODE = "ui.command_menu_confirm_mode";
 const KEY_SHORTCUTS = "site.shortcuts_json";
 const KEY_FOOTER_COPYRIGHT_URL = "site.footer_copyright_url";
 const KEY_FOOTER_ICP_TEXT = "site.footer_icp_text";
@@ -50,6 +56,22 @@ function parseUiStyle(input: string | null | undefined): UiStyle | null {
   return null;
 }
 
+function parseCommandMenuLayout(input: string | null | undefined): CommandMenuLayout | null {
+  const s = String(input ?? "").trim().toLowerCase();
+  if (s === "arc") return "arc";
+  if (s === "grid") return "grid";
+  if (s === "dial") return "dial";
+  if (s === "cmd") return "cmd";
+  return null;
+}
+
+function parseCommandMenuConfirmMode(input: string | null | undefined): CommandMenuConfirmMode | null {
+  const s = String(input ?? "").trim().toLowerCase();
+  if (s === "enter") return "enter";
+  if (s === "release") return "release";
+  return null;
+}
+
 export async function getSiteConfig(db: Db): Promise<SiteConfig> {
   const now = Date.now();
   if (siteConfigCache && now < siteConfigCache.expiresAt) {
@@ -57,7 +79,7 @@ export async function getSiteConfig(db: Db): Promise<SiteConfig> {
   }
 
   const rows = await db.query<{ key: string; value: string }>(
-    sql`SELECT key, value FROM settings WHERE key IN (${KEY_TITLE}, ${KEY_DESCRIPTION}, ${KEY_BASE_URL}, ${KEY_TIMEZONE}, ${KEY_EMBED_ALLOWLIST}, ${KEY_CACHE_TTL}, ${KEY_CACHE_VERSION}, ${KEY_UI_WEB_STYLE}, ${KEY_UI_ADMIN_STYLE}, ${KEY_SHORTCUTS}, ${KEY_FOOTER_COPYRIGHT_URL}, ${KEY_FOOTER_ICP_TEXT}, ${KEY_FOOTER_ICP_LINK})`
+    sql`SELECT key, value FROM settings WHERE key IN (${KEY_TITLE}, ${KEY_DESCRIPTION}, ${KEY_BASE_URL}, ${KEY_TIMEZONE}, ${KEY_EMBED_ALLOWLIST}, ${KEY_CACHE_TTL}, ${KEY_CACHE_VERSION}, ${KEY_UI_WEB_STYLE}, ${KEY_UI_ADMIN_STYLE}, ${KEY_UI_COMMAND_MENU_LAYOUT}, ${KEY_UI_COMMAND_MENU_CONFIRM_MODE}, ${KEY_SHORTCUTS}, ${KEY_FOOTER_COPYRIGHT_URL}, ${KEY_FOOTER_ICP_TEXT}, ${KEY_FOOTER_ICP_LINK})`
   );
   const map = new Map(rows.map((r) => [r.key, r.value]));
 
@@ -72,6 +94,8 @@ export async function getSiteConfig(db: Db): Promise<SiteConfig> {
 
   const webStyle = parseUiStyle(map.get(KEY_UI_WEB_STYLE) ?? null) ?? "current";
   const adminStyle = parseUiStyle(map.get(KEY_UI_ADMIN_STYLE) ?? null) ?? "current";
+  const commandMenuLayout = parseCommandMenuLayout(map.get(KEY_UI_COMMAND_MENU_LAYOUT) ?? null) ?? "arc";
+  const commandMenuConfirmMode = parseCommandMenuConfirmMode(map.get(KEY_UI_COMMAND_MENU_CONFIRM_MODE) ?? null) ?? "enter";
 
   const timezone = map.get(KEY_TIMEZONE) ?? null;
   const title = map.get(KEY_TITLE) ?? null;
@@ -91,6 +115,8 @@ export async function getSiteConfig(db: Db): Promise<SiteConfig> {
     cacheVersion,
     webStyle,
     adminStyle,
+    commandMenuLayout,
+    commandMenuConfirmMode,
     shortcutsJson,
     footerCopyrightUrl,
     footerIcpText,
@@ -167,6 +193,16 @@ function normalizeSettingValue(key: string, value: unknown): string {
     const style = parseUiStyle(typeof value === "string" ? value : String(value ?? ""));
     if (!style) throw new Error("Invalid ui.admin_style (allowed: current/classic/glass/brutal/terminal)");
     return style;
+  }
+  if (key === KEY_UI_COMMAND_MENU_LAYOUT) {
+    const layout = parseCommandMenuLayout(typeof value === "string" ? value : String(value ?? ""));
+    if (!layout) throw new Error("Invalid ui.command_menu_layout (allowed: arc/grid/dial/cmd)");
+    return layout;
+  }
+  if (key === KEY_UI_COMMAND_MENU_CONFIRM_MODE) {
+    const mode = parseCommandMenuConfirmMode(typeof value === "string" ? value : String(value ?? ""));
+    if (!mode) throw new Error("Invalid ui.command_menu_confirm_mode (allowed: enter/release)");
+    return mode;
   }
 
   if (typeof value === "string") return value;

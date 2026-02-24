@@ -21,6 +21,15 @@
     }
   }
 
+  function escapeHtml(input) {
+    return String(input ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#39;");
+  }
+
   const sc = parseShortcuts();
   const contexts = (sc && typeof sc === "object" && sc.contexts && typeof sc.contexts === "object") ? sc.contexts : {};
   const global = (sc && typeof sc === "object" && sc.global && typeof sc.global === "object") ? sc.global : {};
@@ -264,8 +273,83 @@
     go(`/articles/${encodeURIComponent(postNav.next)}`);
   }
 
+  function getActions() {
+    const actions = [
+      { id: "focusSearch", label: "聚焦搜索", desc: "聚焦顶部搜索框", binding: specs.focusSearch, run: focusSearch },
+      { id: "toggleLightDark", label: "切换 light/dark", desc: "只影响当前设备", binding: specs.toggleLightDark, run: toggleLightDark },
+      { id: "goHome", label: "跳转首页", desc: "打开 /", binding: specs.goHome, run: () => go("/") },
+      { id: "goArticles", label: "跳转文章列表", desc: "打开 /articles", binding: specs.goArticles, run: () => go("/articles") },
+      { id: "goProjects", label: "跳转项目页", desc: "打开 /projects", binding: specs.goProjects, run: () => go("/projects") },
+      { id: "goTools", label: "跳转工具中心", desc: "打开 /tools", binding: specs.goTools, run: () => go("/tools") },
+      { id: "goAbout", label: "跳转关于我", desc: "打开 /about", binding: specs.goAbout, run: () => go("/about") },
+      { id: "back", label: "后退", desc: "history.back()", binding: specs.back, run: () => history.back() },
+      { id: "forward", label: "前进", desc: "history.forward()", binding: specs.forward, run: () => history.forward() }
+    ];
+
+    if (page === "post" && (canPostPrev || canPostNext)) {
+      actions.push({
+        id: "postPrev",
+        label: "上一篇（文章页）",
+        desc: "按列表顺序",
+        binding: specs.postPrev,
+        run: postPrev,
+        enabled: canPostPrev
+      });
+      actions.push({
+        id: "postNext",
+        label: "下一篇（文章页）",
+        desc: "按列表顺序",
+        binding: specs.postNext,
+        run: postNext,
+        enabled: canPostNext
+      });
+    }
+
+    if (specs.goAdminPosts) {
+      actions.push({
+        id: "goAdminPosts",
+        label: "跳转后台文章",
+        desc: "打开 /admin/#/posts",
+        binding: specs.goAdminPosts,
+        run: () => go("/admin/#/posts")
+      });
+    }
+    if (specs.goAdminSettings) {
+      actions.push({
+        id: "goAdminSettings",
+        label: "跳转后台设置",
+        desc: "打开 /admin/#/settings",
+        binding: specs.goAdminSettings,
+        run: () => go("/admin/#/settings")
+      });
+    }
+    if (specs.goAdminAccount) {
+      actions.push({
+        id: "goAdminAccount",
+        label: "跳转后台账号",
+        desc: "打开 /admin/#/account",
+        binding: specs.goAdminAccount,
+        run: () => go("/admin/#/account")
+      });
+    }
+    if (specs.newPost) {
+      actions.push({
+        id: "newPost",
+        label: "新建文章（后台）",
+        desc: "打开 /admin/#/posts/new",
+        binding: specs.newPost,
+        run: () => go("/admin/#/posts/new")
+      });
+    }
+
+    return actions;
+  }
+
   function openPalette() {
     ensurePalette();
+    try {
+      if (window.__bitlogSwmIsOpen && window.__bitlogSwmIsOpen()) window.__bitlogSwmOpen(false);
+    } catch {}
     window.__bitlogCmdpOpen(true);
   }
 
@@ -299,40 +383,6 @@
     const input = panel.querySelector(".blcmd-input");
     const list = panel.querySelector(".blcmd-list");
     const closeBtn = panel.querySelector(".blcmd-close");
-
-    function getActions() {
-      const actions = [
-        { id: "focusSearch", label: "聚焦搜索", desc: "聚焦顶部搜索框", binding: specs.focusSearch, run: focusSearch },
-        { id: "toggleLightDark", label: "切换 light/dark", desc: "只影响当前设备", binding: specs.toggleLightDark, run: toggleLightDark },
-        { id: "goHome", label: "跳转首页", desc: "打开 /", binding: specs.goHome, run: () => go("/") },
-        { id: "goArticles", label: "跳转文章列表", desc: "打开 /articles", binding: specs.goArticles, run: () => go("/articles") },
-        { id: "goProjects", label: "跳转项目页", desc: "打开 /projects", binding: specs.goProjects, run: () => go("/projects") },
-        { id: "goTools", label: "跳转工具中心", desc: "打开 /tools", binding: specs.goTools, run: () => go("/tools") },
-        { id: "goAbout", label: "跳转关于我", desc: "打开 /about", binding: specs.goAbout, run: () => go("/about") },
-        { id: "back", label: "后退", desc: "history.back()", binding: specs.back, run: () => history.back() },
-        { id: "forward", label: "前进", desc: "history.forward()", binding: specs.forward, run: () => history.forward() }
-      ];
-
-      if (page === "post" && (canPostPrev || canPostNext)) {
-        actions.push({
-          id: "postPrev",
-          label: "上一篇（文章页）",
-          desc: "按列表顺序",
-          binding: specs.postPrev,
-          run: postPrev,
-          enabled: canPostPrev
-        });
-        actions.push({
-          id: "postNext",
-          label: "下一篇（文章页）",
-          desc: "按列表顺序",
-          binding: specs.postNext,
-          run: postNext,
-          enabled: canPostNext
-        });
-      }
-      return actions;
-    }
 
     function render() {
       const keyword = String(input.value || "").trim().toLowerCase();
@@ -377,7 +427,9 @@
     closeBtn.addEventListener("click", () => window.__bitlogCmdpOpen(false));
     input.addEventListener("input", render);
 
+    let openNow = false;
     window.__bitlogCmdpOpen = (open) => {
+      openNow = !!open;
       overlay.style.display = open ? "grid" : "none";
       if (open) {
         input.value = "";
@@ -385,6 +437,452 @@
         setTimeout(() => input.focus(), 0);
       }
     };
+    window.__bitlogCmdpIsOpen = () => openNow;
+  }
+
+  function getCommandMenuLayout() {
+    const s = String(document.documentElement?.dataset?.cmdLayout || "").trim().toLowerCase();
+    if (s === "grid" || s === "dial" || s === "cmd") return s;
+    return "arc";
+  }
+
+  function getCommandMenuConfirmMode() {
+    const s = String(document.documentElement?.dataset?.cmdConfirm || "").trim().toLowerCase();
+    return s === "release" ? "release" : "enter";
+  }
+
+  function isAltBackquote(e) {
+    return !!e.altKey && !e.ctrlKey && !e.metaKey && String(e.code || "") === "Backquote";
+  }
+
+  function wrapIndex(idx, n) {
+    if (n <= 0) return 0;
+    return ((idx % n) + n) % n;
+  }
+
+  function ensureSwitchMenu() {
+    if (window.__bitlogSwmOpen) return;
+
+    const overlay = document.createElement("div");
+    overlay.className = "blsw-overlay";
+    overlay.style.display = "none";
+    overlay.setAttribute("role", "dialog");
+    overlay.setAttribute("aria-modal", "true");
+    overlay.setAttribute("aria-label", "菜单");
+
+    const scene = document.createElement("div");
+    scene.className = "blsw-scene";
+    scene.innerHTML = `
+      <div class="blsw-info" aria-hidden="true">
+        <div class="blsw-info-title"></div>
+        <div class="blsw-info-desc"></div>
+      </div>
+      <div class="blsw-strip"></div>
+    `;
+    overlay.appendChild(scene);
+    document.body.appendChild(overlay);
+
+    const infoTitle = scene.querySelector(".blsw-info-title");
+    const infoDesc = scene.querySelector(".blsw-info-desc");
+    const strip = scene.querySelector(".blsw-strip");
+
+    const state = {
+      open: false,
+      layout: "arc",
+      confirmMode: "enter",
+      holdArmed: false,
+      active: 0,
+      query: "",
+      visible: []
+    };
+
+    function accentForId(id) {
+      const s = String(id || "");
+      let h = 0;
+      for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+      const hue = h % 360;
+      return `hsl(${hue} 92% 58%)`;
+    }
+
+    function iconSvg(id) {
+      const s = String(id || "");
+      if (s === "focusSearch") {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3" stroke-linecap="round"/></svg>`;
+      }
+      if (s === "toggleLightDark") {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8Z" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+      }
+      if (s === "goHome") {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10.5 12 3l9 7.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 9.5V21h14V9.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+      }
+      if (s === "goArticles") {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 3h10a2 2 0 0 1 2 2v16H5V5a2 2 0 0 1 2-2Z"/><path d="M8 7h8" stroke-linecap="round"/><path d="M8 11h8" stroke-linecap="round"/><path d="M8 15h6" stroke-linecap="round"/></svg>`;
+      }
+      if (s === "goProjects") {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h8v10H3z"/><path d="M13 7h8v10h-8z"/></svg>`;
+      }
+      if (s === "goTools") {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9l-3.8 3.8z"/></svg>`;
+      }
+      if (s === "goAbout") {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c2-4 6-6 8-6s6 2 8 6" stroke-linecap="round"/></svg>`;
+      }
+      return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v6H4z"/><path d="M4 14h16v6H4z"/></svg>`;
+    }
+
+    function listVisible() {
+      const all = getActions();
+      const q = String(state.query || "").trim().toLowerCase();
+      if (!q) return all;
+      return all.filter((a) => `${a.label} ${a.desc}`.toLowerCase().includes(q));
+    }
+
+    function renderSelection() {
+      const a = state.visible[wrapIndex(state.active, state.visible.length)] || null;
+      if (infoTitle) infoTitle.textContent = a ? a.label : "";
+      if (infoDesc) infoDesc.textContent = state.query ? `搜索：${state.query}` : a ? a.desc || "" : "";
+
+      const tiles = Array.from(strip.querySelectorAll(".blsw-tile"));
+      for (const t of tiles) {
+        const idx = Number(t.getAttribute("data-idx") || "0");
+        t.setAttribute("aria-selected", idx === wrapIndex(state.active, state.visible.length) ? "true" : "false");
+      }
+      if (state.layout === "arc") layoutArc(strip, wrapIndex(state.active, state.visible.length));
+      if (state.layout === "grid") {
+        const el = strip.querySelector(`[data-idx="${wrapIndex(state.active, state.visible.length)}"]`);
+        if (el && el.scrollIntoView) el.scrollIntoView({ block: "nearest", inline: "nearest" });
+      }
+      if (state.layout === "dial") {
+        const wheel = strip.querySelector(".blsw-dial-wheel");
+        if (wheel) {
+          const n = Math.max(1, state.visible.length);
+          wheel.style.setProperty("--wedge-mid", `${(wrapIndex(state.active, n) * 360) / n}deg`);
+          wheel.style.setProperty("--wedge-span", `${Math.min(140, Math.max(32, (360 / n) * 0.92))}deg`);
+          wheel.style.setProperty("--wedge-accent", accentForId(a ? a.id : ""));
+        }
+        const centerTitle = strip.querySelector(".blsw-dial-center-title");
+        const centerDesc = strip.querySelector(".blsw-dial-center-desc");
+        if (centerTitle) centerTitle.textContent = a ? a.label : "";
+        if (centerDesc) centerDesc.textContent = state.query ? `搜索：${state.query}` : a ? a.desc || "" : "";
+        const items = Array.from(strip.querySelectorAll(".blsw-dial-item"));
+        for (const t of items) {
+          const idx = Number(t.getAttribute("data-idx") || "0");
+          t.setAttribute("aria-selected", idx === wrapIndex(state.active, state.visible.length) ? "true" : "false");
+        }
+      }
+    }
+
+    function confirm() {
+      const a = state.visible[wrapIndex(state.active, state.visible.length)] || null;
+      if (!a) return;
+      if (a.enabled === false) return;
+      close();
+      try {
+        a.run();
+      } catch {}
+    }
+
+    function render() {
+      state.visible = listVisible();
+      if (state.visible.length === 0) state.active = 0;
+      if (state.active >= state.visible.length) state.active = 0;
+
+      strip.className = `blsw-strip is-${state.layout}`;
+      strip.innerHTML = "";
+
+      if (state.layout === "dial") {
+        const dial = document.createElement("div");
+        dial.className = "blsw-dial";
+        dial.innerHTML = `
+          <div class="blsw-dial-wheel"><div class="blsw-dial-wedge" aria-hidden="true"></div></div>
+          <div class="blsw-dial-center" aria-hidden="true">
+            <div class="blsw-dial-center-title"></div>
+            <div class="blsw-dial-center-desc"></div>
+          </div>
+          <div class="blsw-dial-items"></div>
+        `;
+        strip.appendChild(dial);
+
+        const wheel = dial.querySelector(".blsw-dial-wheel");
+        const itemsWrap = dial.querySelector(".blsw-dial-items");
+
+        dial.addEventListener("pointermove", (e) => {
+          const n = state.visible.length;
+          if (n <= 0) return;
+          const rect = dial.getBoundingClientRect();
+          const cx = rect.left + rect.width / 2;
+          const cy = rect.top + rect.height / 2;
+          const dx = e.clientX - cx;
+          const dy = e.clientY - cy;
+          const deg = (Math.atan2(dy, dx) * 180) / Math.PI;
+          const fromTop = (deg + 90 + 360) % 360;
+          const seg = 360 / n;
+          state.active = wrapIndex(Math.floor((fromTop + seg / 2) / seg), n);
+          renderSelection();
+        });
+
+        if (wheel) {
+          wheel.addEventListener("click", () => confirm());
+        }
+
+        for (let i = 0; i < state.visible.length; i++) {
+          const a = state.visible[i];
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "blsw-dial-item";
+          btn.setAttribute("data-idx", String(i));
+          btn.setAttribute("aria-selected", "false");
+          btn.style.setProperty("--blsw-accent", accentForId(a.id));
+          const n = Math.max(1, state.visible.length);
+          const mid = -90 + (i * 360) / n;
+          const p = polar(50, 50, 47.2, mid);
+          btn.style.left = `${p.x.toFixed(3)}%`;
+          btn.style.top = `${p.y.toFixed(3)}%`;
+          btn.textContent = String(a.label || "").trim().slice(0, 1) || "•";
+          btn.addEventListener("mouseenter", () => {
+            state.active = i;
+            renderSelection();
+          });
+          btn.addEventListener("click", (ev) => {
+            ev.stopPropagation();
+            state.active = i;
+            confirm();
+          });
+          itemsWrap.appendChild(btn);
+        }
+      } else {
+        for (let i = 0; i < state.visible.length; i++) {
+          const a = state.visible[i];
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "blsw-tile";
+          btn.setAttribute("data-idx", String(i));
+          btn.setAttribute("aria-selected", "false");
+          btn.style.setProperty("--blsw-accent", accentForId(a.id));
+          btn.innerHTML = `
+            <div class="blsw-tile-top">
+              <div class="blsw-tile-title">
+                <span class="blsw-tile-ico" aria-hidden="true">${iconSvg(a.id)}</span>
+                <span>${escapeHtml(String(a.label || ""))}</span>
+              </div>
+            </div>
+            <div class="blsw-tile-bottom">
+              <div class="blsw-tile-desc">${escapeHtml(String(a.desc || ""))}</div>
+            </div>
+          `;
+          btn.addEventListener("mouseenter", () => {
+            state.active = i;
+            renderSelection();
+          });
+          btn.addEventListener("click", () => {
+            state.active = i;
+            confirm();
+          });
+          strip.appendChild(btn);
+        }
+      }
+
+      renderSelection();
+    }
+
+    function open(opts) {
+      try {
+        if (window.__bitlogCmdpIsOpen && window.__bitlogCmdpIsOpen()) window.__bitlogCmdpOpen(false);
+      } catch {}
+      state.layout = opts && opts.layout ? String(opts.layout) : "arc";
+      if (state.layout !== "arc" && state.layout !== "grid" && state.layout !== "dial") state.layout = "arc";
+      state.confirmMode = opts && opts.confirmMode === "release" ? "release" : "enter";
+      state.holdArmed = !!(opts && opts.holdArmed);
+      state.query = "";
+      state.active = 0;
+      overlay.style.display = "grid";
+      state.open = true;
+      render();
+    }
+
+    function close() {
+      overlay.style.display = "none";
+      state.open = false;
+      state.holdArmed = false;
+      state.query = "";
+    }
+
+    function handleKeydown(e) {
+      if (!state.open) return false;
+
+      if (e.key === "Escape") {
+        e.preventDefault();
+        if (state.query) {
+          state.query = "";
+          state.active = 0;
+          render();
+          return true;
+        }
+        close();
+        return true;
+      }
+
+      if (e.key === "Enter") {
+        e.preventDefault();
+        confirm();
+        return true;
+      }
+
+      if (state.layout === "grid") {
+        if (e.key === "ArrowUp") {
+          e.preventDefault();
+          state.active = wrapIndex(state.active - 2, state.visible.length);
+          renderSelection();
+          return true;
+        }
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          state.active = wrapIndex(state.active + 2, state.visible.length);
+          renderSelection();
+          return true;
+        }
+        if (e.key === "ArrowLeft") {
+          e.preventDefault();
+          state.active = wrapIndex(state.active - 1, state.visible.length);
+          renderSelection();
+          return true;
+        }
+        if (e.key === "ArrowRight") {
+          e.preventDefault();
+          state.active = wrapIndex(state.active + 1, state.visible.length);
+          renderSelection();
+          return true;
+        }
+      } else {
+        if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+          e.preventDefault();
+          state.active = wrapIndex(state.active - 1, state.visible.length);
+          renderSelection();
+          return true;
+        }
+        if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+          e.preventDefault();
+          state.active = wrapIndex(state.active + 1, state.visible.length);
+          renderSelection();
+          return true;
+        }
+      }
+
+      if (e.key === "Backspace") {
+        if (!state.query) return false;
+        e.preventDefault();
+        state.query = state.query.slice(0, -1);
+        state.active = 0;
+        render();
+        return true;
+      }
+
+      if (!e.ctrlKey && !e.metaKey && !e.altKey && String(e.key || "").length === 1) {
+        const ch = String(e.key || "");
+        if (!/[\u0000-\u001f]/.test(ch)) {
+          e.preventDefault();
+          state.query += ch;
+          state.active = 0;
+          render();
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    function handleKeyup(e) {
+      if (!state.open) return false;
+      if (state.confirmMode !== "release") return false;
+      if (!state.holdArmed) return false;
+      if (String(e.code || "") !== "Backquote" && String(e.key || "").toLowerCase() !== "alt") return false;
+      e.preventDefault();
+      state.holdArmed = false;
+      confirm();
+      return true;
+    }
+
+    overlay.addEventListener("mousedown", (e) => {
+      if (e.target === overlay) close();
+    });
+
+    overlay.addEventListener("wheel", (e) => {
+      if (!state.open) return;
+      if (state.layout !== "arc" && state.layout !== "dial") return;
+      e.preventDefault();
+      const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+      if (d > 0) state.active = wrapIndex(state.active + 1, state.visible.length);
+      else if (d < 0) state.active = wrapIndex(state.active - 1, state.visible.length);
+      renderSelection();
+    }, { passive: false });
+
+    window.__bitlogSwmIsOpen = () => !!state.open;
+    window.__bitlogSwmOpen = (openFlag, opts) => {
+      if (openFlag) open(opts || {});
+      else close();
+    };
+    window.__bitlogSwmKeydown = handleKeydown;
+    window.__bitlogSwmKeyup = handleKeyup;
+  }
+
+  function polar(cx, cy, r, deg) {
+    const rad = (deg * Math.PI) / 180;
+    return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+  }
+
+  function layoutArc(container, selectedIdx) {
+    const tiles = Array.from(container.querySelectorAll(".blsw-tile"));
+    if (tiles.length === 0) return;
+    const rect = container.getBoundingClientRect();
+    const w = rect.width;
+    const h = rect.height;
+    if (w < 60 || h < 120) return;
+
+    const n = tiles.length;
+    const first = tiles[0];
+    if (!first) return;
+    const tileW = first.getBoundingClientRect().width || 320;
+
+    const stepByWidth = (w - tileW) / 4;
+    const xStep = Math.max(tileW * 0.82, Math.min(tileW * 1.02, stepByWidth));
+
+    const yBase = 0;
+    const yCurve = Math.max(1.4, h * 0.004);
+    const centerLift = Math.min(12, h * 0.03);
+
+    const selectedZ = 110;
+    const zStep = 70;
+    const ryStep = 7.2;
+    const rzStep = 0.8;
+    const maxVisible = 4;
+
+    for (let i = 0; i < tiles.length; i++) {
+      const t = tiles[i];
+      if (!t) continue;
+      let offset = i - selectedIdx;
+      if (offset > n / 2) offset -= n;
+      if (offset < -n / 2) offset += n;
+      const abs = Math.abs(offset);
+      const hidden = abs > maxVisible;
+
+      const x = offset * xStep;
+      const y = yBase - abs * abs * yCurve + (abs === 0 ? -centerLift : 0);
+      const z = selectedZ - abs * zStep;
+      const ry = -offset * ryStep;
+      const rz = offset * rzStep;
+      const s = abs === 0 ? 1.04 : abs === 1 ? 0.98 : 0.92;
+      const blur = abs <= 1 ? 0 : abs === 2 ? 0.6 : 1.2;
+
+      t.style.opacity = hidden ? "0" : String(1 - abs * 0.12);
+      t.style.pointerEvents = hidden ? "none" : "auto";
+      t.style.setProperty("--cf-x", `${x.toFixed(2)}px`);
+      t.style.setProperty("--cf-y", `${y.toFixed(2)}px`);
+      t.style.setProperty("--cf-z", `${z.toFixed(2)}px`);
+      t.style.setProperty("--cf-ry", `${ry.toFixed(2)}deg`);
+      t.style.setProperty("--cf-rz", `${rz.toFixed(2)}deg`);
+      t.style.setProperty("--cf-s", `${s.toFixed(3)}`);
+      t.style.setProperty("--cf-blur", `${blur.toFixed(2)}px`);
+    }
   }
 
   function ensureMobileButton() {
@@ -490,9 +988,48 @@
   }
 
   document.addEventListener("keydown", (e) => {
+    if (isAltBackquote(e)) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.repeat) return;
+
+      const layout = getCommandMenuLayout();
+      const confirmMode = getCommandMenuConfirmMode();
+
+      if (layout === "cmd") {
+        ensurePalette();
+        const isOpen = window.__bitlogCmdpIsOpen ? window.__bitlogCmdpIsOpen() : false;
+        window.__bitlogCmdpOpen(!isOpen);
+        return;
+      }
+
+      ensureSwitchMenu();
+      const isOpen = window.__bitlogSwmIsOpen ? window.__bitlogSwmIsOpen() : false;
+      if (confirmMode === "release") {
+        if (isOpen) return;
+        window.__bitlogSwmOpen(true, { layout, confirmMode, holdArmed: true });
+        return;
+      }
+      window.__bitlogSwmOpen(!isOpen, { layout, confirmMode, holdArmed: false });
+      return;
+    }
+
+    if (window.__bitlogSwmIsOpen && window.__bitlogSwmIsOpen()) {
+      if (window.__bitlogSwmKeydown && window.__bitlogSwmKeydown(e)) return;
+    }
+
+    if (window.__bitlogCmdpIsOpen && window.__bitlogCmdpIsOpen()) {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        closePalette();
+        return;
+      }
+    }
+
     if (isTypingTarget(e)) return;
     if (!e.ctrlKey && !e.metaKey && !e.altKey) pushSeq(String(e.key || "").toLowerCase());
 
+    // `?` reserved for mobile / quick search list (command palette).
     if (matchChord(e, specs.openCommandPalette)) {
       e.preventDefault();
       openPalette();
@@ -580,6 +1117,12 @@
       e.preventDefault();
       history.forward();
       return;
+    }
+  });
+
+  document.addEventListener("keyup", (e) => {
+    if (window.__bitlogSwmIsOpen && window.__bitlogSwmIsOpen()) {
+      if (window.__bitlogSwmKeyup && window.__bitlogSwmKeyup(e)) return;
     }
   });
 

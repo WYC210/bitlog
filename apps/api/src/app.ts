@@ -48,7 +48,7 @@ export interface ApiBindings {
 
 type PostStatus = "draft" | "published" | "scheduled";
 type ProjectsPlatform = "github" | "gitee";
-type ToolGroup = "games" | "apis" | "utils" | "other";
+type ToolGroup = string;
 
 const ABOUT_KEY_TECH_STACK = "about.tech_stack_json";
 const ABOUT_KEY_VISITED_PLACES = "about.visited_places_json";
@@ -187,11 +187,9 @@ function parseProjectsPlatform(value: string | null): "all" | ProjectsPlatform |
 function parseToolGroup(value: string | null): ToolGroup | null {
   const s = String(value ?? "").trim().toLowerCase();
   if (!s) return null;
-  if (s === "games") return "games";
-  if (s === "apis") return "apis";
-  if (s === "utils") return "utils";
-  if (s === "other") return "other";
-  return null;
+  if (s.length > 48) return null;
+  if (/[\u0000-\u001f\u007f]/.test(s)) return null;
+  return s;
 }
 
 function safeDateMs(value: unknown): number {

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import type { AdminToolItem, ApiError, ProjectsConfigAdminView, SiteConfig, ToolGroup, ToolKind, UiStyle } from "../api";
+import type { AdminToolItem, ApiError, ProjectsConfigAdminView, SiteConfig, ToolKind, UiStyle } from "../api";
 import { CodeEditor } from "../components/CodeEditor";
 import { AboutExperienceEditor } from "../components/about/AboutExperienceEditor";
 import { AboutSkillsEditor } from "../components/about/AboutSkillsEditor";
@@ -41,16 +41,11 @@ export function SettingsPage(props: {
   const [footerIcpLink, setFooterIcpLink] = useState(props.cfg?.footerIcpLink ?? "https://beian.miit.gov.cn/");
   const [webStyle, setWebStyle] = useState<UiStyle>(props.cfg?.webStyle ?? "current");
   const [adminStyle, setAdminStyle] = useState<UiStyle>(props.cfg?.adminStyle ?? "current");
-  const SWITCH_MENU_LAYOUT_KEY = "bitlog:admin:switchMenu:layout";
   const SWITCH_MENU_BINDINGS_KEY = "bitlog:admin:switchMenu:bindings";
-  const [switchMenuLayout, setSwitchMenuLayout] = useState<"arc" | "grid">(() => {
-    try {
-      const raw = String(localStorage.getItem(SWITCH_MENU_LAYOUT_KEY) || "").toLowerCase();
-      return raw === "grid" ? "grid" : "arc";
-    } catch {
-      return "arc";
-    }
-  });
+  const UI_COMMAND_MENU_LAYOUT_KEY = "ui.command_menu_layout";
+  const UI_COMMAND_MENU_CONFIRM_MODE_KEY = "ui.command_menu_confirm_mode";
+  const [switchMenuLayout, setSwitchMenuLayout] = useState<"arc" | "grid" | "dial" | "cmd">(props.cfg?.commandMenuLayout ?? "arc");
+  const [switchMenuConfirmMode, setSwitchMenuConfirmMode] = useState<"enter" | "release">(props.cfg?.commandMenuConfirmMode ?? "enter");
   const [switchBindingsCount, setSwitchBindingsCount] = useState(0);
   const [autoSummaryEnabled, setAutoSummaryEnabled] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -81,7 +76,7 @@ export function SettingsPage(props: {
   const [newTool, setNewTool] = useState<{
     title: string;
     slug: string;
-    groupKey: ToolGroup;
+    groupKey: string;
     kind: ToolKind;
     url: string;
     description: string;
@@ -90,13 +85,29 @@ export function SettingsPage(props: {
   }>({
     title: "",
     slug: "",
-    groupKey: "utils",
+    groupKey: "",
     kind: "link",
     url: "",
     description: "",
     clientCode: "",
     enabled: true
   });
+
+  const toolGroupSuggestions = React.useMemo(() => {
+    const s = new Set<string>();
+    for (const t of tools) {
+      const g = String((t as any)?.groupKey ?? "").trim();
+      if (!g) continue;
+      s.add(g);
+    }
+    if (toolDraft) {
+      const g = String((toolDraft as any)?.groupKey ?? "").trim();
+      if (g) s.add(g);
+    }
+    const ng = String(newTool.groupKey ?? "").trim();
+    if (ng) s.add(ng);
+    return Array.from(s).sort((a, b) => a.localeCompare(b));
+  }, [tools, toolDraft, newTool.groupKey]);
 
   const UI_STYLES: Array<{ value: UiStyle; label: string }> = [
     { value: "current", label: "current（默认）" },
@@ -214,6 +225,8 @@ export function SettingsPage(props: {
     setFooterIcpLink(props.cfg.footerIcpLink ?? "https://beian.miit.gov.cn/");
     setWebStyle(props.cfg.webStyle ?? "current");
     setAdminStyle(props.cfg.adminStyle ?? "current");
+    setSwitchMenuLayout(props.cfg.commandMenuLayout ?? "arc");
+    setSwitchMenuConfirmMode(props.cfg.commandMenuConfirmMode ?? "enter");
   }, [props.cfg]);
 
   useEffect(() => {
@@ -328,6 +341,25 @@ export function SettingsPage(props: {
       } catch {
         // ignore
       }
+      alert("已保存（cache_version 已递增）");
+    } catch (e) {
+      const err = e as ApiError;
+      props.onError(err.message || "保存失败");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function saveSwitchMenuSettings() {
+    props.onError("");
+    setSaving(true);
+    try {
+      await updateSettings({
+        [UI_COMMAND_MENU_LAYOUT_KEY]: switchMenuLayout,
+        [UI_COMMAND_MENU_CONFIRM_MODE_KEY]: switchMenuConfirmMode
+      });
+      const newCfg = await getConfig();
+      props.onCfg(newCfg);
       alert("已保存（cache_version 已递增）");
     } catch (e) {
       const err = e as ApiError;
@@ -513,7 +545,7 @@ export function SettingsPage(props: {
     await updateAdminTool(toolEditId, {
       title: String(toolDraft.title ?? ""),
       slug: String(toolDraft.slug ?? ""),
-      groupKey: toolDraft.groupKey as ToolGroup,
+      groupKey: String((toolDraft as any).groupKey ?? "").trim(),
       kind: toolDraft.kind as ToolKind,
       url: toolDraft.url ?? null,
       description: String(toolDraft.description ?? ""),
@@ -542,7 +574,7 @@ export function SettingsPage(props: {
       await createAdminTool({
         title: newTool.title.trim(),
         slug: newTool.slug.trim(),
-        groupKey: newTool.groupKey,
+        groupKey: newTool.groupKey.trim() ? newTool.groupKey.trim() : undefined,
         kind: newTool.kind,
         url: newTool.url.trim() ? newTool.url.trim() : null,
         description: newTool.description.trim(),
@@ -552,7 +584,7 @@ export function SettingsPage(props: {
       setNewTool({
         title: "",
         slug: "",
-        groupKey: "utils",
+        groupKey: "",
         kind: "link",
         url: "",
         description: "",
@@ -586,13 +618,13 @@ export function SettingsPage(props: {
           站点配置
         </a>
         <a className={`chip ${showProjects ? "active" : ""}`} href="#/settings/projects">
-          Projects
+          项目
         </a>
         <a className={`chip ${showTools ? "active" : ""}`} href="#/settings/tools">
-          Tools
+          工具
         </a>
         <a className={`chip ${showAbout ? "active" : ""}`} href="#/settings/about">
-          About
+          关于
         </a>
       </div>
 
@@ -603,35 +635,82 @@ export function SettingsPage(props: {
             <div className="muted">这里把内容拆成 4 个页面，避免在一个页面里滚太长。</div>
             <div style={{ height: 12 }} />
             <div className="grid" style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>
-              <a className="embed-card" href="#/settings/site">
+              <a className="embed-card" href="#/settings/site" style={{ ["--embed-accent" as any]: "#ff2d55" }}>
                 <div className="embed-card__row">
+                  <div className="embed-card__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M4 4h16v16H4z" />
+                      <path d="M8 12h8" />
+                      <path d="M8 8h5" />
+                      <path d="M8 16h6" />
+                    </svg>
+                  </div>
                   <div className="embed-card__main">
                     <div className="embed-card__title">站点配置</div>
                     <div className="embed-card__desc">域名 / 时区 / UI 风格 / Footer / Allowlist 等</div>
                   </div>
+                  <div className="embed-card__badge" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </div>
                 </div>
               </a>
-              <a className="embed-card" href="#/settings/projects">
+              <a className="embed-card" href="#/settings/projects" style={{ ["--embed-accent" as any]: "#4b6bff" }}>
                 <div className="embed-card__row">
+                  <div className="embed-card__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M3 7h8v10H3z" />
+                      <path d="M13 7h8v10h-8z" />
+                      <path d="M6 10h2" />
+                      <path d="M16 14h2" />
+                    </svg>
+                  </div>
                   <div className="embed-card__main">
-                    <div className="embed-card__title">Projects</div>
+                    <div className="embed-card__title">项目</div>
                     <div className="embed-card__desc">GitHub / Gitee 相关设置与展示</div>
                   </div>
-                </div>
-              </a>
-              <a className="embed-card" href="#/settings/tools">
-                <div className="embed-card__row">
-                  <div className="embed-card__main">
-                    <div className="embed-card__title">Tools</div>
-                    <div className="embed-card__desc">工具中心：分组 / 链接 / 客户端代码</div>
+                  <div className="embed-card__badge" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
                   </div>
                 </div>
               </a>
-              <a className="embed-card" href="#/settings/about">
+              <a className="embed-card" href="#/settings/tools" style={{ ["--embed-accent" as any]: "#22c55e" }}>
                 <div className="embed-card__row">
+                  <div className="embed-card__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+                    </svg>
+                  </div>
                   <div className="embed-card__main">
-                    <div className="embed-card__title">About</div>
+                    <div className="embed-card__title">工具</div>
+                    <div className="embed-card__desc">工具中心：分组 / 链接 / 客户端代码</div>
+                  </div>
+                  <div className="embed-card__badge" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </div>
+                </div>
+              </a>
+              <a className="embed-card" href="#/settings/about" style={{ ["--embed-accent" as any]: "#f59e0b" }}>
+                <div className="embed-card__row">
+                  <div className="embed-card__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="12" cy="8" r="4" />
+                      <path d="M4 20c2-4 6-6 8-6s6 2 8 6" strokeLinecap="round" />
+                    </svg>
+                  </div>
+                  <div className="embed-card__main">
+                    <div className="embed-card__title">关于</div>
                     <div className="embed-card__desc">关于页：技能 / 足迹 / 经历 + 侧边栏开关</div>
+                  </div>
+                  <div className="embed-card__badge" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
                   </div>
                 </div>
               </a>
@@ -731,32 +810,32 @@ export function SettingsPage(props: {
               value={switchMenuLayout}
               options={[
                 { value: "arc", label: "弧形滚轮" },
-                { value: "grid", label: "竖排两列" }
+                { value: "grid", label: "竖排两列" },
+                { value: "dial", label: "圆盘" },
+                { value: "cmd", label: "命令行" }
               ]}
-              onChange={(v) => setSwitchMenuLayout(v === "grid" ? "grid" : "arc")}
+              onChange={(v) => setSwitchMenuLayout(v === "grid" || v === "dial" || v === "cmd" ? v : "arc")}
+            />
+          </label>
+          <label>
+            确认模式
+            <SelectBox
+              value={switchMenuConfirmMode}
+              options={[
+                { value: "enter", label: "Enter 确认" },
+                { value: "release", label: "松开确认" }
+              ]}
+              onChange={(v) => setSwitchMenuConfirmMode(v === "release" ? "release" : "enter")}
             />
           </label>
           <label>
             呼出快捷键
-            <input value={"Alt + `"} readOnly className="input" style={{ opacity: 0.85 }} />
+            <input value={"Alt + ` / ?"} readOnly className="input" style={{ opacity: 0.85 }} />
           </label>
         </div>
         <div className="nav">
-          <button
-            className="chip chip-primary"
-            type="button"
-            onClick={() => {
-              try {
-                localStorage.setItem(SWITCH_MENU_LAYOUT_KEY, switchMenuLayout);
-              } catch {
-                // ignore
-              }
-              props.onError("");
-              refreshSwitchBindingsCount();
-              alert("已保存 SWITCH 菜单设置");
-            }}
-          >
-            保存菜单设置
+          <button className="chip chip-primary" type="button" onClick={() => void saveSwitchMenuSettings()} disabled={saving}>
+            {saving ? "保存中..." : "保存菜单设置"}
           </button>
           <button
             className="chip"
@@ -953,6 +1032,11 @@ export function SettingsPage(props: {
         <h2 style={{ margin: "0 0 8px" }}>3. 工具中心（访客可见）</h2>
         <div className="muted">支持启用/禁用、拖动排序（↑↓）、新增/编辑/删除；保存会触发 cache_version 递增。</div>
         <div style={{ height: 12 }} />
+        <datalist id="tool-group-suggest">
+          {toolGroupSuggestions.map((g) => (
+            <option key={g} value={g} />
+          ))}
+        </datalist>
 
         <div className="grid" style={{ gap: 10 }}>
           {tools.map((t) => (
@@ -1007,15 +1091,12 @@ export function SettingsPage(props: {
                   <div className="row">
                     <label>
                       分组
-                      <SelectBox
-                        value={String(toolDraft.groupKey ?? "utils")}
-                        options={[
-                          { value: "utils", label: "通用（utils）" },
-                          { value: "apis", label: "API（apis）" },
-                          { value: "games", label: "游戏（games）" },
-                          { value: "other", label: "其他（other）" }
-                        ]}
-                        onChange={(v) => setToolDraft({ ...toolDraft, groupKey: v as ToolGroup })}
+                      <input
+                        value={String((toolDraft as any).groupKey ?? "")}
+                        onChange={(e) => setToolDraft({ ...toolDraft, groupKey: e.target.value } as any)}
+                        onBlur={(e) => setToolDraft({ ...toolDraft, groupKey: e.target.value.trim() } as any)}
+                        placeholder="输入分组（可自定义）"
+                        list="tool-group-suggest"
                       />
                     </label>
                     <label>
@@ -1047,9 +1128,9 @@ export function SettingsPage(props: {
                       style={{ minHeight: 80 }}
                     />
                   </label>
-                  {(toolDraft.kind === "page") && (
-                    <label>
-                      客户端代码 JS（kind=page 时生效，运行在 #tool-root 内）
+                  {toolDraft.kind === "page" ? (
+                    <div>
+                      <div style={{ fontWeight: 700 }}>客户端代码 JS（kind=page 时生效，运行在 #tool-root 内）</div>
                       <div className="nav" style={{ margin: "8px 0" }}>
                         <button className="chip" type="button" onClick={() => void formatToolDraftClientCode()} disabled={formattingClientCode}>
                           {formattingClientCode ? "格式化中..." : "格式化 JS"}
@@ -1071,8 +1152,8 @@ export function SettingsPage(props: {
                         onSave={() => void saveToolDraft()}
                         placeholder={"// 在 #tool-root 元素内渲染工具\nvar root = document.getElementById('tool-root');\nroot.innerHTML = '<p>Hello</p>';"}
                       />
-                    </label>
-                  )}
+                    </div>
+                  ) : null}
                   <div className="nav">
                     <button className="chip chip-primary" onClick={() => void saveToolDraft()}>
                       保存
@@ -1107,15 +1188,12 @@ export function SettingsPage(props: {
         <div className="row">
           <label>
             分组
-            <SelectBox
+            <input
               value={newTool.groupKey}
-              options={[
-                { value: "utils", label: "通用（utils）" },
-                { value: "apis", label: "API（apis）" },
-                { value: "games", label: "游戏（games）" },
-                { value: "other", label: "其他（other）" }
-              ]}
-              onChange={(v) => setNewTool({ ...newTool, groupKey: v as ToolGroup })}
+              onChange={(e) => setNewTool({ ...newTool, groupKey: e.target.value })}
+              onBlur={(e) => setNewTool({ ...newTool, groupKey: e.target.value.trim() })}
+              placeholder="输入分组（可自定义）"
+              list="tool-group-suggest"
             />
           </label>
           <label>
@@ -1143,9 +1221,9 @@ export function SettingsPage(props: {
           描述（可空）
           <textarea value={newTool.description} onChange={(e) => setNewTool({ ...newTool, description: e.target.value })} style={{ minHeight: 80 }} />
         </label>
-        {newTool.kind === "page" && (
-          <label>
-            客户端代码 JS（kind=page 时生效，运行在 #tool-root 内）
+        {newTool.kind === "page" ? (
+          <div>
+            <div style={{ fontWeight: 700 }}>客户端代码 JS（kind=page 时生效，运行在 #tool-root 内）</div>
             <div className="nav" style={{ margin: "8px 0" }}>
               <button className="chip" type="button" onClick={() => void formatNewToolClientCode()} disabled={formattingClientCode}>
                 {formattingClientCode ? "格式化中..." : "格式化 JS"}
@@ -1166,8 +1244,8 @@ export function SettingsPage(props: {
               onChange={(v) => setNewTool({ ...newTool, clientCode: v })}
               placeholder={"// 在 #tool-root 元素内渲染工具\nvar root = document.getElementById('tool-root');\nroot.innerHTML = '<p>Hello</p>';"}
             />
-          </label>
-        )}
+          </div>
+        ) : null}
         <div className="nav">
           <button className="chip chip-primary" onClick={() => void addTool()} disabled={saving}>
             {saving ? "新增中..." : "新增"}

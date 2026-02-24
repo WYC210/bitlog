@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { isTypingTarget, normalizeRecordedChord } from "../shortcuts/shortcuts";
 
-export type SwitchMenuLayout = "arc" | "grid";
+export type SwitchMenuLayout = "arc" | "grid" | "dial" | "cmd";
+export type CommandMenuConfirmMode = "enter" | "release";
 
 export type SwitchMenuItem = {
   id: string;
@@ -12,6 +13,9 @@ export type SwitchMenuItem = {
 
 const LAYOUT_KEY = "bitlog:admin:switchMenu:layout";
 const BINDINGS_KEY = "bitlog:admin:switchMenu:bindings";
+const CONFIRM_MODE_KEY = "bitlog:admin:switchMenu:confirmMode";
+
+type SwitchMenuConfirmMode = CommandMenuConfirmMode;
 
 function wrapIndex(idx: number, n: number): number {
   if (n <= 0) return 0;
@@ -25,7 +29,7 @@ function isAltBackquote(e: KeyboardEvent): boolean {
 function readLayout(): SwitchMenuLayout {
   try {
     const raw = String(localStorage.getItem(LAYOUT_KEY) || "").toLowerCase();
-    return raw === "grid" ? "grid" : "arc";
+    return raw === "grid" || raw === "dial" || raw === "cmd" ? (raw as SwitchMenuLayout) : "arc";
   } catch {
     return "arc";
   }
@@ -66,6 +70,29 @@ function writeBindings(next: Record<string, string>) {
   }
 }
 
+function readConfirmMode(): SwitchMenuConfirmMode {
+  try {
+    const raw = String(localStorage.getItem(CONFIRM_MODE_KEY) || "").toLowerCase();
+    return raw === "release" ? "release" : "enter";
+  } catch {
+    return "enter";
+  }
+}
+
+function isHashTarget(t: string): boolean {
+  return String(t || "").trim().startsWith("#");
+}
+
+function navigateTo(target: string) {
+  const t = String(target || "").trim();
+  if (!t) return;
+  if (isHashTarget(t)) {
+    window.location.hash = t;
+  } else {
+    window.location.href = t;
+  }
+}
+
 function bestMatchIndex(items: SwitchMenuItem[], currentHash: string): number {
   const h = String(currentHash || "").trim();
   if (!h) return 0;
@@ -94,13 +121,29 @@ function getCols(): number {
   return window.matchMedia?.("(max-width: 560px)")?.matches ? 1 : 2;
 }
 
-export function SwitchMenu(props: { enabled: boolean; items: SwitchMenuItem[] }) {
+function polar(cx: number, cy: number, r: number, deg: number) {
+  const rad = (deg * Math.PI) / 180;
+  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+}
+
+
+
+export function SwitchMenu(props: {
+  enabled: boolean;
+  items: SwitchMenuItem[];
+  layout?: SwitchMenuLayout;
+  confirmMode?: SwitchMenuConfirmMode;
+}) {
   const items = props.items ?? [];
   const [open, setOpen] = useState(false);
-  const [layout, setLayout] = useState<SwitchMenuLayout>(() => readLayout());
+  const [layout, setLayout] = useState<SwitchMenuLayout>(() => props.layout ?? readLayout());
   const [bindings, setBindings] = useState<Record<string, string>>(() => readBindings());
+  const [confirmMode, setConfirmMode] = useState<SwitchMenuConfirmMode>(() => props.confirmMode ?? readConfirmMode());
   const [activeIndex, setActiveIndex] = useState(0);
   const [bindMode, setBindMode] = useState(false);
+  const [cmdQuery, setCmdQuery] = useState("");
+
+  const cmdInputRef = useRef<HTMLInputElement | null>(null);
 
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const stripRef = useRef<HTMLDivElement | null>(null);
@@ -111,6 +154,12 @@ export function SwitchMenu(props: { enabled: boolean; items: SwitchMenuItem[] })
   const bindModeRef = useRef(bindMode);
   const activeRef = useRef(activeIndex);
   const bindingsRef = useRef(bindings);
+  const confirmModeRef = useRef(confirmMode);
+  const holdArmedRef = useRef(false);
+  const cmdQueryRef = useRef(cmdQuery);
+  const visibleRef = useRef<Array<{ it: SwitchMenuItem; idx: number }>>([]);
+  const layoutPropRef = useRef<SwitchMenuLayout | undefined>(props.layout);
+  const confirmPropRef = useRef<SwitchMenuConfirmMode | undefined>(props.confirmMode);
 
   useEffect(() => void (enabledRef.current = props.enabled), [props.enabled]);
   useEffect(() => void (openRef.current = open), [open]);
@@ -118,6 +167,20 @@ export function SwitchMenu(props: { enabled: boolean; items: SwitchMenuItem[] })
   useEffect(() => void (bindModeRef.current = bindMode), [bindMode]);
   useEffect(() => void (activeRef.current = activeIndex), [activeIndex]);
   useEffect(() => void (bindingsRef.current = bindings), [bindings]);
+  useEffect(() => void (confirmModeRef.current = confirmMode), [confirmMode]);
+  useEffect(() => void (cmdQueryRef.current = cmdQuery), [cmdQuery]);
+  useEffect(() => void (layoutPropRef.current = props.layout), [props.layout]);
+  useEffect(() => void (confirmPropRef.current = props.confirmMode), [props.confirmMode]);
+
+  useEffect(() => {
+    if (!props.layout) return;
+    setLayout(props.layout);
+  }, [props.layout]);
+
+  useEffect(() => {
+    if (!props.confirmMode) return;
+    setConfirmMode(props.confirmMode);
+  }, [props.confirmMode]);
 
   const chordByHash = useMemo(() => {
     const out: Record<string, string> = {};
@@ -127,8 +190,32 @@ export function SwitchMenu(props: { enabled: boolean; items: SwitchMenuItem[] })
     return out;
   }, [bindings]);
 
-  const selected = items[wrapIndex(activeIndex, items.length)];
+  const visible = useMemo(() => {
+    if (layout !== "cmd") return items.map((it, idx) => ({ it, idx }));
+    const q = String(cmdQuery || "").trim().toLowerCase();
+    if (!q) return items.map((it, idx) => ({ it, idx }));
+    return items
+      .map((it, idx) => ({ it, idx }))
+      .filter(({ it }) => `${it.title} ${it.desc}`.toLowerCase().includes(q));
+  }, [items, layout, cmdQuery]);
+
+  useEffect(() => void (visibleRef.current = visible), [visible]);
+
+  const selected = visible[wrapIndex(activeIndex, visible.length)]?.it;
   const selectedChord = selected?.hash ? chordByHash[selected.hash] : undefined;
+
+  useEffect(() => {
+    if (!open) return;
+    if (layout !== "cmd") return;
+    const t = setTimeout(() => cmdInputRef.current?.focus(), 0);
+    return () => clearTimeout(t);
+  }, [open, layout]);
+
+  useEffect(() => {
+    if (layout !== "cmd") return;
+    if (visible.length === 0) return;
+    if (activeIndex >= visible.length) setActiveIndex(0);
+  }, [layout, visible.length, activeIndex]);
 
   useEffect(() => {
     if (!props.enabled) return;
@@ -139,9 +226,24 @@ export function SwitchMenu(props: { enabled: boolean; items: SwitchMenuItem[] })
       if (isAltBackquote(e)) {
         e.preventDefault();
         e.stopPropagation();
+        if (e.repeat) return;
         setBindMode(false);
-        setLayout(readLayout());
+        setCmdQuery("");
+        const nextLayout = layoutPropRef.current ?? readLayout();
+        setLayout(nextLayout);
         setBindings(readBindings());
+        const cm = nextLayout === "cmd" ? "enter" : (confirmPropRef.current ?? readConfirmMode());
+        setConfirmMode(cm);
+        if (cm === "release") {
+          if (openRef.current) return;
+          holdArmedRef.current = true;
+          const idx = bestMatchIndex(items, window.location.hash);
+          setActiveIndex(idx);
+          setOpen(true);
+          return;
+        }
+
+        holdArmedRef.current = false;
         setOpen((v) => {
           const next = !v;
           if (next) {
@@ -158,8 +260,52 @@ export function SwitchMenu(props: { enabled: boolean; items: SwitchMenuItem[] })
       const bindNow = bindModeRef.current;
       const idxNow = activeRef.current;
       const bindingsNow = bindingsRef.current;
+      const visibleNow =
+        layoutNow === "cmd"
+          ? visibleRef.current
+          : items.map((it, idx) => ({ it, idx }));
 
       if (openNow) {
+        if (layoutNow === "cmd") {
+          if (e.key === "Escape") {
+            if (cmdQueryRef.current.trim()) {
+              e.preventDefault();
+              e.stopPropagation();
+              setCmdQuery("");
+              setActiveIndex(0);
+              return;
+            }
+            e.preventDefault();
+            e.stopPropagation();
+            holdArmedRef.current = false;
+            setOpen(false);
+            return;
+          }
+          if (e.key === "ArrowUp") {
+            e.preventDefault();
+            e.stopPropagation();
+            setActiveIndex((v) => wrapIndex(v - 1, visibleNow.length));
+            return;
+          }
+          if (e.key === "ArrowDown") {
+            e.preventDefault();
+            e.stopPropagation();
+            setActiveIndex((v) => wrapIndex(v + 1, visibleNow.length));
+            return;
+          }
+          if (e.key === "Enter") {
+            const t = visibleNow[wrapIndex(idxNow, visibleNow.length)]?.it?.hash;
+            if (!t) return;
+            e.preventDefault();
+            e.stopPropagation();
+            navigateTo(t);
+            holdArmedRef.current = false;
+            setOpen(false);
+            return;
+          }
+          return;
+        }
+
         if (bindNow) {
           if (e.key === "Escape") {
             e.preventDefault();
@@ -192,6 +338,7 @@ export function SwitchMenu(props: { enabled: boolean; items: SwitchMenuItem[] })
           e.preventDefault();
           e.stopPropagation();
           setBindMode(false);
+          holdArmedRef.current = false;
           setOpen(false);
           return;
         }
@@ -226,7 +373,8 @@ export function SwitchMenu(props: { enabled: boolean; items: SwitchMenuItem[] })
           if (!t) return;
           e.preventDefault();
           e.stopPropagation();
-          window.location.hash = t;
+          navigateTo(t);
+          holdArmedRef.current = false;
           setOpen(false);
           return;
         }
@@ -266,11 +414,41 @@ export function SwitchMenu(props: { enabled: boolean; items: SwitchMenuItem[] })
 
       e.preventDefault();
       e.stopPropagation();
-      window.location.hash = target;
+      navigateTo(target);
+    };
+
+    const onKeyup = (e: KeyboardEvent) => {
+      if (!enabledRef.current) return;
+      if (confirmModeRef.current !== "release") return;
+      if (!openRef.current) return;
+      if (!holdArmedRef.current) return;
+      if (layoutRef.current === "cmd") return;
+      if (e.code !== "Backquote" && String(e.key || "").toLowerCase() !== "alt") return;
+
+      if (bindModeRef.current) {
+        e.preventDefault();
+        e.stopPropagation();
+        holdArmedRef.current = false;
+        setBindMode(false);
+        setOpen(false);
+        return;
+      }
+
+      const t = items[wrapIndex(activeRef.current, items.length)]?.hash;
+      if (!t) return;
+      e.preventDefault();
+      e.stopPropagation();
+      holdArmedRef.current = false;
+      navigateTo(t);
+      setOpen(false);
     };
 
     window.addEventListener("keydown", onKeydown, true);
-    return () => window.removeEventListener("keydown", onKeydown, true);
+    window.addEventListener("keyup", onKeyup, true);
+    return () => {
+      window.removeEventListener("keydown", onKeydown, true);
+      window.removeEventListener("keyup", onKeyup, true);
+    };
   }, [items, props.enabled]);
 
   useEffect(() => {
@@ -308,7 +486,8 @@ export function SwitchMenu(props: { enabled: boolean; items: SwitchMenuItem[] })
     if (!overlay) return;
 
     const onWheel = (e: WheelEvent) => {
-      if (layoutRef.current !== "arc") return;
+      const mode = layoutRef.current;
+      if (mode !== "arc" && mode !== "dial") return;
       if (!openRef.current) return;
       e.preventDefault();
       const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
@@ -320,7 +499,226 @@ export function SwitchMenu(props: { enabled: boolean; items: SwitchMenuItem[] })
     return () => overlay.removeEventListener("wheel", onWheel as any);
   }, [open, items.length]);
 
+  useEffect(() => {
+    if (!open) return;
+    const overlay = overlayRef.current;
+    if (!overlay) return;
+
+    // Prevent hover feedback loops from causing ultra-fast scrolling in arc layout.
+    // Also provide controlled edge-hover scrolling with acceleration + max speed.
+    let rafId = 0;
+    let edgeDir = 0; // -1 left, +1 right, 0 none
+    let intervalMs = 340;
+    let lastStepTs = 0;
+    let lastHoverIdx = -1;
+    let lastHoverStepAt = 0;
+
+    const edgePct = 0.18;
+    const minIntervalMs = 180;
+    const accel = 0.965;
+
+    const stop = () => {
+      edgeDir = 0;
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = 0;
+      intervalMs = 340;
+      lastStepTs = 0;
+    };
+
+    const tick = (ts: number) => {
+      if (!openRef.current || layoutRef.current !== "arc" || bindModeRef.current) {
+        stop();
+        return;
+      }
+      if (edgeDir === 0) {
+        rafId = 0;
+        return;
+      }
+      if (items.length > 1 && ts - lastStepTs >= intervalMs) {
+        lastStepTs = ts;
+        setActiveIndex((v) => wrapIndex(v + edgeDir, items.length));
+        intervalMs = Math.max(minIntervalMs, Math.floor(intervalMs * accel));
+      }
+      rafId = requestAnimationFrame(tick);
+    };
+
+    const start = () => {
+      if (rafId) return;
+      lastStepTs = performance.now();
+      rafId = requestAnimationFrame(tick);
+    };
+
+    const onPointerMove = (e: PointerEvent) => {
+      if (!openRef.current) return;
+      if (layoutRef.current !== "arc") return;
+      if (bindModeRef.current) return;
+
+      const rect = overlay.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const leftZone = rect.width * edgePct;
+      const rightZone = rect.width * (1 - edgePct);
+      const nextDir = x < leftZone ? -1 : x > rightZone ? 1 : 0;
+
+      if (nextDir !== edgeDir) {
+        edgeDir = nextDir;
+        intervalMs = 340;
+        lastStepTs = performance.now();
+        if (edgeDir === 0) stop();
+        else start();
+      }
+
+      if (edgeDir !== 0) return;
+
+      const hit = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null;
+      const tile = hit?.closest?.(".switch-tile") as HTMLElement | null;
+      const raw = tile?.getAttribute?.("data-idx");
+      if (!raw) return;
+      const idx = Number(raw);
+      if (!Number.isFinite(idx)) return;
+      const now = performance.now();
+      const activeNow = wrapIndex(activeRef.current, items.length);
+      if (idx === lastHoverIdx && idx === activeNow) return;
+      if (now - lastHoverStepAt < 120) return;
+      lastHoverStepAt = now;
+      lastHoverIdx = idx;
+
+      setActiveIndex((v) => {
+        const n = items.length;
+        if (n <= 1) return 0;
+        const cur = wrapIndex(v, n);
+        const target = wrapIndex(idx, n);
+        let d = target - cur;
+        if (d > n / 2) d -= n;
+        if (d < -n / 2) d += n;
+        if (Math.abs(d) <= 1) return target;
+        return wrapIndex(cur + Math.sign(d), n);
+      });
+    };
+
+    const onPointerLeave = () => stop();
+
+    overlay.addEventListener("pointermove", onPointerMove, { passive: true });
+    overlay.addEventListener("pointerleave", onPointerLeave as any, { passive: true });
+    return () => {
+      overlay.removeEventListener("pointermove", onPointerMove as any);
+      overlay.removeEventListener("pointerleave", onPointerLeave as any);
+      stop();
+    };
+  }, [open, items.length]);
+
   if (!props.enabled) return null;
+
+  const accentForHash = (hash: string): string => {
+    const h = String(hash ?? "");
+    if (h === "/" || h.startsWith("/?")) return "#4b6bff";
+    if (h.startsWith("/articles")) return "#34d399";
+    if (h.startsWith("/projects")) return "#4b6bff";
+    if (h.startsWith("/tools")) return "#22c55e";
+    if (h.startsWith("/about")) return "#f59e0b";
+    if (h.startsWith("#/settings")) return "#ff2d55";
+    if (h.startsWith("#/posts/new")) return "#22c55e";
+    if (h.startsWith("#/posts")) return "#34d399";
+    if (h.startsWith("#/projects")) return "#4b6bff";
+    if (h.startsWith("#/tools")) return "#22c55e";
+    if (h.startsWith("#/about")) return "#f59e0b";
+    if (h.startsWith("#/me")) return "#7c3aed";
+    return "var(--accent)";
+  };
+
+  const iconForHash = (hash: string) => {
+    const h = String(hash ?? "");
+    if (h === "/" || h.startsWith("/?")) {
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+          <path d="M3 10.5 12 3l9 7.5" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M5 9.5V21h14V9.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+    }
+    if (h.startsWith("/articles")) {
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+          <path d="M7 3h10a2 2 0 0 1 2 2v16H5V5a2 2 0 0 1 2-2Z" />
+          <path d="M8 7h8" strokeLinecap="round" />
+          <path d="M8 11h8" strokeLinecap="round" />
+          <path d="M8 15h6" strokeLinecap="round" />
+        </svg>
+      );
+    }
+    if (h.startsWith("/projects")) {
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+          <path d="M3 7h8v10H3z" />
+          <path d="M13 7h8v10h-8z" />
+        </svg>
+      );
+    }
+    if (h.startsWith("/tools")) {
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+          <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+        </svg>
+      );
+    }
+    if (h.startsWith("/about")) {
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+          <circle cx="12" cy="8" r="4" />
+          <path d="M4 20c2-4 6-6 8-6s6 2 8 6" strokeLinecap="round" />
+        </svg>
+      );
+    }
+    if (h.startsWith("#/settings")) {
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+          <circle cx="12" cy="12" r="3" />
+          <path d="M19.4 15a7.8 7.8 0 0 0 .1-1l2-1.2-2-3.5-2.2.6a8.4 8.4 0 0 0-1.7-1L13 4h-4L7.4 7.9a8.4 8.4 0 0 0-1.7 1L3.5 8.3l-2 3.5L3.5 13a7.8 7.8 0 0 0 .1 1l-2 1.2 2 3.5 2.2-.6a8.4 8.4 0 0 0 1.7 1L9 20h4l1.6-3.9a8.4 8.4 0 0 0 1.7-1l2.2.6 2-3.5-2-1.2Z" />
+        </svg>
+      );
+    }
+    if (h.startsWith("#/projects")) {
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+          <path d="M3 7h8v10H3z" />
+          <path d="M13 7h8v10h-8z" />
+          <path d="M6 10h2" />
+          <path d="M16 14h2" />
+        </svg>
+      );
+    }
+    if (h.startsWith("#/tools")) {
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+          <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+        </svg>
+      );
+    }
+    if (h.startsWith("#/about")) {
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+          <circle cx="12" cy="8" r="4" />
+          <path d="M4 20c2-4 6-6 8-6s6 2 8 6" strokeLinecap="round" />
+        </svg>
+      );
+    }
+    if (h.startsWith("#/posts/new")) {
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+          <path d="M12 5v14" strokeLinecap="round" />
+          <path d="M5 12h14" strokeLinecap="round" />
+        </svg>
+      );
+    }
+    return (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+        <path d="M4 4h16v6H4z" />
+        <path d="M4 14h16v6H4z" />
+      </svg>
+    );
+  };
+
+  const stripLayoutClass =
+    layout === "arc" ? "is-arc" : layout === "grid" ? "is-grid" : layout === "cmd" ? "is-cmd" : "is-dial";
 
   return open ? (
     <div
@@ -329,42 +727,198 @@ export function SwitchMenu(props: { enabled: boolean; items: SwitchMenuItem[] })
       role="dialog"
       aria-modal="true"
       onMouseDown={(e) => {
-        if (e.target === e.currentTarget) setOpen(false);
+        if (e.target === e.currentTarget) {
+          holdArmedRef.current = false;
+          setOpen(false);
+        }
       }}
     >
       <div className="switch-scene">
-        <div className="switch-info" aria-hidden="true">
-          <div className="switch-info-title">{selected?.title ?? ""}</div>
-          <div className="switch-info-desc">
-            {bindMode ? "按下快捷键绑定（Esc 取消）" : selectedChord ? `快捷键：${selectedChord} · ${selected?.desc ?? ""}` : selected?.desc ?? ""}
+        {layout === "dial" || layout === "cmd" ? null : (
+          <div className="switch-info" aria-hidden="true">
+            <div className="switch-info-title">{selected?.title ?? ""}</div>
+            <div className="switch-info-desc">
+              {bindMode
+                ? "按下快捷键绑定（Esc 取消）"
+                : selectedChord
+                  ? `快捷键：${selectedChord} · ${selected?.desc ?? ""}`
+                  : selected?.desc ?? ""}
+            </div>
           </div>
-        </div>
+        )}
 
-        <div ref={stripRef} className={`switch-strip ${layout === "arc" ? "is-arc" : "is-grid"}`}>
-          {items.map((it, i) => {
-            const isSelected = i === wrapIndex(activeIndex, items.length);
-            return (
-              <button
+        <div ref={stripRef} className={`switch-strip ${stripLayoutClass}`}>
+          {layout === "cmd" ? (
+            <div className="switch-cmd-panel" onMouseDown={(e) => e.stopPropagation()}>
+              <div className="switch-cmd-head">
+                <input
+                  ref={cmdInputRef}
+                  className="switch-cmd-input"
+                  value={cmdQuery}
+                  onChange={(e) => {
+                    setCmdQuery(e.target.value);
+                    setActiveIndex(0);
+                  }}
+                  placeholder="搜索页面…"
+                />
+              </div>
+              <div className="switch-cmd-list" role="listbox" aria-label="菜单列表">
+                {visible.length === 0 ? (
+                  <div className="switch-cmd-empty">无匹配</div>
+                ) : (
+                  visible.map(({ it }, i) => {
+                    const isSelected = i === wrapIndex(activeIndex, visible.length);
+                    const chord = chordByHash[it.hash];
+                    return (
+                      <button
+                        key={it.id}
+                        type="button"
+                        className={`switch-cmd-item${isSelected ? " is-active" : ""}`}
+                        aria-selected={isSelected ? "true" : "false"}
+                        onMouseEnter={() => setActiveIndex(i)}
+                        onFocus={() => setActiveIndex(i)}
+                        onClick={() => {
+                          holdArmedRef.current = false;
+                          navigateTo(it.hash);
+                          setOpen(false);
+                        }}
+                      >
+                        <div className="switch-cmd-main">
+                          <div className="switch-cmd-title">{it.title}</div>
+                          <div className="switch-cmd-desc">{it.desc}</div>
+                        </div>
+                        {chord ? <kbd className="switch-cmd-kbd">{chord}</kbd> : null}
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          ) : layout === "dial" ? (
+            <div
+              className={`switch-dial ${items.length > 10 ? "is-dense" : ""}`}
+              onPointerMoveCapture={(e) => {
+                const n = items.length;
+                if (n <= 0) return;
+                const el = e.currentTarget as HTMLElement;
+                const rect = el.getBoundingClientRect();
+                const cx = rect.left + rect.width / 2;
+                const cy = rect.top + rect.height / 2;
+                const dx = e.clientX - cx;
+                const dy = e.clientY - cy;
+
+                // Keep it responsive: even near center it should still select a direction.
+                const deg = (Math.atan2(dy, dx) * 180) / Math.PI;
+                const fromTop = (deg + 90 + 360) % 360;
+                const seg = 360 / n;
+                const idx = wrapIndex(Math.floor((fromTop + seg / 2) / seg), n);
+                setActiveIndex(idx);
+              }}
+            >
+              <div
+                className="switch-dial-wheel"
+                style={{
+                  ["--wedge-mid" as any]: `${(wrapIndex(activeIndex, items.length) * 360) / Math.max(1, items.length)}deg`,
+                  ["--wedge-span" as any]: `${Math.min(140, Math.max(32, (360 / Math.max(1, items.length)) * 0.92))}deg`,
+                  ["--wedge-accent" as any]: accentForHash(selected?.hash ?? "")
+                }}
+                onClick={() => {
+                  if (bindModeRef.current) return;
+                  const t = items[wrapIndex(activeRef.current, items.length)]?.hash;
+                  if (!t) return;
+                  holdArmedRef.current = false;
+                  navigateTo(t);
+                  setOpen(false);
+                }}
+              >
+                <div className="switch-dial-ring" aria-hidden="true" />
+                <div className="switch-dial-wedge" aria-hidden="true" />
+              </div>
+
+              <div className="switch-dial-center" aria-hidden="true">
+                <div className="switch-dial-center-title">{selected?.title ?? ""}</div>
+                <div className="switch-dial-center-desc">
+                  {bindMode
+                    ? "按下快捷键绑定（Esc 取消）"
+                    : selectedChord
+                      ? `快捷键：${selectedChord}`
+                      : confirmMode === "release"
+                        ? "松开确认"
+                        : "Enter 确认"}
+                </div>
+              </div>
+
+              <div className="switch-dial-items">
+                {items.map((it, i) => {
+                  const n = Math.max(1, items.length);
+                  const mid = -90 + (i * 360) / n;
+                  const p = polar(50, 50, 47.2, mid);
+                  const isSelected = i === wrapIndex(activeIndex, items.length);
+                  return (
+                    <button
+                      key={it.id}
+                      type="button"
+                      className="switch-dial-item"
+                      aria-selected={isSelected ? "true" : "false"}
+                      style={{
+                        left: `${p.x.toFixed(3)}%`,
+                        top: `${p.y.toFixed(3)}%`,
+                        ["--switch-accent" as any]: accentForHash(it.hash)
+                      }}
+                      onMouseEnter={() => setActiveIndex(i)}
+                      onFocus={() => setActiveIndex(i)}
+                      onClick={(ev) => {
+                        ev.stopPropagation();
+                        holdArmedRef.current = false;
+                        navigateTo(it.hash);
+                        setOpen(false);
+                      }}
+                      title={it.title}
+                    >
+                      <span className="switch-dial-item-ico" aria-hidden="true">
+                        {iconForHash(it.hash)}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="switch-dial-knob" aria-hidden="true" />
+            </div>
+          ) : (
+            items.map((it, i) => {
+              const isSelected = i === wrapIndex(activeIndex, items.length);
+              return (
+                <button
                 key={it.id}
                 type="button"
                 className="switch-tile"
                 aria-selected={isSelected ? "true" : "false"}
                 data-idx={i}
-                onMouseEnter={() => setActiveIndex(i)}
+                style={{ ["--switch-accent" as any]: accentForHash(it.hash) }}
+                onMouseEnter={() => {
+                  if (layout !== "arc") setActiveIndex(i);
+                }}
                 onClick={() => {
-                  window.location.hash = it.hash;
+                  holdArmedRef.current = false;
+                  navigateTo(it.hash);
                   setOpen(false);
                 }}
-              >
-                <div className="switch-tile-top">
-                  <div className="switch-tile-title">{it.title}</div>
-                </div>
-                <div className="switch-tile-bottom">
-                  <div className="switch-tile-desc">{it.desc}</div>
-                </div>
-              </button>
-            );
-          })}
+                >
+                  <div className="switch-tile-top">
+                    <div className="switch-tile-title">
+                      <span className="switch-tile-ico" aria-hidden="true">
+                        {iconForHash(it.hash)}
+                      </span>
+                      <span>{it.title}</span>
+                    </div>
+                  </div>
+                  <div className="switch-tile-bottom">
+                    <div className="switch-tile-desc">{it.desc}</div>
+                  </div>
+                </button>
+              );
+            })
+          )}
         </div>
       </div>
     </div>

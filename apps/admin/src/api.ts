@@ -31,6 +31,8 @@ export type SiteConfig = {
   cacheVersion: number;
   webStyle: UiStyle;
   adminStyle: UiStyle;
+  commandMenuLayout: "arc" | "grid" | "dial" | "cmd";
+  commandMenuConfirmMode: "enter" | "release";
   shortcutsJson: string | null;
   footerCopyrightUrl: string | null;
   footerIcpText: string | null;
@@ -58,7 +60,7 @@ export async function updateProjectsConfigAdmin(patch: any) {
   await apiJson("/api/admin/projects-config", { method: "PUT", body: JSON.stringify(patch) });
 }
 
-export type ToolGroup = "games" | "apis" | "utils" | "other";
+export type ToolGroup = string;
 export type ToolKind = "link" | "page";
 
 export type AdminToolItem = {

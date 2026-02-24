@@ -2,7 +2,7 @@ import type { Db } from "@bitlog/db";
 import { join, raw, sql } from "@bitlog/db/sql";
 import { randomId } from "../lib/crypto.js";
 
-export type ToolGroup = "games" | "apis" | "utils" | "other";
+export type ToolGroup = string;
 export type ToolKind = "link" | "page";
 
 export type ToolItem = {
@@ -183,7 +183,7 @@ export async function updateTool(db: Db, id: string, patch: ToolUpdateInput): Pr
     parts.push(sql`title = ${t}`);
   }
   if (typeof patch.description === "string") parts.push(sql`description = ${String(patch.description).trim()}`);
-  if (typeof patch.groupKey === "string") parts.push(sql`group_key = ${normalizeGroup(patch.groupKey as ToolGroup)}`);
+  if (typeof patch.groupKey === "string") parts.push(sql`group_key = ${normalizeGroup(patch.groupKey)}`);
   if (typeof patch.kind === "string") parts.push(sql`kind = ${normalizeKind(patch.kind as ToolKind)}`);
   if ("url" in patch) parts.push(sql`url = ${normalizeUrl(patch.url ?? null)}`);
   if ("icon" in patch) parts.push(sql`icon = ${normalizeIcon(patch.icon ?? null)}`);
@@ -235,7 +235,7 @@ function mapRow(row: DbToolRow): ToolItem {
     slug: String(row.slug),
     title: String(row.title),
     description: String(row.description ?? ""),
-    groupKey: normalizeGroup(row.group_key as ToolGroup),
+    groupKey: normalizeGroup(row.group_key),
     kind: normalizeKind(row.kind as ToolKind),
     url: row.url ? String(row.url) : null,
     icon: row.icon ? String(row.icon) : null,
@@ -259,10 +259,10 @@ function normalizeSlug(value: string): string {
 
 function normalizeGroup(value: ToolGroup | undefined | null): ToolGroup {
   const s = String(value ?? "").trim().toLowerCase();
-  if (s === "games") return "games";
-  if (s === "apis") return "apis";
-  if (s === "other") return "other";
-  return "utils";
+  if (!s) return "utils";
+  if (s.length > 48) throw new Error("Invalid group");
+  if (/[\u0000-\u001f\u007f]/.test(s)) throw new Error("Invalid group");
+  return s;
 }
 
 function normalizeKind(value: ToolKind | undefined | null): ToolKind {

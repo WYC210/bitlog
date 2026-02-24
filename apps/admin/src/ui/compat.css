@@ -7,6 +7,105 @@
   gap: 14px;
 }
 
+/* Embed cards (used by Settings overview + some editors). */
+.embed-card {
+  --embed-accent: var(--accent);
+  display: block;
+  padding: 14px 14px;
+  border-radius: var(--radius);
+  border: var(--border-w) solid color-mix(in srgb, var(--embed-accent) 26%, var(--border));
+  background:
+    radial-gradient(520px 260px at 18% 0%, color-mix(in srgb, var(--embed-accent) 18%, transparent), transparent 60%),
+    linear-gradient(180deg, color-mix(in srgb, var(--panel2) 94%, transparent), color-mix(in srgb, #000 18%, transparent));
+  text-decoration: none;
+  color: inherit;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 160ms ease, background 160ms ease;
+}
+
+.embed-card:hover {
+  border-color: color-mix(in srgb, var(--embed-accent) 50%, var(--border));
+  background:
+    radial-gradient(520px 260px at 18% 0%, color-mix(in srgb, var(--embed-accent) 24%, transparent), transparent 60%),
+    linear-gradient(180deg, color-mix(in srgb, var(--panel2) 96%, transparent), color-mix(in srgb, #000 14%, transparent));
+}
+
+.embed-card:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+}
+
+.embed-card__row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.embed-card__icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  color: color-mix(in srgb, var(--embed-accent) 85%, var(--text));
+  border: var(--border-w) solid color-mix(in srgb, var(--embed-accent) 30%, var(--border));
+  background:
+    radial-gradient(180px 120px at 30% 20%, color-mix(in srgb, var(--embed-accent) 20%, transparent), transparent 68%),
+    color-mix(in srgb, var(--panel) 72%, transparent);
+}
+
+.embed-card__icon svg {
+  width: 20px;
+  height: 20px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.embed-card__main {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.embed-card__title {
+  font-weight: 950;
+  letter-spacing: 0.2px;
+  line-height: 1.15;
+  font-size: 14px;
+}
+
+.embed-card__desc {
+  color: color-mix(in srgb, var(--muted) 92%, transparent);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.embed-card__badge {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  color: color-mix(in srgb, var(--embed-accent) 75%, var(--muted));
+  border: var(--border-w) solid color-mix(in srgb, var(--embed-accent) 20%, var(--border));
+  background: color-mix(in srgb, var(--panel) 62%, transparent);
+  opacity: 0.9;
+}
+
+.embed-card__badge svg {
+  width: 18px;
+  height: 18px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .settings-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);

@@ -35,7 +35,6 @@
   font-size: 22px;
   line-height: 1.15;
   color: color-mix(in srgb, var(--text) 96%, transparent);
-  text-shadow: 0 18px 60px rgba(0, 0, 0, 0.75);
 }
 
 .switch-info-desc {
@@ -44,7 +43,6 @@
   font-weight: 800;
   font-size: 13px;
   letter-spacing: 0.1px;
-  text-shadow: 0 18px 60px rgba(0, 0, 0, 0.75);
 }
 
 .switch-strip {
@@ -80,11 +78,290 @@
   mask-image: none;
 }
 
+.switch-strip.is-dial {
+  position: absolute;
+  left: 50%;
+  top: 56%;
+  transform: translate(-50%, -50%);
+  width: min(640px, 92vmin);
+  height: min(640px, 92vmin);
+  display: grid;
+  place-items: center;
+  overflow: visible;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: pan-y;
+  perspective: none;
+  mask-image: none;
+}
+
+.switch-strip.is-cmd {
+  display: grid;
+  place-items: start center;
+  padding: 10vh 14px 14px;
+  overflow: hidden;
+  perspective: none;
+  mask-image: none;
+}
+
 @media (max-width: 560px) {
   .switch-strip.is-grid {
     grid-template-columns: 1fr;
     width: min(560px, calc(100vw - 44px));
   }
+}
+
+.switch-cmd-panel {
+  width: min(860px, 100%);
+  max-height: min(72vh, 760px);
+  border-radius: 24px;
+  background: color-mix(in srgb, #0b1020 74%, transparent);
+  border: 1px solid color-mix(in srgb, #fff 12%, transparent);
+  box-shadow: none;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  overflow: hidden;
+}
+
+.switch-cmd-head {
+  padding: 14px 14px 10px;
+}
+
+.switch-cmd-input {
+  width: 100%;
+  height: 52px;
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, #fff 14%, transparent);
+  background: rgba(255, 255, 255, 0.06);
+  color: color-mix(in srgb, #fff 92%, transparent);
+  padding: 0 16px;
+  outline: none;
+  font-weight: 750;
+  letter-spacing: 0.1px;
+}
+
+.switch-cmd-input::placeholder {
+  color: color-mix(in srgb, #fff 46%, transparent);
+  font-weight: 700;
+}
+
+.switch-cmd-input:focus {
+  border-color: color-mix(in srgb, var(--switch-accent) 74%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--switch-accent) 22%, transparent);
+}
+
+.switch-cmd-list {
+  max-height: calc(min(72vh, 760px) - 84px);
+  overflow: auto;
+  padding: 6px 10px 12px;
+}
+
+.switch-cmd-item {
+  width: 100%;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  text-align: left;
+  border: 1px solid transparent;
+  border-radius: 18px;
+  background: transparent;
+  color: color-mix(in srgb, #fff 90%, transparent);
+  padding: 12px 12px;
+  cursor: pointer;
+}
+
+.switch-cmd-item:hover,
+.switch-cmd-item.is-active {
+  background: color-mix(in srgb, var(--switch-accent) 24%, transparent);
+  border-color: color-mix(in srgb, var(--switch-accent) 52%, transparent);
+}
+
+.switch-cmd-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.switch-cmd-title {
+  font-weight: 900;
+  font-size: 15px;
+  letter-spacing: 0.2px;
+}
+
+.switch-cmd-desc {
+  margin-top: 4px;
+  color: color-mix(in srgb, #fff 58%, transparent);
+  font-weight: 750;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.switch-cmd-kbd {
+  flex-shrink: 0;
+  font: 12px/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  color: color-mix(in srgb, #fff 64%, transparent);
+  border: 1px solid color-mix(in srgb, #fff 18%, transparent);
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 999px;
+  padding: 8px 10px;
+}
+
+.switch-cmd-empty {
+  padding: 18px 12px;
+  color: color-mix(in srgb, #fff 62%, transparent);
+  font-weight: 750;
+}
+
+.switch-dial {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  --dial-item: clamp(42px, 6.2vmin, 66px);
+}
+
+.switch-dial.is-dense {
+  --dial-item: clamp(34px, 5.4vmin, 54px);
+}
+
+.switch-dial-wheel {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  z-index: 1;
+}
+
+.switch-dial-wedge {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  pointer-events: none;
+  z-index: 2;
+  background:
+    radial-gradient(closest-side at 50% 50%, color-mix(in srgb, var(--wedge-accent) 8%, transparent), transparent 56%),
+    conic-gradient(
+      from calc(var(--wedge-mid, 0deg) - (var(--wedge-span, 48deg) / 2)),
+      transparent 0deg,
+      color-mix(in srgb, var(--wedge-accent) 28%, transparent) calc(var(--wedge-span, 48deg) * 0.18),
+      color-mix(in srgb, var(--wedge-accent) 56%, transparent) calc(var(--wedge-span, 48deg) * 0.92),
+      transparent var(--wedge-span, 48deg),
+      transparent 360deg
+    );
+  -webkit-mask-image: radial-gradient(circle at 50% 50%, transparent 0 36%, #000 38% 100%);
+  mask-image: radial-gradient(circle at 50% 50%, transparent 0 36%, #000 38% 100%);
+  opacity: 0.9;
+  filter: blur(0.55px) saturate(1.04);
+}
+
+.switch-dial-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  pointer-events: none;
+  z-index: 1;
+  background:
+    radial-gradient(closest-side at 50% 18%, color-mix(in srgb, #fff 14%, transparent), transparent 64%),
+    radial-gradient(closest-side at 50% 88%, color-mix(in srgb, #000 24%, transparent), transparent 66%);
+  -webkit-mask-image: radial-gradient(circle at 50% 50%, transparent 0 61%, #000 63% 69%, transparent 71% 100%);
+  mask-image: radial-gradient(circle at 50% 50%, transparent 0 61%, #000 63% 69%, transparent 71% 100%);
+  opacity: 0.78;
+}
+
+.switch-dial-center {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.switch-dial-center-title {
+  font-weight: 980;
+  font-size: clamp(20px, 3.6vmin, 34px);
+  letter-spacing: 0.2px;
+  color: color-mix(in srgb, var(--text) 94%, transparent);
+}
+
+.switch-dial-center-desc {
+  margin-top: 8px;
+  font-weight: 800;
+  font-size: clamp(12px, 2vmin, 14px);
+  color: color-mix(in srgb, var(--muted) 90%, transparent);
+}
+
+.switch-dial-items {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.switch-dial-item {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: var(--dial-item);
+  height: var(--dial-item);
+  border-radius: 999px;
+  border: var(--border-w) solid transparent;
+  background: transparent;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: color-mix(in srgb, var(--text) 66%, transparent);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  padding: 0;
+  outline: none;
+  transition: background 180ms ease, border-color 180ms ease, color 180ms ease, transform 180ms ease;
+  pointer-events: auto;
+}
+
+.switch-dial-item:hover {
+  background: color-mix(in srgb, #fff 6%, transparent);
+  border-color: color-mix(in srgb, var(--text) 18%, transparent);
+  color: color-mix(in srgb, var(--text) 82%, transparent);
+}
+
+.switch-dial-item[aria-selected="true"] {
+  background: color-mix(in srgb, var(--switch-accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--switch-accent) 70%, transparent);
+  color: color-mix(in srgb, var(--switch-accent) 92%, #fff);
+  transform: translate(-50%, -50%) scale(1.04);
+}
+
+.switch-dial-item:focus-visible {
+  box-shadow: var(--focus);
+}
+
+.switch-dial-item-ico svg {
+  width: 22px;
+  height: 22px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.switch-dial-knob {
+  position: absolute;
+  inset: 28%;
+  border-radius: 999px;
+  background:
+    radial-gradient(closest-side at 34% 28%, color-mix(in srgb, #fff 18%, transparent), transparent 56%),
+    radial-gradient(closest-side at 50% 64%, color-mix(in srgb, #000 62%, transparent), color-mix(in srgb, #000 78%, transparent));
+  border: none;
+  z-index: 5;
+}
+
+.switch-dial-knob::after {
+  content: "";
+  position: absolute;
+  inset: 12%;
+  border-radius: 999px;
+  background: radial-gradient(closest-side at 40% 30%, color-mix(in srgb, #fff 10%, transparent), transparent 62%);
+  opacity: 0.75;
 }
 
 .switch-tile {
@@ -94,9 +371,14 @@
   height: 190px;
   border-radius: 18px;
   background:
-    radial-gradient(420px 260px at 18% 12%, color-mix(in srgb, var(--switch-accent) 16%, transparent), transparent 64%),
-    linear-gradient(to bottom right, color-mix(in srgb, var(--panel) 86%, transparent), color-mix(in srgb, #000 35%, transparent));
-  border: none;
+    radial-gradient(520px 320px at 12% 8%, color-mix(in srgb, var(--switch-accent) 22%, transparent), transparent 62%),
+    radial-gradient(420px 260px at 82% 18%, color-mix(in srgb, var(--switch-accent) 10%, transparent), transparent 70%),
+    linear-gradient(
+      to bottom right,
+      color-mix(in srgb, var(--panel) 88%, transparent),
+      color-mix(in srgb, #000 32%, transparent)
+    );
+  border: var(--border-w) solid color-mix(in srgb, var(--switch-accent) 16%, var(--border));
   padding: 14px 14px 12px;
   display: flex;
   flex-direction: column;
@@ -111,6 +393,27 @@
   outline: none;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
+}
+
+.switch-tile-ico {
+  width: 34px;
+  height: 34px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  color: color-mix(in srgb, var(--switch-accent) 86%, var(--text));
+  border: var(--border-w) solid color-mix(in srgb, var(--switch-accent) 22%, var(--border));
+  background:
+    radial-gradient(180px 120px at 30% 20%, color-mix(in srgb, var(--switch-accent) 20%, transparent), transparent 70%),
+    color-mix(in srgb, var(--panel) 72%, transparent);
+}
+
+.switch-tile-ico svg {
+  width: 18px;
+  height: 18px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .switch-strip.is-arc .switch-tile {
@@ -137,9 +440,11 @@
 }
 
 .switch-tile:hover {
+  border-color: color-mix(in srgb, var(--switch-accent) 35%, var(--border));
 }
 
 .switch-tile[aria-selected="true"] {
+  border-color: color-mix(in srgb, var(--switch-accent) 58%, var(--border));
 }
 
 .switch-tile:focus-visible {
@@ -151,6 +456,9 @@
   font-size: 18px;
   line-height: 1.1;
   letter-spacing: 0.2px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .switch-tile-desc {
