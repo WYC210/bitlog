@@ -712,6 +712,7 @@
         const itemsWrap = dial.querySelector(".blsw-dial-items");
 
         dial.addEventListener("pointermove", (e) => {
+          if (e.pointerType === "mouse") return;
           const n = state.visible.length;
           if (n <= 0) return;
           const rect = dial.getBoundingClientRect();
@@ -744,10 +745,6 @@
           btn.style.left = `${p.x.toFixed(3)}%`;
           btn.style.top = `${p.y.toFixed(3)}%`;
           btn.textContent = String(a.label || "").trim().slice(0, 1) || "•";
-          btn.addEventListener("mouseenter", () => {
-            state.active = i;
-            renderSelection();
-          });
           btn.addEventListener("click", (ev) => {
             ev.stopPropagation();
             state.active = i;
@@ -773,10 +770,6 @@
               <div class="blsw-tile-desc">${escapeHtml(String(a.desc || ""))}</div>
             </div>
           `;
-          btn.addEventListener("mouseenter", () => {
-            state.active = i;
-            renderSelection();
-          });
           btn.addEventListener("click", () => {
             state.active = i;
             confirm();

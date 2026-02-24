@@ -464,7 +464,9 @@ html.theme-transition-active {
   transition:
     transform 220ms cubic-bezier(0.2, 1, 0.2, 1),
     filter 220ms cubic-bezier(0.2, 1, 0.2, 1),
-    opacity 220ms cubic-bezier(0.2, 1, 0.2, 1);
+    opacity 220ms cubic-bezier(0.2, 1, 0.2, 1),
+    border-color 180ms ease,
+    box-shadow 180ms ease;
   user-select: none;
   outline: none;
   backdrop-filter: blur(10px);
@@ -472,6 +474,17 @@ html.theme-transition-active {
   color: rgba(255, 255, 255, 0.92);
   position: relative;
   overflow: hidden;
+}
+
+.blsw-tile:hover {
+  border-color: color-mix(in srgb, var(--blsw-accent) 38%, transparent);
+  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.28);
+}
+
+.blsw-dial-item:hover {
+  border-color: color-mix(in srgb, var(--blsw-accent) 46%, transparent);
+  background: color-mix(in srgb, var(--blsw-accent) 8%, rgba(255, 255, 255, 0.06));
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .blsw-tile-center {
