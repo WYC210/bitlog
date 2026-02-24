@@ -764,9 +764,10 @@ export function EditorPage(props: {
                         const cursor = tagsInputRef.current?.selectionStart ?? tags.length;
                         const { token } = getTokenAtCursor(tags, cursor);
                         const q = token.trim().toLowerCase();
-                        const list = (q ? tagsItems.filter((t) => t.name.toLowerCase().includes(q)) : tagsItems).filter(
-                          (t) => !selected.has(t.name.toLowerCase())
-                        );
+                        const base = tagsItems.filter((t) => !selected.has(t.name.toLowerCase()));
+                        const filtered = q ? base.filter((t) => t.name.toLowerCase().includes(q)) : base;
+                        // Keep the dropdown useful even when the current token has no matches.
+                        const list = filtered.length ? filtered : base;
                         return list.map((t) => (
                           <button
                             key={t.id}

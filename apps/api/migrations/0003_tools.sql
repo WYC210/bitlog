@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS tools (
   slug TEXT UNIQUE NOT NULL,
   title TEXT NOT NULL,
   description TEXT NOT NULL DEFAULT '',
-  group_key TEXT NOT NULL DEFAULT 'utils' CHECK (group_key IN ('games','apis','utils','other')),
+  group_key TEXT NOT NULL DEFAULT 'utils',
   kind TEXT NOT NULL DEFAULT 'link' CHECK (kind IN ('link','page')),
   url TEXT NULL,
   icon TEXT NULL,

@@ -655,7 +655,7 @@
       if (state.layout === "arc") layoutArc(strip, wrapIndex(state.active, state.visible.length));
       if (state.layout === "grid") {
         const el = strip.querySelector(`[data-idx="${wrapIndex(state.active, state.visible.length)}"]`);
-        if (el && el.scrollIntoView) el.scrollIntoView({ block: "nearest", inline: "nearest" });
+        if (el && el.scrollIntoView) el.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" });
       }
       if (state.layout === "dial") {
         const wheel = strip.querySelector(".blsw-dial-wheel");
@@ -933,6 +933,59 @@
     const swipe = { tracking: false, pointerId: null, startX: 0, startY: 0, lastStep: 0, didSwipe: false };
     const SWIPE_ACTIVATE_PX = 34;
     const SWIPE_STEP_PX = 62;
+
+    // Touch fallback for browsers where PointerEvents are flaky (notably some iOS Safari versions).
+    const touchSwipe = { tracking: false, startX: 0, startY: 0, lastStep: 0, didSwipe: false };
+    overlay.addEventListener(
+      "touchstart",
+      (e) => {
+        if (!state.open) return;
+        if (state.layout !== "arc") return;
+        if (!e.touches || e.touches.length !== 1) return;
+        const t = e.touches[0];
+        if (!t) return;
+        touchSwipe.tracking = true;
+        touchSwipe.startX = t.clientX;
+        touchSwipe.startY = t.clientY;
+        touchSwipe.lastStep = 0;
+        touchSwipe.didSwipe = false;
+      },
+      { passive: true }
+    );
+    overlay.addEventListener(
+      "touchmove",
+      (e) => {
+        if (!touchSwipe.tracking) return;
+        if (!e.touches || e.touches.length !== 1) return;
+        const t = e.touches[0];
+        if (!t) return;
+        const dx = t.clientX - touchSwipe.startX;
+        const dy = t.clientY - touchSwipe.startY;
+        if (Math.abs(dy) > 46 && Math.abs(dy) > Math.abs(dx)) {
+          touchSwipe.tracking = false;
+          return;
+        }
+        if (Math.abs(dx) < SWIPE_ACTIVATE_PX) return;
+        e.preventDefault();
+        const step = Math.trunc(dx / SWIPE_STEP_PX);
+        const diff = step - touchSwipe.lastStep;
+        if (diff === 0) return;
+        touchSwipe.didSwipe = true;
+        touchSwipe.lastStep = step;
+        const n = state.visible.length;
+        if (n <= 0) return;
+        state.active = wrapIndex(state.active + -diff, n);
+        renderSelection();
+      },
+      { passive: false }
+    );
+    const endTouchSwipe = () => {
+      if (!touchSwipe.tracking) return;
+      touchSwipe.tracking = false;
+      if (touchSwipe.didSwipe) swallowClickOnce = true;
+    };
+    overlay.addEventListener("touchend", endTouchSwipe, { passive: true });
+    overlay.addEventListener("touchcancel", endTouchSwipe, { passive: true });
     overlay.addEventListener(
       "pointerdown",
       (e) => {
@@ -1002,13 +1055,31 @@
       close();
     });
 
+    // Trackpad wheel can fire many events quickly; throttle so horizontal "scroll" feels controllable.
+    let wheelAccum = 0;
+    let wheelDir = 0;
+    let wheelLastAt = 0;
     overlay.addEventListener("wheel", (e) => {
       if (!state.open) return;
       if (state.layout !== "arc" && state.layout !== "dial") return;
       e.preventDefault();
       const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-      if (d > 0) state.active = wrapIndex(state.active + 1, state.visible.length);
-      else if (d < 0) state.active = wrapIndex(state.active - 1, state.visible.length);
+      if (!d) return;
+
+      const now = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
+      const dir = d > 0 ? 1 : -1;
+      if (wheelDir && dir !== wheelDir) wheelAccum = 0;
+      wheelDir = dir;
+      wheelAccum += d;
+
+      const WHEEL_THRESHOLD_PX = 72;
+      const WHEEL_MIN_INTERVAL_MS = 110;
+      if (now - wheelLastAt < WHEEL_MIN_INTERVAL_MS) return;
+      if (Math.abs(wheelAccum) < WHEEL_THRESHOLD_PX) return;
+
+      wheelAccum = 0;
+      wheelLastAt = now;
+      state.active = wrapIndex(state.active + dir, state.visible.length);
       renderSelection();
     }, { passive: false });
 
