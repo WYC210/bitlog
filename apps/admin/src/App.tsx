@@ -171,6 +171,7 @@ export function App() {
 
   useEffect(() => {
     const seq = new SeqBuffer();
+    const seqTyping = new SeqBuffer();
 
     const fire = (type: string) => {
       window.dispatchEvent(new CustomEvent(type));
@@ -185,9 +186,16 @@ export function App() {
     const onKeydown = (e: KeyboardEvent) => {
       const typing = isTypingTarget(e.target);
 
-      if (!typing) seq.push(e);
+      if (typing) seqTyping.push(e);
+      else seq.push(e);
 
-      const allowInTyping = matchChord(e, shortcutSpecs.editorSave) || matchChord(e, shortcutSpecs.editorPublish) || matchChord(e, shortcutSpecs.editorRefreshPreview);
+      const allowInTyping =
+        matchChord(e, shortcutSpecs.editorSave) ||
+        matchChord(e, shortcutSpecs.editorPublish) ||
+        matchChord(e, shortcutSpecs.editorRefreshPreview) ||
+        seqTyping.match(parseSeq(shortcutSpecs.editorSave)) ||
+        seqTyping.match(parseSeq(shortcutSpecs.editorPublish)) ||
+        seqTyping.match(parseSeq(shortcutSpecs.editorRefreshPreview));
       if (typing && !allowInTyping) return;
 
       const authedNow = !!user;
@@ -237,17 +245,19 @@ export function App() {
         return;
       }
 
-      if (matchChord(e, shortcutSpecs.editorSave)) {
+      const seqNow = typing ? seqTyping : seq;
+
+      if (matchChord(e, shortcutSpecs.editorSave) || seqNow.match(parseSeq(shortcutSpecs.editorSave))) {
         e.preventDefault();
         fire("bitlog:admin:editorSave");
         return;
       }
-      if (matchChord(e, shortcutSpecs.editorRefreshPreview)) {
+      if (matchChord(e, shortcutSpecs.editorRefreshPreview) || seqNow.match(parseSeq(shortcutSpecs.editorRefreshPreview))) {
         e.preventDefault();
         fire("bitlog:admin:editorRefreshPreview");
         return;
       }
-      if (matchChord(e, shortcutSpecs.editorPublish)) {
+      if (matchChord(e, shortcutSpecs.editorPublish) || seqNow.match(parseSeq(shortcutSpecs.editorPublish))) {
         e.preventDefault();
         fire("bitlog:admin:editorPublish");
         return;
