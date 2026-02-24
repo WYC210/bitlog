@@ -142,11 +142,14 @@ export function SwitchMenu(props: {
   const [activeIndex, setActiveIndex] = useState(0);
   const [bindMode, setBindMode] = useState(false);
   const [cmdQuery, setCmdQuery] = useState("");
+  const [handleRevealed, setHandleRevealed] = useState(false);
 
   const cmdInputRef = useRef<HTMLInputElement | null>(null);
 
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const stripRef = useRef<HTMLDivElement | null>(null);
+  const handleHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const openRef = useRef(open);
   const enabledRef = useRef(props.enabled);
@@ -173,6 +176,13 @@ export function SwitchMenu(props: {
   useEffect(() => void (confirmPropRef.current = props.confirmMode), [props.confirmMode]);
 
   useEffect(() => {
+    return () => {
+      if (handleHideTimerRef.current) clearTimeout(handleHideTimerRef.current);
+      if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!props.layout) return;
     setLayout(props.layout);
   }, [props.layout]);
@@ -181,6 +191,99 @@ export function SwitchMenu(props: {
     if (!props.confirmMode) return;
     setConfirmMode(props.confirmMode);
   }, [props.confirmMode]);
+
+  useEffect(() => {
+    if (!props.enabled) return;
+    if (typeof window === "undefined") return;
+
+    const isCoarse = window.matchMedia?.("(pointer: coarse)")?.matches ?? false;
+    if (!isCoarse) return;
+
+    const HOLD_MS = 420;
+    const CANCEL_MOVE_PX = 14;
+    const selIgnore = "a,button,input,textarea,select,label,[contenteditable='true'],[role='button'],[role='textbox']";
+
+    let tracking = false;
+    let pointerId: number | null = null;
+    let startX = 0;
+    let startY = 0;
+
+    const clearHold = () => {
+      if (longPressTimerRef.current) {
+        clearTimeout(longPressTimerRef.current);
+        longPressTimerRef.current = null;
+      }
+    };
+
+    const openMenu = () => {
+      clearHold();
+      if (openRef.current) return;
+      setBindMode(false);
+      setCmdQuery("");
+      const nextLayout = layoutPropRef.current ?? readLayout();
+      setLayout(nextLayout);
+      setBindings(readBindings());
+      const cm = nextLayout === "cmd" ? "enter" : (confirmPropRef.current ?? readConfirmMode());
+      setConfirmMode(cm);
+      setActiveIndex(bestMatchIndex(items, window.location.hash));
+      setOpen(true);
+    };
+
+    const shouldIgnore = (target: EventTarget | null) => {
+      const el = target as HTMLElement | null;
+      if (!el) return true;
+      if (isTypingTarget(el)) return true;
+      if (el.closest(selIgnore)) return true;
+      const sel = window.getSelection?.();
+      if (sel && String(sel.toString() || "").trim()) return true;
+      return false;
+    };
+
+    const onPointerDown = (e: PointerEvent) => {
+      if (!enabledRef.current) return;
+      if (openRef.current) return;
+      if (e.pointerType !== "touch") return;
+      if (shouldIgnore(e.target)) return;
+
+      tracking = true;
+      pointerId = e.pointerId;
+      startX = e.clientX;
+      startY = e.clientY;
+      clearHold();
+      longPressTimerRef.current = setTimeout(openMenu, HOLD_MS);
+    };
+
+    const onPointerMove = (e: PointerEvent) => {
+      if (!tracking) return;
+      if (pointerId !== null && e.pointerId !== pointerId) return;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      if (Math.hypot(dx, dy) >= CANCEL_MOVE_PX) {
+        tracking = false;
+        pointerId = null;
+        clearHold();
+      }
+    };
+
+    const onPointerEnd = (e: PointerEvent) => {
+      if (pointerId !== null && e.pointerId !== pointerId) return;
+      tracking = false;
+      pointerId = null;
+      clearHold();
+    };
+
+    document.addEventListener("pointerdown", onPointerDown, { passive: true });
+    document.addEventListener("pointermove", onPointerMove, { passive: true });
+    document.addEventListener("pointerup", onPointerEnd, { passive: true });
+    document.addEventListener("pointercancel", onPointerEnd, { passive: true });
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown as any);
+      document.removeEventListener("pointermove", onPointerMove as any);
+      document.removeEventListener("pointerup", onPointerEnd as any);
+      document.removeEventListener("pointercancel", onPointerEnd as any);
+      clearHold();
+    };
+  }, [props.enabled, items]);
 
   const chordByHash = useMemo(() => {
     const out: Record<string, string> = {};
@@ -210,6 +313,12 @@ export function SwitchMenu(props: {
     const t = setTimeout(() => cmdInputRef.current?.focus(), 0);
     return () => clearTimeout(t);
   }, [open, layout]);
+
+  const revealHandle = () => {
+    setHandleRevealed(true);
+    if (handleHideTimerRef.current) clearTimeout(handleHideTimerRef.current);
+    handleHideTimerRef.current = setTimeout(() => setHandleRevealed(false), 2600);
+  };
 
   useEffect(() => {
     if (layout !== "cmd") return;
@@ -720,19 +829,50 @@ export function SwitchMenu(props: {
   const stripLayoutClass =
     layout === "arc" ? "is-arc" : layout === "grid" ? "is-grid" : layout === "cmd" ? "is-cmd" : "is-dial";
 
-  return open ? (
-    <div
-      ref={overlayRef}
-      className="switch-overlay"
-      role="dialog"
-      aria-modal="true"
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) {
-          holdArmedRef.current = false;
-          setOpen(false);
-        }
-      }}
-    >
+  return (
+    <>
+      <button
+        type="button"
+        className={`switch-handle${handleRevealed ? " is-revealed" : ""}${open ? " is-hidden" : ""}`}
+        aria-label="快捷菜单"
+        onClick={() => {
+          if (!handleRevealed) {
+            revealHandle();
+            return;
+          }
+          setBindMode(false);
+          setCmdQuery("");
+          const nextLayout = layoutPropRef.current ?? readLayout();
+          setLayout(nextLayout);
+          setBindings(readBindings());
+          const cm = nextLayout === "cmd" ? "enter" : (confirmPropRef.current ?? readConfirmMode());
+          setConfirmMode(cm);
+          setActiveIndex(bestMatchIndex(items, window.location.hash));
+          setOpen(true);
+        }}
+      >
+        <span className="switch-handle-dot" aria-hidden="true" />
+        <span className="switch-handle-label">菜单</span>
+      </button>
+      {open ? (
+        <div
+       ref={overlayRef}
+       className="switch-overlay"
+       role="dialog"
+       aria-modal="true"
+       onPointerDownCapture={(e) => {
+         if (e.pointerType === "mouse" && (e as any).button !== 0) return;
+         const target = e.target as HTMLElement | null;
+         if (!target) return;
+         if (target.closest(".switch-cmd-panel")) return;
+         if (target.closest(".switch-tile")) return;
+         if (target.closest(".switch-dial")) return;
+         const layoutNow = layoutRef.current;
+         if ((layoutNow === "grid" || layoutNow === "dial") && target.closest(".switch-strip")) return;
+         holdArmedRef.current = false;
+         setOpen(false);
+       }}
+     >
       <div className="switch-scene">
         {layout === "dial" || layout === "cmd" ? null : (
           <div className="switch-info" aria-hidden="true">
@@ -920,7 +1060,9 @@ export function SwitchMenu(props: {
         </div>
       </div>
     </div>
-  ) : null;
+      ) : null}
+    </>
+  );
 }
 
 function layoutArc(container: HTMLElement, selectedIdx: number) {

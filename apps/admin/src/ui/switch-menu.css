@@ -19,6 +19,72 @@
   height: 100%;
 }
 
+.switch-handle {
+  position: fixed;
+  left: 10px;
+  bottom: 14px;
+  z-index: 9999;
+  height: 44px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  background: color-mix(in srgb, var(--panel) 72%, transparent);
+  color: color-mix(in srgb, var(--text) 92%, transparent);
+  display: none;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px 0 12px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transform: translateX(-58%);
+  opacity: 0.78;
+  transition: transform 180ms ease, opacity 180ms ease, background 180ms ease;
+}
+
+@media (pointer: coarse) {
+  .switch-handle {
+    display: inline-flex;
+  }
+}
+
+.switch-handle.is-revealed {
+  transform: none;
+  opacity: 1;
+}
+
+.switch-handle.is-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.switch-handle-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--switch-accent) 85%, #fff);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--switch-accent) 18%, transparent);
+  flex: 0 0 auto;
+}
+
+.switch-handle-label {
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.2px;
+  line-height: 1;
+  white-space: nowrap;
+  max-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-width 180ms ease, opacity 180ms ease;
+}
+
+.switch-handle.is-revealed .switch-handle-label {
+  max-width: 64px;
+  opacity: 0.95;
+}
+
 .switch-info {
   position: absolute;
   top: 34px;

@@ -424,6 +424,13 @@
     overlay.addEventListener("mousedown", (e) => {
       if (e.target === overlay) window.__bitlogCmdpOpen(false);
     });
+    overlay.addEventListener(
+      "pointerdown",
+      (e) => {
+        if (e.target === overlay) window.__bitlogCmdpOpen(false);
+      },
+      { passive: true }
+    );
     closeBtn.addEventListener("click", () => window.__bitlogCmdpOpen(false));
     input.addEventListener("input", render);
 
@@ -695,6 +702,8 @@
       state.active = 0;
       overlay.style.display = "grid";
       state.open = true;
+      const handle = document.getElementById("blswHandle");
+      if (handle) handle.classList.add("is-hidden");
       render();
     }
 
@@ -703,6 +712,8 @@
       state.open = false;
       state.holdArmed = false;
       state.query = "";
+      const handle = document.getElementById("blswHandle");
+      if (handle) handle.classList.remove("is-hidden");
     }
 
     function handleKeydown(e) {
@@ -800,8 +811,28 @@
       return true;
     }
 
+    const isInsideMenuArea = (target) => {
+      if (!target || !target.closest) return false;
+      if (target.closest(".blsw-tile")) return true;
+      if (target.closest(".blsw-dial")) return true;
+      if ((state.layout === "grid" || state.layout === "dial") && target.closest(".blsw-strip")) return true;
+      return false;
+    };
+
+    overlay.addEventListener(
+      "pointerdown",
+      (e) => {
+        if (!state.open) return;
+        if (isInsideMenuArea(e.target)) return;
+        close();
+      },
+      { passive: true }
+    );
+
     overlay.addEventListener("mousedown", (e) => {
-      if (e.target === overlay) close();
+      if (!state.open) return;
+      if (isInsideMenuArea(e.target)) return;
+      close();
     });
 
     overlay.addEventListener("wheel", (e) => {
@@ -894,6 +925,133 @@
     btn.textContent = "?";
     btn.addEventListener("click", openPalette);
     document.body.appendChild(btn);
+  }
+
+  function ensureSwitchHandle() {
+    if (document.getElementById("blswHandle")) return;
+    const btn = document.createElement("button");
+    btn.id = "blswHandle";
+    btn.type = "button";
+    btn.className = "blsw-handle";
+    btn.setAttribute("aria-label", "快捷菜单");
+    btn.innerHTML = `<span class="blsw-handle-dot" aria-hidden="true"></span><span class="blsw-handle-label">菜单</span>`;
+
+    let revealed = false;
+    let timer = null;
+    const reveal = () => {
+      revealed = true;
+      btn.classList.add("is-revealed");
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        revealed = false;
+        btn.classList.remove("is-revealed");
+        timer = null;
+      }, 2600);
+    };
+
+    btn.addEventListener("click", () => {
+      if (!revealed) {
+        reveal();
+        return;
+      }
+      const layout = getCommandMenuLayout();
+      const confirmMode = getCommandMenuConfirmMode();
+      if (layout === "cmd") {
+        openPalette();
+        return;
+      }
+      ensureSwitchMenu();
+      window.__bitlogSwmOpen(true, { layout, confirmMode, holdArmed: false });
+    });
+
+    document.body.appendChild(btn);
+  }
+
+  function enableLongPressOpenMenu() {
+    if (!window.matchMedia || !window.matchMedia("(pointer: coarse)").matches) return;
+
+    const HOLD_MS = 420;
+    const CANCEL_MOVE_PX = 14;
+
+    let tracking = false;
+    let pointerId = null;
+    let startX = 0;
+    let startY = 0;
+    let timer = null;
+
+    const clearHold = () => {
+      if (timer) clearTimeout(timer);
+      timer = null;
+    };
+
+    const shouldIgnoreTarget = (target) => {
+      if (!target) return true;
+      if (target.closest && target.closest("a,button,input,textarea,select,label")) return true;
+      if (target.closest && target.closest("pre,code,.code-block,.prose")) return true;
+      const sel = window.getSelection && window.getSelection();
+      if (sel && String(sel.toString() || "").trim()) return true;
+      return false;
+    };
+
+    const openMenu = () => {
+      clearHold();
+      if (window.__bitlogCmdpIsOpen && window.__bitlogCmdpIsOpen()) return;
+      if (window.__bitlogSwmIsOpen && window.__bitlogSwmIsOpen()) return;
+
+      const layout = getCommandMenuLayout();
+      const confirmMode = getCommandMenuConfirmMode();
+      if (layout === "cmd") {
+        openPalette();
+        return;
+      }
+      ensureSwitchMenu();
+      window.__bitlogSwmOpen(true, { layout, confirmMode, holdArmed: false });
+    };
+
+    document.addEventListener(
+      "pointerdown",
+      (e) => {
+        if (e.pointerType === "mouse") return;
+        if (isTypingTarget(e)) return;
+        if (window.__bitlogCmdpIsOpen && window.__bitlogCmdpIsOpen()) return;
+        if (window.__bitlogSwmIsOpen && window.__bitlogSwmIsOpen()) return;
+        if (shouldIgnoreTarget(e.target)) return;
+
+        tracking = true;
+        pointerId = e.pointerId;
+        startX = e.clientX;
+        startY = e.clientY;
+        clearHold();
+        timer = setTimeout(openMenu, HOLD_MS);
+      },
+      { passive: true }
+    );
+
+    document.addEventListener(
+      "pointermove",
+      (e) => {
+        if (!tracking) return;
+        if (pointerId !== null && e.pointerId !== pointerId) return;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        if (Math.hypot(dx, dy) >= CANCEL_MOVE_PX) {
+          tracking = false;
+          pointerId = null;
+          clearHold();
+        }
+      },
+      { passive: true }
+    );
+
+    const end = (e) => {
+      if (pointerId !== null && e.pointerId !== pointerId) return;
+      tracking = false;
+      pointerId = null;
+      clearHold();
+    };
+
+    document.addEventListener("pointerup", end, { passive: true });
+    document.addEventListener("pointercancel", end, { passive: true });
   }
 
   function enableArticleListContextCapture() {
@@ -1129,4 +1287,6 @@
   enableArticleListContextCapture();
   enablePostSwipe();
   ensureMobileButton();
+  ensureSwitchHandle();
+  enableLongPressOpenMenu();
 })();
