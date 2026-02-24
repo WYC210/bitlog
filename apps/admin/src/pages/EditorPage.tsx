@@ -746,6 +746,7 @@ export function EditorPage(props: {
                     ref={tagsInputRef}
                     value={tags}
                     onChange={(e) => setTags(e.target.value)}
+                    onBlur={() => setTags((v) => normalizeTagList(parseTagTokens(v)))}
                     placeholder="例如：教程, SQL, Edge"
                     onFocus={() => setTagsOpen(true)}
                     onClick={() => setTagsOpen(true)}
@@ -774,16 +775,17 @@ export function EditorPage(props: {
                             type="button"
                             className="combo-item"
                             role="option"
-                            onMouseDown={(e) => {
-                              e.preventDefault();
-                              const cur = tagsInputRef.current?.selectionStart ?? tags.length;
-                              const next = replaceToken(tags, cur, t.name);
-                              setTags(next.nextValue);
+                             onMouseDown={(e) => {
+                               e.preventDefault();
+                               const cur = tagsInputRef.current?.selectionStart ?? tags.length;
+                               const next = replaceToken(tags, cur, t.name);
+                              const nextWithSep = next.nextValue ? `${next.nextValue}, ` : "";
+                              setTags(nextWithSep);
                               setTagsOpen(true);
                               requestAnimationFrame(() => {
                                 tagsInputRef.current?.focus();
                                 try {
-                                  tagsInputRef.current?.setSelectionRange(next.nextCursor, next.nextCursor);
+                                  tagsInputRef.current?.setSelectionRange(nextWithSep.length, nextWithSep.length);
                                 } catch {
                                   // ignore
                                 }

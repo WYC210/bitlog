@@ -1157,6 +1157,7 @@ export function SwitchMenu(props: {
                       <span className="switch-dial-item-ico" aria-hidden="true">
                         {iconForHash(it.hash)}
                       </span>
+                      <span className="switch-dial-item-label">{it.title}</span>
                     </button>
                   );
                 })}

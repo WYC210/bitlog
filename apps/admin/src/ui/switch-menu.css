@@ -370,16 +370,14 @@
 .switch-dial-item {
   position: absolute;
   transform: translate(-50%, -50%);
-  width: var(--dial-item);
-  height: var(--dial-item);
-  border-radius: 999px;
-  border: var(--border-w) solid transparent;
+  align-items: center;
+  gap: 6px;
+  border: none;
   background: transparent;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  color: color-mix(in srgb, var(--text) 66%, transparent);
-  display: grid;
-  place-items: center;
+  color: color-mix(in srgb, var(--text) 88%, transparent);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   cursor: pointer;
   padding: 0;
   outline: none;
@@ -387,21 +385,35 @@
   pointer-events: auto;
 }
 
-.switch-dial-item:hover {
-  background: color-mix(in srgb, #fff 6%, transparent);
-  border-color: color-mix(in srgb, var(--text) 18%, transparent);
-  color: color-mix(in srgb, var(--text) 82%, transparent);
+.switch-dial-item:hover .switch-dial-item-ico {
+  background: color-mix(in srgb, var(--switch-accent) 18%, transparent);
+  border-color: color-mix(in srgb, var(--switch-accent) 56%, transparent);
+  transform: scale(1.04);
 }
 
-.switch-dial-item[aria-selected="true"] {
-  background: color-mix(in srgb, var(--switch-accent) 12%, transparent);
-  border-color: color-mix(in srgb, var(--switch-accent) 70%, transparent);
-  color: color-mix(in srgb, var(--switch-accent) 92%, #fff);
-  transform: translate(-50%, -50%) scale(1.04);
+.switch-dial-item[aria-selected="true"] .switch-dial-item-ico {
+  background: color-mix(in srgb, var(--switch-accent) 26%, transparent);
+  border-color: color-mix(in srgb, var(--switch-accent) 76%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--switch-accent) 12%, transparent);
+  transform: scale(1.06);
 }
 
 .switch-dial-item:focus-visible {
   box-shadow: var(--focus);
+}
+
+.switch-dial-item-ico {
+  width: var(--dial-item);
+  height: var(--dial-item);
+  border-radius: 999px;
+  border: var(--border-w) solid color-mix(in srgb, var(--switch-accent) 36%, transparent);
+  background: color-mix(in srgb, var(--switch-accent) 12%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: color-mix(in srgb, var(--switch-accent) 72%, #fff);
+  display: grid;
+  place-items: center;
+  transition: background 180ms ease, border-color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
 }
 
 .switch-dial-item-ico svg {
@@ -409,6 +421,28 @@
   height: 22px;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+.switch-dial-item-label {
+  font-weight: 900;
+  font-size: 10px;
+  line-height: 1.05;
+  max-width: 9ch;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0.92;
+  text-shadow: 0 6px 18px rgba(0, 0, 0, 0.42);
+  color: color-mix(in srgb, var(--text) 90%, transparent);
+}
+
+.switch-dial-item[aria-selected="true"] .switch-dial-item-label {
+  color: color-mix(in srgb, var(--switch-accent) 92%, #fff);
+}
+
+.switch-dial.is-dense .switch-dial-item-label {
+  font-size: 9px;
+  max-width: 8ch;
 }
 
 .switch-dial-knob {
