@@ -513,6 +513,11 @@ body[data-page="about"] #about-news-image {
 }
 
 @media (max-width: 980px) {
+  body[data-page="about"] {
+    /* Prevent async-rendered decorative elements from creating horizontal scroll. */
+    overflow-x: clip;
+  }
+
   .about-hero {
     grid-template-columns: 1fr;
     gap: 40px;
@@ -554,6 +559,15 @@ body[data-page="about"] #about-news-image {
 @media (max-width: 640px) {
   .about-container {
     padding: 24px 16px;
+  }
+
+  /* Mobile: keep timeline decorations inside the viewport to avoid horizontal overflow. */
+  .about-timeline {
+    padding-left: 56px;
+  }
+
+  .about-timeline::before {
+    left: 15px;
   }
 
   .about-hero {
