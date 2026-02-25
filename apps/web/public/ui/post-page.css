@@ -209,6 +209,7 @@
   overflow: auto;
   scrollbar-width: thin;
   scroll-behavior: smooth;
+  scroll-padding-bottom: 16px;
 }
 
 .post-toc::-webkit-scrollbar {
@@ -302,6 +303,7 @@
 }
 
 .toc-children {
+  --toc-children-max: 0px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -316,7 +318,7 @@
 }
 
 .toc-group.is-open .toc-children {
-  max-height: 680px;
+  max-height: var(--toc-children-max, 1200px);
   opacity: 1;
   transform: translateY(0);
 }
@@ -396,6 +398,7 @@ details.post-toc[open] > summary.toc-title {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  padding-bottom: 8px;
 }
 
 .post-toc .toc-link {
@@ -500,6 +503,23 @@ details.post-toc[open] > summary.toc-title {
 
 body[data-page="post"] .layout > aside {
   align-self: stretch;
+}
+
+/* Article body should read as a flat document, not a card. */
+body[data-page="post"] .layout > section > article.card {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+body[data-page="post"] .layout > section > article.card:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+body[data-page="post"] .layout > section > article.card > .card-body {
+  padding: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -766,6 +786,16 @@ body[data-page="post"] .layout > aside {
 @media (max-width: 980px) {
   .post-toc {
     position: static;
+  }
+
+  /* Mobile: flatten aside cards, remove heavy shadows and hover lift. */
+  body[data-page="post"] .layout > aside .card {
+    box-shadow: none;
+  }
+
+  body[data-page="post"] .layout > aside .card:hover {
+    transform: none;
+    box-shadow: none;
   }
 
   .post-nav {

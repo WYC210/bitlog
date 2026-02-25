@@ -35,10 +35,21 @@
       const toggle = el.querySelector("button.toc-toggle");
       const children = el.querySelector(".toc-children");
       const hasChildren = !!(children && children.querySelector("a.toc-link-h3"));
-      return { el, id, toggle, hasChildren };
+      return { el, id, toggle, children, hasChildren };
     })
     .filter((g) => g.id);
   const groupById = new Map(groupMeta.map((g) => [g.id, g]));
+
+  function syncChildrenHeight(groupId) {
+    const g = groupById.get(groupId);
+    if (!g || !g.children) return;
+    const h = Math.max(0, Number(g.children.scrollHeight || 0));
+    g.children.style.setProperty("--toc-children-max", `${h}px`);
+  }
+
+  function syncAllChildrenHeights() {
+    for (const g of groupMeta) syncChildrenHeight(g.id);
+  }
 
   const items = links
     .map((link) => {
@@ -68,6 +79,7 @@
   function setGroupOpen(groupId, open, reason) {
     const g = groupById.get(groupId);
     if (!g) return;
+    if (open) syncChildrenHeight(groupId);
     g.el.classList.toggle("is-open", !!(open && g.hasChildren));
     syncToggle(groupId);
   }
@@ -104,6 +116,8 @@
     });
     syncToggle(g.id);
   }
+
+  syncAllChildrenHeights();
 
   for (const it of items) {
     it.link.addEventListener("click", (e) => {
@@ -157,7 +171,10 @@
   }
 
   window.addEventListener("scroll", schedule, { passive: true });
-  window.addEventListener("resize", schedule);
+  window.addEventListener("resize", () => {
+    syncAllChildrenHeights();
+    schedule();
+  });
   schedule();
 
   // Initialize: open group for first section.

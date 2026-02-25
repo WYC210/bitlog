@@ -1126,6 +1126,76 @@ ${filter}
 
       const toc = buildTocFromHtml(post.content_html ?? "");
 
+      const fetchList = async (extraQuery: string): Promise<PostListItem[]> => {
+        try {
+          const list = await apiJson<ApiOk<{ posts: PostListItem[] }>>(
+            c.env,
+            `/api/posts?page=1&pageSize=12${extraQuery}`
+          );
+          return Array.isArray(list.posts) ? list.posts : [];
+        } catch {
+          return [];
+        }
+      };
+
+      const relatedMap = new Map<string, { post: PostListItem; score: number }>();
+      const addRelated = (items: PostListItem[], score: number) => {
+        for (const it of items) {
+          if (!it || !it.slug || it.slug === post.slug) continue;
+          const prev = relatedMap.get(it.slug);
+          if (!prev || score > prev.score) relatedMap.set(it.slug, { post: it, score });
+        }
+      };
+
+      const seedQueries: Array<{ query: string; score: number }> = [];
+      if (post.category_slug) {
+        seedQueries.push({ query: `&category=${encodeURIComponent(post.category_slug)}`, score: 100 });
+      }
+      const topTags = (post.tags ?? []).slice(0, 2);
+      for (let i = 0; i < topTags.length; i++) {
+        const t = topTags[i];
+        if (!t || !t.slug) continue;
+        seedQueries.push({ query: `&tag=${encodeURIComponent(t.slug)}`, score: 70 - i * 10 });
+      }
+
+      const seedLists = await Promise.all(seedQueries.map((x) => fetchList(x.query)));
+      for (let i = 0; i < seedLists.length; i++) {
+        addRelated(seedLists[i] ?? [], seedQueries[i]?.score ?? 0);
+      }
+
+      if (relatedMap.size < 3) {
+        addRelated(await fetchList(""), 10);
+      }
+
+      const relatedPosts = Array.from(relatedMap.values())
+        .sort((a, b) => {
+          if (b.score !== a.score) return b.score - a.score;
+          const bt = Number(b.post.publish_at ?? b.post.updated_at ?? 0);
+          const at = Number(a.post.publish_at ?? a.post.updated_at ?? 0);
+          return bt - at;
+        })
+        .slice(0, 3)
+        .map((x) => x.post);
+
+      const relatedPostsHtml = relatedPosts.length
+        ? `<section class="related-posts">
+  <h2 class="related-posts-title">同类文章</h2>
+  <div class="related-posts-grid">
+    ${relatedPosts
+      .map((p) => {
+        const dt = isoDate(Number(p.publish_at ?? p.updated_at), cfg.timezone);
+        const summary = String(p.summary ?? "").trim();
+        return `<a class="related-post-card" href="/articles/${encodeURIComponent(p.slug)}">
+      <div class="meta">${escapeHtml(dt)}</div>
+      <h3 class="related-post-title">${escapeHtml(p.title)}</h3>
+      ${summary ? `<p class="related-post-summary">${escapeHtml(summary)}</p>` : ""}
+    </a>`;
+      })
+      .join("\n")}
+  </div>
+</section>`
+        : "";
+
       const html = replaceAll((await loadTemplates(c.env, c.req.url)).post, {
         "{{PAGE_TITLE}}": escapeHtml(post.title),
         "{{SITE_TITLE}}": escapeHtml(cfg.title ?? "Bitlog"),
@@ -1136,6 +1206,7 @@ ${filter}
         "{{TAG_CHIPS}}": tagChips || `<span class="meta">无标签</span>`,
         "{{TOC_GROUPS}}": toc.tocHtml || `<div class="meta">无目录</div>`,
         "{{POST_CONTENT}}": post.content_html ?? "",
+        "{{RELATED_POSTS}}": relatedPostsHtml,
         "{{SITE_FOOTER}}": footer,
         "{{CACHE_VERSION}}": escapeHtml(cacheVersionForRequest(cfg, c.req.url)),
         "{{UI_WEB_STYLE}}": escapeHtml(String(cfg.webStyle ?? "current")),
