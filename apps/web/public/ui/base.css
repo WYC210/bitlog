@@ -54,6 +54,8 @@
 
 html {
   color-scheme: light;
+  /* Prevent accidental horizontal overflow from transforms/absolute positioning on mobile. */
+  overflow-x: hidden;
 }
 
 html[data-theme="dark"] {
@@ -76,6 +78,7 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  overflow-x: hidden;
 }
 
 
