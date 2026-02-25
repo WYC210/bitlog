@@ -346,7 +346,8 @@ body[data-page="about"] #about-news-image {
 .about-timeline::before {
   content: "";
   position: absolute;
-  left: 0;
+  /* Move the timeline axis slightly inward so the dot + glow never overflows the container. */
+  left: 18px;
   top: 0;
   bottom: 0;
   width: 2px;
@@ -361,7 +362,8 @@ body[data-page="about"] #about-news-image {
 .about-timeline-item::before {
   content: "";
   position: absolute;
-  left: -47px;
+  /* Keep the dot centered on the axis (18px) while staying fully inside the container. */
+  left: -31px;
   top: 4px;
   width: 12px;
   height: 12px;
