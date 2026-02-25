@@ -47,6 +47,7 @@ export function SettingsPage(props: {
   const SWITCH_MENU_BINDINGS_KEY = "bitlog:admin:switchMenu:bindings";
   const UI_COMMAND_MENU_LAYOUT_KEY = "ui.command_menu_layout";
   const UI_COMMAND_MENU_CONFIRM_MODE_KEY = "ui.command_menu_confirm_mode";
+  const UI_COMMAND_MENU_MOBILE_SYNC_KEY = "ui.command_menu_mobile_sync";
   const UI_WEB_NAV_KEY = "ui.web_nav_json";
   const [webNav, setWebNav] = useState<WebNavItem[]>(
     props.cfg?.webNav?.length
@@ -62,6 +63,7 @@ export function SettingsPage(props: {
   const [webNavBuiltinToAdd, setWebNavBuiltinToAdd] = useState<"home" | "articles" | "projects" | "tools" | "about">("home");
   const [switchMenuLayout, setSwitchMenuLayout] = useState<"arc" | "grid" | "dial" | "cmd">(props.cfg?.commandMenuLayout ?? "arc");
   const [switchMenuConfirmMode, setSwitchMenuConfirmMode] = useState<"enter" | "release">(props.cfg?.commandMenuConfirmMode ?? "enter");
+  const [switchMenuMobileSync, setSwitchMenuMobileSync] = useState<boolean>(props.cfg?.commandMenuMobileSync ?? false);
   const [switchBindingsCount, setSwitchBindingsCount] = useState(0);
   const [autoSummaryEnabled, setAutoSummaryEnabled] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -244,6 +246,7 @@ export function SettingsPage(props: {
     setAdminStyle(props.cfg.adminStyle ?? "current");
     setSwitchMenuLayout(props.cfg.commandMenuLayout ?? "arc");
     setSwitchMenuConfirmMode(props.cfg.commandMenuConfirmMode ?? "enter");
+    setSwitchMenuMobileSync(props.cfg.commandMenuMobileSync ?? false);
     if (props.cfg.webNav) setWebNav(props.cfg.webNav as any);
   }, [props.cfg]);
 
@@ -508,7 +511,8 @@ export function SettingsPage(props: {
     try {
       await updateSettings({
         [UI_COMMAND_MENU_LAYOUT_KEY]: switchMenuLayout,
-        [UI_COMMAND_MENU_CONFIRM_MODE_KEY]: switchMenuConfirmMode
+        [UI_COMMAND_MENU_CONFIRM_MODE_KEY]: switchMenuConfirmMode,
+        [UI_COMMAND_MENU_MOBILE_SYNC_KEY]: switchMenuMobileSync ? "1" : "0"
       });
       const newCfg = await getConfig();
       props.onCfg(newCfg);
@@ -1100,6 +1104,15 @@ export function SettingsPage(props: {
             <input value={"Alt + ` / ?"} readOnly className="input" style={{ opacity: 0.85 }} />
           </label>
         </div>
+        <div style={{ height: 8 }} />
+        <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <input
+            type="checkbox"
+            checked={switchMenuMobileSync}
+            onChange={(e) => setSwitchMenuMobileSync(e.target.checked)}
+          />
+          <span>移动端同步菜单样式（未勾选时移动端固定为命令行菜单）</span>
+        </label>
         <div className="nav">
           <button className="chip chip-primary" type="button" onClick={() => void saveSwitchMenuSettings()} disabled={saving}>
             {saving ? "保存中..." : "保存菜单设置"}

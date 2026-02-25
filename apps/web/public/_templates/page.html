@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN" data-theme="light" data-ui-style="{{UI_WEB_STYLE}}" data-cmd-layout="{{CMD_LAYOUT}}" data-cmd-confirm="{{CMD_CONFIRM}}">
+<html lang="zh-CN" data-theme="light" data-ui-style="{{UI_WEB_STYLE}}" data-cmd-layout="{{CMD_LAYOUT}}" data-cmd-confirm="{{CMD_CONFIRM}}" data-cmd-mobile-sync="{{CMD_MOBILE_SYNC}}">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -37,7 +37,7 @@
         </div>
 
         <div class="header-right">
-          <nav class="nav nav-main" aria-label="主导航">
+          <nav id="siteMainNav" class="nav nav-main" aria-label="主导航">
             <a class="{{NAV_HOME_ACTIVE}}" href="/">首页</a>
             <a class="{{NAV_ARTICLES_ACTIVE}}" href="/articles">文章</a>
             <a class="{{NAV_PROJECTS_ACTIVE}}" href="/projects">项目</a>
@@ -48,6 +48,21 @@
             <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2" />
               <path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            </svg>
+          </button>
+          <button
+            class="btn ghost icon"
+            id="navMenuToggle"
+            type="button"
+            aria-label="Toggle navigation"
+            title="Toggle navigation"
+            aria-controls="siteMainNav"
+            aria-expanded="false"
+          >
+            <svg class="menu-toggle-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path class="menu-icon-line line-top" d="M4 7h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+              <path class="menu-icon-line line-mid" d="M4 12h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+              <path class="menu-icon-line line-bottom" d="M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
             </svg>
           </button>
           <button class="btn ghost icon" id="themeToggle" type="button" aria-label="切换主题" title="切换主题">
@@ -346,6 +361,7 @@
     {{TOOL_SCRIPT}}
     <script src="/ui/theme-toggle.js?__cv={{CACHE_VERSION}}"></script>
     <script src="/ui/search-suggest.js?__cv={{CACHE_VERSION}}"></script>
+    <script src="/ui/nav-menu.js?__cv={{CACHE_VERSION}}"></script>
     <script src="/ui/code-copy.js?__cv={{CACHE_VERSION}}"></script>
     <script>
       window.__bitlogShortcutsText = {{SHORTCUTS_TEXT}};

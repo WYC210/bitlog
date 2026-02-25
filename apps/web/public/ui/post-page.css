@@ -991,15 +991,14 @@ body[data-page="post"] .layout > aside {
 }
 
 @media (max-width: 860px) {
-  /* Leave room for the mobile command palette FAB ("?") at bottom-right. */
   .scroll-to-top {
-    bottom: calc(76px + env(safe-area-inset-bottom));
+    bottom: calc(28px + env(safe-area-inset-bottom));
   }
 }
 
 @media (max-width: 640px) {
   .scroll-to-top {
-    bottom: calc(76px + env(safe-area-inset-bottom));
+    bottom: calc(24px + env(safe-area-inset-bottom));
     right: 20px;
     width: 44px;
     height: 44px;

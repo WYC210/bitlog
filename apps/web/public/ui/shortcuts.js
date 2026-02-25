@@ -549,6 +549,16 @@
   }
 
   function getCommandMenuLayout() {
+    const isMobileRuntime = (() => {
+      if (window.matchMedia && window.matchMedia("(pointer: coarse)").matches) return true;
+      if (window.matchMedia && window.matchMedia("(max-width: 860px)").matches) return true;
+      return false;
+    })();
+    const mobileSync = (() => {
+      const s = String(document.documentElement?.dataset?.cmdMobileSync || "").trim().toLowerCase();
+      return s === "1" || s === "true" || s === "yes" || s === "on";
+    })();
+    if (isMobileRuntime && !mobileSync) return "cmd";
     const s = String(document.documentElement?.dataset?.cmdLayout || "").trim().toLowerCase();
     if (s === "grid" || s === "dial" || s === "cmd") return s;
     return "arc";
@@ -1525,7 +1535,6 @@
   ensurePostBackLink();
   enableArticleListContextCapture();
   enablePostSwipe();
-  ensureMobileButton();
   ensureSwitchHandle();
   enableLongPressOpenMenu();
 })();

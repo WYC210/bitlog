@@ -33,6 +33,7 @@ export type SiteConfig = {
   adminStyle: UiStyle;
   commandMenuLayout: "arc" | "grid" | "dial" | "cmd";
   commandMenuConfirmMode: "enter" | "release";
+  commandMenuMobileSync: boolean;
   shortcutsJson: string | null;
   webNav: Array<{ id: string; label: string; href: string; enabled: boolean; external?: boolean }>;
   footerCopyrightUrl: string | null;

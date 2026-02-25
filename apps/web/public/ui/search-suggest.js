@@ -54,6 +54,7 @@
   const setSearchOpen = (open) => {
     if (!header) return;
     if (open) {
+      if (typeof window.__bitlogSetNavOpen === "function") window.__bitlogSetNavOpen(false);
       header.setAttribute("data-search-open", "1");
       if (toggleBtn) toggleBtn.setAttribute("aria-expanded", "true");
       window.setTimeout(() => {

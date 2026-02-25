@@ -13,6 +13,7 @@ export interface SiteConfig {
   adminStyle: UiStyle;
   commandMenuLayout: CommandMenuLayout;
   commandMenuConfirmMode: CommandMenuConfirmMode;
+  commandMenuMobileSync: boolean;
   shortcutsJson: string | null;
   webNav: WebNavItem[];
   footerCopyrightUrl: string | null;
@@ -43,6 +44,7 @@ const KEY_UI_WEB_STYLE = "ui.web_style";
 const KEY_UI_ADMIN_STYLE = "ui.admin_style";
 const KEY_UI_COMMAND_MENU_LAYOUT = "ui.command_menu_layout";
 const KEY_UI_COMMAND_MENU_CONFIRM_MODE = "ui.command_menu_confirm_mode";
+const KEY_UI_COMMAND_MENU_MOBILE_SYNC = "ui.command_menu_mobile_sync";
 const KEY_UI_WEB_NAV = "ui.web_nav_json";
 const KEY_SHORTCUTS = "site.shortcuts_json";
 const KEY_FOOTER_COPYRIGHT_URL = "site.footer_copyright_url";
@@ -84,6 +86,11 @@ function parseCommandMenuConfirmMode(input: string | null | undefined): CommandM
   if (s === "enter") return "enter";
   if (s === "release") return "release";
   return null;
+}
+
+function parseLooseBool(input: string | null | undefined): boolean {
+  const s = String(input ?? "").trim().toLowerCase();
+  return s === "1" || s === "true" || s === "yes" || s === "on";
 }
 
 function normalizeWebNavHref(raw: string): { href: string; external: boolean } | null {
@@ -156,7 +163,7 @@ export async function getSiteConfig(db: Db): Promise<SiteConfig> {
   }
 
   const rows = await db.query<{ key: string; value: string }>(
-    sql`SELECT key, value FROM settings WHERE key IN (${KEY_TITLE}, ${KEY_DESCRIPTION}, ${KEY_BASE_URL}, ${KEY_TIMEZONE}, ${KEY_EMBED_ALLOWLIST}, ${KEY_CACHE_TTL}, ${KEY_CACHE_VERSION}, ${KEY_UI_WEB_STYLE}, ${KEY_UI_ADMIN_STYLE}, ${KEY_UI_COMMAND_MENU_LAYOUT}, ${KEY_UI_COMMAND_MENU_CONFIRM_MODE}, ${KEY_UI_WEB_NAV}, ${KEY_SHORTCUTS}, ${KEY_FOOTER_COPYRIGHT_URL}, ${KEY_FOOTER_ICP_TEXT}, ${KEY_FOOTER_ICP_LINK})`
+    sql`SELECT key, value FROM settings WHERE key IN (${KEY_TITLE}, ${KEY_DESCRIPTION}, ${KEY_BASE_URL}, ${KEY_TIMEZONE}, ${KEY_EMBED_ALLOWLIST}, ${KEY_CACHE_TTL}, ${KEY_CACHE_VERSION}, ${KEY_UI_WEB_STYLE}, ${KEY_UI_ADMIN_STYLE}, ${KEY_UI_COMMAND_MENU_LAYOUT}, ${KEY_UI_COMMAND_MENU_CONFIRM_MODE}, ${KEY_UI_COMMAND_MENU_MOBILE_SYNC}, ${KEY_UI_WEB_NAV}, ${KEY_SHORTCUTS}, ${KEY_FOOTER_COPYRIGHT_URL}, ${KEY_FOOTER_ICP_TEXT}, ${KEY_FOOTER_ICP_LINK})`
   );
   const map = new Map(rows.map((r) => [r.key, r.value]));
 
@@ -173,6 +180,7 @@ export async function getSiteConfig(db: Db): Promise<SiteConfig> {
   const adminStyle = parseUiStyle(map.get(KEY_UI_ADMIN_STYLE) ?? null) ?? "current";
   const commandMenuLayout = parseCommandMenuLayout(map.get(KEY_UI_COMMAND_MENU_LAYOUT) ?? null) ?? "arc";
   const commandMenuConfirmMode = parseCommandMenuConfirmMode(map.get(KEY_UI_COMMAND_MENU_CONFIRM_MODE) ?? null) ?? "enter";
+  const commandMenuMobileSync = parseLooseBool(map.get(KEY_UI_COMMAND_MENU_MOBILE_SYNC) ?? null);
 
   const timezone = map.get(KEY_TIMEZONE) ?? null;
   const title = map.get(KEY_TITLE) ?? null;
@@ -195,6 +203,7 @@ export async function getSiteConfig(db: Db): Promise<SiteConfig> {
     adminStyle,
     commandMenuLayout,
     commandMenuConfirmMode,
+    commandMenuMobileSync,
     shortcutsJson,
     webNav,
     footerCopyrightUrl,
@@ -282,6 +291,10 @@ function normalizeSettingValue(key: string, value: unknown): string {
     const mode = parseCommandMenuConfirmMode(typeof value === "string" ? value : String(value ?? ""));
     if (!mode) throw new Error("Invalid ui.command_menu_confirm_mode (allowed: enter/release)");
     return mode;
+  }
+  if (key === KEY_UI_COMMAND_MENU_MOBILE_SYNC) {
+    if (typeof value === "boolean") return value ? "1" : "0";
+    return parseLooseBool(typeof value === "string" ? value : String(value ?? "")) ? "1" : "0";
   }
   if (key === KEY_UI_WEB_NAV) {
     const nav = parseWebNav(typeof value === "string" ? value : JSON.stringify(value));

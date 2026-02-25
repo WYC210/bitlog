@@ -20,6 +20,7 @@ type SiteConfig = {
   adminStyle: "current" | "classic" | "glass" | "brutal" | "terminal";
   commandMenuLayout: "arc" | "grid" | "dial" | "cmd";
   commandMenuConfirmMode: "enter" | "release";
+  commandMenuMobileSync: boolean;
   shortcutsJson: string | null;
   webNav: Array<{ id: string; label: string; href: string; enabled: boolean; external?: boolean }>;
   footerCopyrightUrl: string | null;
@@ -567,6 +568,7 @@ export function createWebApp() {
         "{{UI_WEB_STYLE}}": escapeHtml(String(cfg.webStyle ?? "current")),
         "{{CMD_LAYOUT}}": escapeHtml(String(cfg.commandMenuLayout ?? "arc")),
         "{{CMD_CONFIRM}}": escapeHtml(String(cfg.commandMenuConfirmMode ?? "enter")),
+        "{{CMD_MOBILE_SYNC}}": escapeHtml((cfg.commandMenuMobileSync ? "1" : "0")),
         "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? ""),
         "{{WEB_NAV_JSON}}": JSON.stringify((cfg as any).webNav ?? [])
       });
@@ -722,6 +724,7 @@ export function createWebApp() {
         "{{UI_WEB_STYLE}}": escapeHtml(String(cfg.webStyle ?? "current")),
         "{{CMD_LAYOUT}}": escapeHtml(String(cfg.commandMenuLayout ?? "arc")),
         "{{CMD_CONFIRM}}": escapeHtml(String(cfg.commandMenuConfirmMode ?? "enter")),
+        "{{CMD_MOBILE_SYNC}}": escapeHtml((cfg.commandMenuMobileSync ? "1" : "0")),
         "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? ""),
         "{{WEB_NAV_JSON}}": JSON.stringify((cfg as any).webNav ?? [])
       });
@@ -835,6 +838,7 @@ export function createWebApp() {
         "{{UI_WEB_STYLE}}": escapeHtml(String(cfg.webStyle ?? "current")),
         "{{CMD_LAYOUT}}": escapeHtml(String(cfg.commandMenuLayout ?? "arc")),
         "{{CMD_CONFIRM}}": escapeHtml(String(cfg.commandMenuConfirmMode ?? "enter")),
+        "{{CMD_MOBILE_SYNC}}": escapeHtml((cfg.commandMenuMobileSync ? "1" : "0")),
         "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? ""),
         "{{WEB_NAV_JSON}}": JSON.stringify((cfg as any).webNav ?? []),
         "{{PAGE_ID}}": "projects",
@@ -871,6 +875,7 @@ ${filter}
         "{{UI_WEB_STYLE}}": escapeHtml(String(cfg.webStyle ?? "current")),
         "{{CMD_LAYOUT}}": escapeHtml(String(cfg.commandMenuLayout ?? "arc")),
         "{{CMD_CONFIRM}}": escapeHtml(String(cfg.commandMenuConfirmMode ?? "enter")),
+        "{{CMD_MOBILE_SYNC}}": escapeHtml((cfg.commandMenuMobileSync ? "1" : "0")),
         "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? ""),
         "{{WEB_NAV_JSON}}": JSON.stringify((cfg as any).webNav ?? []),
         "{{PAGE_ID}}": "about",
@@ -962,6 +967,7 @@ ${filter}
         "{{UI_WEB_STYLE}}": escapeHtml(String(cfg.webStyle ?? "current")),
         "{{CMD_LAYOUT}}": escapeHtml(String(cfg.commandMenuLayout ?? "arc")),
         "{{CMD_CONFIRM}}": escapeHtml(String(cfg.commandMenuConfirmMode ?? "enter")),
+        "{{CMD_MOBILE_SYNC}}": escapeHtml((cfg.commandMenuMobileSync ? "1" : "0")),
         "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? ""),
         "{{WEB_NAV_JSON}}": JSON.stringify((cfg as any).webNav ?? []),
         "{{PAGE_ID}}": "tools",
@@ -1003,6 +1009,7 @@ ${filter}
         "{{UI_WEB_STYLE}}": escapeHtml(String(cfg.webStyle ?? "current")),
         "{{CMD_LAYOUT}}": escapeHtml(String(cfg.commandMenuLayout ?? "arc")),
         "{{CMD_CONFIRM}}": escapeHtml(String(cfg.commandMenuConfirmMode ?? "enter")),
+        "{{CMD_MOBILE_SYNC}}": escapeHtml((cfg.commandMenuMobileSync ? "1" : "0")),
         "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? ""),
         "{{WEB_NAV_JSON}}": JSON.stringify((cfg as any).webNav ?? []),
         "{{PAGE_ID}}": "tools",
@@ -1045,6 +1052,7 @@ ${filter}
       "{{UI_WEB_STYLE}}": escapeHtml(String(cfg.webStyle ?? "current")),
       "{{CMD_LAYOUT}}": escapeHtml(String(cfg.commandMenuLayout ?? "arc")),
       "{{CMD_CONFIRM}}": escapeHtml(String(cfg.commandMenuConfirmMode ?? "enter")),
+      "{{CMD_MOBILE_SYNC}}": escapeHtml((cfg.commandMenuMobileSync ? "1" : "0")),
       "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? ""),
       "{{WEB_NAV_JSON}}": JSON.stringify((cfg as any).webNav ?? []),
       "{{PAGE_ID}}": "tools",
@@ -1133,6 +1141,7 @@ ${filter}
         "{{UI_WEB_STYLE}}": escapeHtml(String(cfg.webStyle ?? "current")),
         "{{CMD_LAYOUT}}": escapeHtml(String(cfg.commandMenuLayout ?? "arc")),
         "{{CMD_CONFIRM}}": escapeHtml(String(cfg.commandMenuConfirmMode ?? "enter")),
+        "{{CMD_MOBILE_SYNC}}": escapeHtml((cfg.commandMenuMobileSync ? "1" : "0")),
         "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? ""),
         "{{WEB_NAV_JSON}}": JSON.stringify((cfg as any).webNav ?? [])
       });
