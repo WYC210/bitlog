@@ -15,6 +15,8 @@ import { SwitchMenu } from "./components/SwitchMenu";
 import type { AdminActionId } from "./shortcuts/actions";
 import { getAdminContextKey, getActionBinding, getEffectiveBindings, isTypingTarget, matchChord, mergeShortcuts, parseSeq, parseShortcutsJson, SeqBuffer } from "./shortcuts/shortcuts";
 
+const TOPBAR_STICKY_SCROLL_THRESHOLD = 96;
+
 function useRoute() {
   const [route, setRoute] = useState<Route>(() => parseRoute(window.location.hash));
   useEffect(() => {
@@ -36,6 +38,7 @@ export function App() {
   const [theme, setThemeState] = useState<"light" | "dark">(() => getTheme());
   const [cmdOpen, setCmdOpen] = useState(false);
   const sidebarHoverExpandedRef = React.useRef(false);
+  const topbarRef = React.useRef<HTMLElement | null>(null);
 
   const isMobileSidebar = () => window.matchMedia?.("(max-width: 860px)")?.matches ?? false;
 
@@ -139,6 +142,57 @@ export function App() {
   useEffect(() => {
     closeSidebarOnMobile();
   }, [route.page, (route as any).id]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const isEditorPage = route.page === "edit";
+    if (!isEditorPage) {
+      root.removeAttribute("data-topbar-sticky");
+      root.removeAttribute("data-topbar-sticky-enabled");
+      root.style.removeProperty("--topbar-live-h");
+      return;
+    }
+
+    root.setAttribute("data-topbar-sticky-enabled", "1");
+    let rafId: number | null = null;
+
+    const syncTopbarHeight = () => {
+      const height = Math.trunc(topbarRef.current?.getBoundingClientRect().height ?? 0);
+      if (height > 0) root.style.setProperty("--topbar-live-h", `${height}px`);
+    };
+
+    const updateSticky = () => {
+      const y = window.scrollY || window.pageYOffset || 0;
+      root.setAttribute("data-topbar-sticky", y > TOPBAR_STICKY_SCROLL_THRESHOLD ? "1" : "0");
+    };
+
+    const onScroll = () => {
+      if (rafId !== null) return;
+      rafId = window.requestAnimationFrame(() => {
+        rafId = null;
+        updateSticky();
+      });
+    };
+
+    const onResize = () => {
+      syncTopbarHeight();
+      updateSticky();
+    };
+
+    syncTopbarHeight();
+    updateSticky();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onResize);
+
+    return () => {
+      if (rafId !== null) window.cancelAnimationFrame(rafId);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onResize);
+      root.removeAttribute("data-topbar-sticky");
+      root.removeAttribute("data-topbar-sticky-enabled");
+      root.style.removeProperty("--topbar-live-h");
+    };
+  }, [route.page]);
 
   const shortcutSpecs = useMemo(() => {
     const merged = mergeShortcuts(parseShortcutsJson(cfg?.shortcutsJson), parseShortcutsJson(prefs?.shortcutsJson));
@@ -548,7 +602,7 @@ export function App() {
       <div className="sidebar-backdrop" aria-hidden="true" onClick={closeSidebarOnMobile} />
 
       <main className="main" id="main">
-        <header className={`topbar${showEditorToolbox ? " topbar-editor" : ""}`} aria-label="页面头部">
+        <header ref={topbarRef} className={`topbar${showEditorToolbox ? " topbar-editor" : ""}`} aria-label="页面头部">
           <div className="title">
             <button className="iconbtn sidebar-toggle" type="button" aria-label="菜单" title="菜单" onClick={toggleSidebar}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">

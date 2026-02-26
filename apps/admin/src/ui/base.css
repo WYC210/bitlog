@@ -38,7 +38,10 @@
 
   --sidebar-w: 240px;
   --sidebar-w-collapsed: 72px;
+  --sidebar-current-w: var(--sidebar-w);
   --topbar-h: 56px;
+  --topbar-live-h: var(--topbar-h);
+  --topbar-sticky-top: 12px;
   --radius: 14px;
   --radius-sm: 12px;
   --border-w: 1px;
@@ -115,6 +118,10 @@ a {
 
 html[data-sidebar="collapsed"] .app {
   grid-template-columns: var(--sidebar-w-collapsed) minmax(0, 1fr);
+}
+
+html[data-sidebar="collapsed"] {
+  --sidebar-current-w: var(--sidebar-w-collapsed);
 }
 
 html[data-sidebar="collapsed"] .sidebar {
@@ -219,6 +226,12 @@ html[data-sidebar="collapsed"] .sidebar .iconbtn {
   justify-content: space-between;
   padding: 0 12px;
   gap: 12px;
+}
+
+html[data-topbar-sticky-enabled="1"][data-topbar-sticky="1"] .topbar {
+  position: sticky;
+  top: var(--topbar-sticky-top);
+  z-index: 220;
 }
 
 .title {
