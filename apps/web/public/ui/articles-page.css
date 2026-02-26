@@ -693,6 +693,26 @@ body[data-page="articles"] .article-summary {
     flex-wrap: wrap;
   }
 
+  .articles-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow: visible;
+    padding-bottom: 0;
+  }
+
+  .sidebar-card {
+    min-width: 0;
+    width: 100%;
+    padding: 16px;
+  }
+
+  .sidebar-card .tag-list {
+    max-width: 100%;
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+
   .pagination-btn {
     min-width: 36px;
     height: 36px;

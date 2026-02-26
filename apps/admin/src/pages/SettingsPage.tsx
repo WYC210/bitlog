@@ -1,5 +1,14 @@
 import React, { useEffect, useState } from "react";
-import type { AdminToolItem, ApiError, ProjectsConfigAdminView, SiteConfig, ToolKind, UiStyle } from "../api";
+import type {
+  AdminHotSourceItem,
+  AdminToolItem,
+  ApiError,
+  HotSourceKind,
+  ProjectsConfigAdminView,
+  SiteConfig,
+  ToolKind,
+  UiStyle
+} from "../api";
 import { CodeEditor } from "../components/CodeEditor";
 import { NoticeDialog } from "../components/NoticeDialog";
 import { AboutExperienceEditor } from "../components/about/AboutExperienceEditor";
@@ -7,13 +16,18 @@ import { AboutSkillsEditor } from "../components/about/AboutSkillsEditor";
 import { AboutVisitedPlacesEditor } from "../components/about/AboutVisitedPlacesEditor";
 import { SelectBox } from "../components/SelectBox";
 import {
+  createAdminHotSource,
   createAdminTool,
+  deleteAdminHotSource,
   deleteAdminTool,
   getConfig,
   getAdminSettings,
   getProjectsConfigAdmin,
+  listAdminHotSources,
   listAdminTools,
+  reorderAdminHotSources,
   reorderAdminTools,
+  updateAdminHotSource,
   updateAdminTool,
   updateProjectsConfigAdmin,
   updateSettings
@@ -25,7 +39,7 @@ export function SettingsPage(props: {
   cfg: SiteConfig | null;
   onCfg: (c: SiteConfig) => void;
   onError: (m: string) => void;
-  section?: "site" | "projects" | "tools" | "about" | null;
+  section?: "site" | "projects" | "tools" | "hot" | "about" | null;
 }) {
   const ABOUT_KEY_TECH_STACK = "about.tech_stack_json";
   const ABOUT_KEY_VISITED_PLACES = "about.visited_places_json";
@@ -34,6 +48,8 @@ export function SettingsPage(props: {
   const ABOUT_KEY_SIDEBAR_HISTORY_TODAY = "about.sidebar_history_today_enabled";
   const ABOUT_KEY_SIDEBAR_TRAVEL = "about.sidebar_travel_enabled";
   const POSTS_KEY_AUTO_SUMMARY = "posts.auto_summary";
+  const HOT_KEY_RSSHUB_URL = "hot.rsshub_url";
+  const HOT_KEY_RSSHUB_FALLBACK_URLS = "hot.rsshub_fallback_urls";
 
   const [baseUrl, setBaseUrl] = useState(props.cfg?.baseUrl ?? "");
   const [timezone, setTimezone] = useState(props.cfg?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone);
@@ -55,12 +71,13 @@ export function SettingsPage(props: {
       : [
           { id: "home", label: "首页", href: "/", enabled: true },
           { id: "articles", label: "文章", href: "/articles", enabled: true },
+          { id: "hot", label: "今日热点", href: "/hot", enabled: true },
           { id: "projects", label: "项目", href: "/projects", enabled: true },
           { id: "tools", label: "工具中心", href: "/tools", enabled: true },
           { id: "about", label: "关于我", href: "/about", enabled: true }
         ]
   );
-  const [webNavBuiltinToAdd, setWebNavBuiltinToAdd] = useState<"home" | "articles" | "projects" | "tools" | "about">("home");
+  const [webNavBuiltinToAdd, setWebNavBuiltinToAdd] = useState<"home" | "articles" | "hot" | "projects" | "tools" | "about">("home");
   const [switchMenuLayout, setSwitchMenuLayout] = useState<"arc" | "grid" | "dial" | "cmd">(props.cfg?.commandMenuLayout ?? "arc");
   const [switchMenuConfirmMode, setSwitchMenuConfirmMode] = useState<"enter" | "release">(props.cfg?.commandMenuConfirmMode ?? "enter");
   const [switchMenuMobileSync, setSwitchMenuMobileSync] = useState<boolean>(props.cfg?.commandMenuMobileSync ?? false);
@@ -84,6 +101,29 @@ export function SettingsPage(props: {
   const [toolEditId, setToolEditId] = useState<string | null>(null);
   const [toolDraft, setToolDraft] = useState<Partial<AdminToolItem> | null>(null);
   const [formattingClientCode, setFormattingClientCode] = useState(false);
+
+  const [hotRsshubUrl, setHotRsshubUrl] = useState("");
+  const [hotRsshubFallbackUrls, setHotRsshubFallbackUrls] = useState("");
+  const [hotSources, setHotSources] = useState<AdminHotSourceItem[]>([]);
+  const [hotEditId, setHotEditId] = useState<string | null>(null);
+  const [hotDraft, setHotDraft] = useState<Partial<AdminHotSourceItem> | null>(null);
+  const [newHotSource, setNewHotSource] = useState<{
+    slug: string;
+    name: string;
+    category: string;
+    kind: HotSourceKind;
+    routeOrUrl: string;
+    icon: string;
+    enabled: boolean;
+  }>({
+    slug: "",
+    name: "",
+    category: "技术",
+    kind: "rsshub",
+    routeOrUrl: "",
+    icon: "",
+    enabled: true
+  });
 
   const [aboutTechStackJson, setAboutTechStackJson] = useState("");
   const [aboutVisitedPlacesJson, setAboutVisitedPlacesJson] = useState("");
@@ -271,6 +311,12 @@ export function SettingsPage(props: {
         // ignore
       }
       try {
+        const list = await listAdminHotSources();
+        setHotSources(list);
+      } catch {
+        // ignore
+      }
+      try {
         const settings = await getAdminSettings([
           ABOUT_KEY_TECH_STACK,
           ABOUT_KEY_VISITED_PLACES,
@@ -278,7 +324,9 @@ export function SettingsPage(props: {
           ABOUT_KEY_SIDEBAR_DAILY_NEWS,
           ABOUT_KEY_SIDEBAR_HISTORY_TODAY,
           ABOUT_KEY_SIDEBAR_TRAVEL,
-          POSTS_KEY_AUTO_SUMMARY
+          POSTS_KEY_AUTO_SUMMARY,
+          HOT_KEY_RSSHUB_URL,
+          HOT_KEY_RSSHUB_FALLBACK_URLS
         ]);
         setAboutTechStackJson(settings[ABOUT_KEY_TECH_STACK] ?? "");
         setAboutVisitedPlacesJson(settings[ABOUT_KEY_VISITED_PLACES] ?? "");
@@ -300,6 +348,8 @@ export function SettingsPage(props: {
         );
         const raw = String(settings[POSTS_KEY_AUTO_SUMMARY] ?? "").trim().toLowerCase();
         setAutoSummaryEnabled(raw === "1" || raw === "true" || raw === "yes" || raw === "on");
+        setHotRsshubUrl(String(settings[HOT_KEY_RSSHUB_URL] ?? ""));
+        setHotRsshubFallbackUrls(String(settings[HOT_KEY_RSSHUB_FALLBACK_URLS] ?? ""));
       } catch {
         // ignore
       }
@@ -314,6 +364,7 @@ export function SettingsPage(props: {
     return [
       { id: "home", label: "首页", href: "/", enabled: true },
       { id: "articles", label: "文章", href: "/articles", enabled: true },
+      { id: "hot", label: "今日热点", href: "/hot", enabled: true },
       { id: "projects", label: "项目", href: "/projects", enabled: true },
       { id: "tools", label: "工具中心", href: "/tools", enabled: true },
       { id: "about", label: "关于我", href: "/about", enabled: true }
@@ -389,7 +440,7 @@ export function SettingsPage(props: {
     setWebNav((prev) => prev.filter((_, i) => i !== idx));
   }
 
-  function addBuiltinWebNavItem(id: "home" | "articles" | "projects" | "tools" | "about") {
+  function addBuiltinWebNavItem(id: "home" | "articles" | "hot" | "projects" | "tools" | "about") {
     if (webNav.some((x) => x.id === id)) {
       openNotice(`已存在内置项：${id}`);
       return;
@@ -757,11 +808,146 @@ export function SettingsPage(props: {
     }
   }
 
+  async function refreshHotSources() {
+    const list = await listAdminHotSources();
+    setHotSources(list);
+  }
+
+  async function saveHotSettings() {
+    props.onError("");
+    setSaving(true);
+    try {
+      await updateSettings({
+        [HOT_KEY_RSSHUB_URL]: String(hotRsshubUrl ?? "").trim(),
+        [HOT_KEY_RSSHUB_FALLBACK_URLS]: String(hotRsshubFallbackUrls ?? "").trim()
+      });
+      const newCfg = await getConfig();
+      props.onCfg(newCfg);
+      openNotice("已保存（cache_version 已递增）");
+    } catch (e) {
+      const err = e as ApiError;
+      props.onError(err.message || "保存失败");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function startEditHotSource(s: AdminHotSourceItem) {
+    setHotEditId(s.id);
+    setHotDraft({ ...s });
+  }
+
+  function cancelEditHotSource() {
+    setHotEditId(null);
+    setHotDraft(null);
+  }
+
+  async function saveHotDraft() {
+    if (!hotEditId || !hotDraft) return;
+    props.onError("");
+    setSaving(true);
+    try {
+      await updateAdminHotSource(hotEditId, {
+        slug: hotDraft.slug,
+        name: hotDraft.name,
+        category: hotDraft.category,
+        kind: hotDraft.kind as any,
+        routeOrUrl: (hotDraft as any).routeOrUrl,
+        icon: hotDraft.icon ?? null,
+        enabled: !!hotDraft.enabled
+      });
+      cancelEditHotSource();
+      await refreshHotSources();
+      openNotice("已保存（cache_version 已递增）");
+    } catch (e) {
+      const err = e as ApiError;
+      props.onError(err.message || "保存失败");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function toggleHotEnabled(s: AdminHotSourceItem) {
+    props.onError("");
+    setSaving(true);
+    try {
+      await updateAdminHotSource(s.id, { enabled: !s.enabled });
+      await refreshHotSources();
+    } catch (e) {
+      const err = e as ApiError;
+      props.onError(err.message || "更新失败");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function moveHotSource(id: string, dir: -1 | 1) {
+    const idx = hotSources.findIndex((x) => x.id === id);
+    if (idx < 0) return;
+    const next = idx + dir;
+    if (next < 0 || next >= hotSources.length) return;
+    const copy = hotSources.slice();
+    const [it] = copy.splice(idx, 1);
+    copy.splice(next, 0, it!);
+    setHotSources(copy);
+    await reorderAdminHotSources(copy.map((x) => x.id));
+    await refreshHotSources();
+  }
+
+  async function removeHotSource(id: string) {
+    if (!confirm("确定删除这个热点渠道吗？")) return;
+    props.onError("");
+    setSaving(true);
+    try {
+      await deleteAdminHotSource(id);
+      await refreshHotSources();
+      openNotice("已删除（cache_version 已递增）");
+    } catch (e) {
+      const err = e as ApiError;
+      props.onError(err.message || "删除失败");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function addHotSource() {
+    props.onError("");
+    setSaving(true);
+    try {
+      await createAdminHotSource({
+        slug: newHotSource.slug.trim(),
+        name: newHotSource.name.trim(),
+        category: newHotSource.category.trim(),
+        kind: newHotSource.kind,
+        routeOrUrl: newHotSource.routeOrUrl.trim(),
+        icon: newHotSource.icon.trim() ? newHotSource.icon.trim() : null,
+        enabled: !!newHotSource.enabled
+      });
+      setNewHotSource({
+        slug: "",
+        name: "",
+        category: "技术",
+        kind: "rsshub",
+        routeOrUrl: "",
+        icon: "",
+        enabled: true
+      });
+      await refreshHotSources();
+      openNotice("已新增（cache_version 已递增）");
+    } catch (e) {
+      const err = e as ApiError;
+      props.onError(err.message || "新增失败");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   const section = props.section ?? null;
   const showOverview = section === null;
   const showSite = section === "site";
   const showProjects = section === "projects";
   const showTools = section === "tools";
+  const showHot = section === "hot";
   const showAbout = section === "about";
 
   return (
@@ -787,6 +973,9 @@ export function SettingsPage(props: {
         <a className={`chip ${showTools ? "active" : ""}`} href="#/settings/tools">
           工具
         </a>
+        <a className={`chip ${showHot ? "active" : ""}`} href="#/settings/hot">
+          今日热点
+        </a>
         <a className={`chip ${showAbout ? "active" : ""}`} href="#/settings/about">
           关于
         </a>
@@ -796,7 +985,7 @@ export function SettingsPage(props: {
         {showOverview ? (
           <div className="card">
             <h2 style={{ margin: "0 0 8px" }}>设置</h2>
-            <div className="muted">这里把内容拆成 4 个页面，避免在一个页面里滚太长。</div>
+            <div className="muted">这里把内容拆成 5 个页面，避免在一个页面里滚太长。</div>
             <div style={{ height: 12 }} />
             <div className="grid" style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>
               <a className="embed-card" href="#/settings/site" style={{ ["--embed-accent" as any]: "#ff2d55" }}>
@@ -851,6 +1040,25 @@ export function SettingsPage(props: {
                   <div className="embed-card__main">
                     <div className="embed-card__title">工具</div>
                     <div className="embed-card__desc">工具中心：分组 / 链接 / 客户端代码</div>
+                  </div>
+                  <div className="embed-card__badge" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </div>
+                </div>
+              </a>
+              <a className="embed-card" href="#/settings/hot" style={{ ["--embed-accent" as any]: "#f97316" }}>
+                <div className="embed-card__row">
+                  <div className="embed-card__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M12 2s3 3 3 6a3 3 0 0 1-6 0c0-3 3-6 3-6z" />
+                      <path d="M6 13a6 6 0 0 0 12 0c0-2-1-4-3-6" />
+                    </svg>
+                  </div>
+                  <div className="embed-card__main">
+                    <div className="embed-card__title">今日热点</div>
+                    <div className="embed-card__desc">RSSHub 配置 + 热点渠道管理</div>
                   </div>
                   <div className="embed-card__badge" aria-hidden="true">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -980,11 +1188,16 @@ export function SettingsPage(props: {
               options={[
                 { value: "home", label: "首页" },
                 { value: "articles", label: "文章" },
+                { value: "hot", label: "今日热点" },
                 { value: "projects", label: "项目" },
                 { value: "tools", label: "工具中心" },
                 { value: "about", label: "关于我" }
               ]}
-              onChange={(v) => setWebNavBuiltinToAdd(v === "articles" || v === "projects" || v === "tools" || v === "about" ? v : "home")}
+              onChange={(v) =>
+                setWebNavBuiltinToAdd(
+                  v === "articles" || v === "hot" || v === "projects" || v === "tools" || v === "about" ? v : "home"
+                )
+              }
             />
           </label>
           <button className="chip" type="button" onClick={() => addBuiltinWebNavItem(webNavBuiltinToAdd)} disabled={saving}>
@@ -1534,9 +1747,192 @@ export function SettingsPage(props: {
       </div>
         ) : null}
 
+        {showHot ? (
+      <div className="card">
+        <h2 style={{ margin: "0 0 8px" }}>4. 今日热点（/hot）</h2>
+        <div className="muted">热点抓取/解析在 API Worker；前台 /hot 页面通过 JSON 渲染。</div>
+        <div style={{ height: 12 }} />
+
+        <h3 style={{ margin: "6px 0 4px" }}>RSSHub 配置</h3>
+        <div className="row">
+          <label>
+            RSSHub URL（主实例）
+            <input value={hotRsshubUrl} onChange={(e) => setHotRsshubUrl(e.target.value)} placeholder="https://rsshub.example.com" />
+          </label>
+          <label>
+            RSSHub Fallback URLs（逗号分隔，可空）
+            <input
+              value={hotRsshubFallbackUrls}
+              onChange={(e) => setHotRsshubFallbackUrls(e.target.value)}
+              placeholder="https://rsshub.a.com,https://rsshub.b.com"
+            />
+          </label>
+        </div>
+        <div className="nav">
+          <button className="chip chip-primary" onClick={() => void saveHotSettings()} disabled={saving}>
+            {saving ? "保存中..." : "保存 RSSHub 配置"}
+          </button>
+        </div>
+
+        <div style={{ height: 16 }} />
+        <h3 style={{ margin: "0 0 8px" }}>热点渠道（源）</h3>
+        <div className="muted">支持启用/禁用、调整顺序（↑↓）、新增/编辑/删除。</div>
+        <div style={{ height: 12 }} />
+
+        <div className="grid" style={{ gap: 10 }}>
+          {hotSources.map((s) => (
+            <div key={s.id} className="card" style={{ padding: 12, background: "rgba(255,255,255,0.02)" }}>
+              <div className="nav" style={{ justifyContent: "space-between", flexWrap: "wrap" }}>
+                <div className="nav">
+                  <button className="chip" onClick={() => void moveHotSource(s.id, -1)} title="上移">
+                    ↑
+                  </button>
+                  <button className="chip" onClick={() => void moveHotSource(s.id, 1)} title="下移">
+                    ↓
+                  </button>
+                  <button className={`chip ${s.enabled ? "chip-primary" : ""}`} onClick={() => void toggleHotEnabled(s)}>
+                    {s.enabled ? "已启用" : "已禁用"}
+                  </button>
+                </div>
+                <div className="nav">
+                  <button className="chip" onClick={() => startEditHotSource(s)}>
+                    编辑
+                  </button>
+                  <button className="chip" onClick={() => void removeHotSource(s.id)}>
+                    删除
+                  </button>
+                </div>
+              </div>
+              <div style={{ height: 8 }} />
+              <div style={{ fontWeight: 800 }}>{s.name}</div>
+              <div className="muted">
+                {s.slug} · {s.category} · {s.kind} · {s.routeOrUrl}
+              </div>
+
+              {hotEditId === s.id && hotDraft ? (
+                <div style={{ marginTop: 12 }}>
+                  <div className="row">
+                    <label>
+                      名称
+                      <input value={String(hotDraft.name ?? "")} onChange={(e) => setHotDraft({ ...hotDraft, name: e.target.value })} />
+                    </label>
+                    <label>
+                      slug
+                      <input value={String(hotDraft.slug ?? "")} onChange={(e) => setHotDraft({ ...hotDraft, slug: e.target.value })} />
+                    </label>
+                  </div>
+                  <div style={{ height: 10 }} />
+                  <div className="row">
+                    <label>
+                      分类
+                      <input value={String(hotDraft.category ?? "")} onChange={(e) => setHotDraft({ ...hotDraft, category: e.target.value })} />
+                    </label>
+                    <label>
+                      类型
+                      <SelectBox
+                        value={String(hotDraft.kind ?? "rsshub")}
+                        options={[
+                          { value: "rsshub", label: "RSSHub route" },
+                          { value: "rss", label: "RSS URL" }
+                        ]}
+                        onChange={(v) => setHotDraft({ ...hotDraft, kind: v as HotSourceKind })}
+                      />
+                    </label>
+                  </div>
+                  <div style={{ height: 10 }} />
+                  <label>
+                    route / url
+                    <input
+                      value={String((hotDraft as any).routeOrUrl ?? "")}
+                      onChange={(e) => setHotDraft({ ...hotDraft, routeOrUrl: e.target.value } as any)}
+                      placeholder={hotDraft.kind === "rss" ? "https://..." : "/v2ex/topics/hot"}
+                    />
+                  </label>
+                  <label>
+                    icon（可空）
+                    <input value={String(hotDraft.icon ?? "")} onChange={(e) => setHotDraft({ ...hotDraft, icon: e.target.value })} placeholder="https://..." />
+                  </label>
+                  <div className="nav">
+                    <button className="chip chip-primary" onClick={() => void saveHotDraft()} disabled={saving}>
+                      保存
+                    </button>
+                    <button className="chip" onClick={() => cancelEditHotSource()} disabled={saving}>
+                      取消
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          ))}
+        </div>
+
+        <div style={{ height: 14 }} />
+        <h3 style={{ margin: "0 0 8px" }}>新增渠道</h3>
+        <div className="row">
+          <label>
+            名称
+            <input value={newHotSource.name} onChange={(e) => setNewHotSource({ ...newHotSource, name: e.target.value })} />
+          </label>
+          <label>
+            slug
+            <input value={newHotSource.slug} onChange={(e) => setNewHotSource({ ...newHotSource, slug: e.target.value })} placeholder="v2ex / hackernews" />
+          </label>
+        </div>
+        <div style={{ height: 10 }} />
+        <div className="row">
+          <label>
+            分类
+            <input value={newHotSource.category} onChange={(e) => setNewHotSource({ ...newHotSource, category: e.target.value })} placeholder="技术" />
+          </label>
+          <label>
+            类型
+            <SelectBox
+              value={newHotSource.kind}
+              options={[
+                { value: "rsshub", label: "RSSHub route" },
+                { value: "rss", label: "RSS URL" }
+              ]}
+              onChange={(v) => setNewHotSource({ ...newHotSource, kind: v as HotSourceKind })}
+            />
+          </label>
+        </div>
+        <div style={{ height: 10 }} />
+        <label>
+          route / url
+          <input
+            value={newHotSource.routeOrUrl}
+            onChange={(e) => setNewHotSource({ ...newHotSource, routeOrUrl: e.target.value })}
+            placeholder={newHotSource.kind === "rss" ? "https://..." : "/hackernews/best"}
+          />
+        </label>
+        <label>
+          icon（可空）
+          <input value={newHotSource.icon} onChange={(e) => setNewHotSource({ ...newHotSource, icon: e.target.value })} placeholder="https://..." />
+        </label>
+        <div className="row">
+          <label>
+            启用
+            <SelectBox
+              value={newHotSource.enabled ? "1" : "0"}
+              options={[
+                { value: "1", label: "启用" },
+                { value: "0", label: "禁用" }
+              ]}
+              onChange={(v) => setNewHotSource({ ...newHotSource, enabled: v === "1" })}
+            />
+          </label>
+        </div>
+        <div className="nav">
+          <button className="chip chip-primary" onClick={() => void addHotSource()} disabled={saving}>
+            {saving ? "新增中..." : "新增"}
+          </button>
+        </div>
+      </div>
+        ) : null}
+
         {showAbout ? (
       <div className="card">
-        <h2 style={{ margin: "0 0 8px" }}>4. 关于页配置（/about）</h2>
+        <h2 style={{ margin: "0 0 8px" }}>5. 关于页配置（/about）</h2>
         <div className="muted">存储在 settings 表中（JSON，多行）。/about 页面会读取并展示。</div>
         <div style={{ height: 10 }} />
         <div className="nav" style={{ marginBottom: 10 }}>

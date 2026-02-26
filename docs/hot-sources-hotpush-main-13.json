@@ -1,0 +1,119 @@
+[
+  {
+    "slug": "weibo",
+    "name": "微博热搜",
+    "category": "热搜榜",
+    "kind": "rsshub",
+    "routeOrUrl": "/weibo/search/hot",
+    "icon": "https://www.google.com/s2/favicons?domain=weibo.com&sz=64",
+    "enabled": true
+  },
+  {
+    "slug": "zhihu",
+    "name": "知乎热榜",
+    "category": "热搜榜",
+    "kind": "rsshub",
+    "routeOrUrl": "/zhihu/hot",
+    "icon": "https://www.google.com/s2/favicons?domain=zhihu.com&sz=64",
+    "enabled": true
+  },
+  {
+    "slug": "bilibili",
+    "name": "B站热搜",
+    "category": "视频",
+    "kind": "rsshub",
+    "routeOrUrl": "/bilibili/hot-search",
+    "icon": "https://www.google.com/s2/favicons?domain=bilibili.com&sz=64",
+    "enabled": true
+  },
+  {
+    "slug": "v2ex",
+    "name": "V2EX 热门",
+    "category": "技术",
+    "kind": "rsshub",
+    "routeOrUrl": "/v2ex/topics/hot",
+    "icon": "https://www.google.com/s2/favicons?domain=v2ex.com&sz=64",
+    "enabled": true
+  },
+  {
+    "slug": "hackernews",
+    "name": "Hacker News",
+    "category": "技术",
+    "kind": "rsshub",
+    "routeOrUrl": "/hackernews/best",
+    "icon": "https://www.google.com/s2/favicons?domain=news.ycombinator.com&sz=64",
+    "enabled": true
+  },
+  {
+    "slug": "juejin",
+    "name": "掘金热榜",
+    "category": "技术",
+    "kind": "rsshub",
+    "routeOrUrl": "/juejin/trending/all/weekly",
+    "icon": "https://www.google.com/s2/favicons?domain=juejin.cn&sz=64",
+    "enabled": true
+  },
+  {
+    "slug": "linuxdo",
+    "name": "Linux DO",
+    "category": "技术",
+    "kind": "rss",
+    "routeOrUrl": "https://linux.do/latest.rss",
+    "icon": "https://www.google.com/s2/favicons?domain=linux.do&sz=64",
+    "enabled": true
+  },
+  {
+    "slug": "sspai",
+    "name": "少数派",
+    "category": "科技资讯",
+    "kind": "rsshub",
+    "routeOrUrl": "/sspai/index",
+    "icon": "https://www.google.com/s2/favicons?domain=sspai.com&sz=64",
+    "enabled": true
+  },
+  {
+    "slug": "pingwest",
+    "name": "品玩",
+    "category": "科技资讯",
+    "kind": "rsshub",
+    "routeOrUrl": "/pingwest/status",
+    "icon": "https://www.google.com/s2/favicons?domain=pingwest.com&sz=64",
+    "enabled": true
+  },
+  {
+    "slug": "douban_movie",
+    "name": "豆瓣热映",
+    "category": "影视",
+    "kind": "rsshub",
+    "routeOrUrl": "/douban/movie/playing",
+    "icon": "https://www.google.com/s2/favicons?domain=douban.com&sz=64",
+    "enabled": true
+  },
+  {
+    "slug": "douban_book",
+    "name": "豆瓣新书",
+    "category": "阅读",
+    "kind": "rsshub",
+    "routeOrUrl": "/douban/book/latest",
+    "icon": "https://www.google.com/s2/favicons?domain=douban.com&sz=64",
+    "enabled": true
+  },
+  {
+    "slug": "zaobao",
+    "name": "联合早报",
+    "category": "新闻",
+    "kind": "rsshub",
+    "routeOrUrl": "/zaobao/realtime/china",
+    "icon": "https://www.google.com/s2/favicons?domain=zaobao.com&sz=64",
+    "enabled": true
+  },
+  {
+    "slug": "thepaper",
+    "name": "澎湃新闻",
+    "category": "新闻",
+    "kind": "rsshub",
+    "routeOrUrl": "/thepaper/featured",
+    "icon": "https://www.google.com/s2/favicons?domain=thepaper.cn&sz=64w",
+    "enabled": true
+  }
+]

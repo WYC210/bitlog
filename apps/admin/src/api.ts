@@ -116,6 +116,58 @@ export async function reorderAdminTools(ids: string[]) {
   await apiJson("/api/admin/tools/reorder", { method: "PUT", body: JSON.stringify({ ids }) });
 }
 
+export type HotSourceKind = "rss" | "rsshub";
+
+export type AdminHotSourceItem = {
+  id: string;
+  slug: string;
+  name: string;
+  category: string;
+  kind: HotSourceKind;
+  routeOrUrl: string;
+  icon: string | null;
+  enabled: boolean;
+  sortOrder: number;
+  createdAt: number;
+  updatedAt: number;
+};
+
+export async function listAdminHotSources(): Promise<AdminHotSourceItem[]> {
+  const r = await apiJson<{ ok: true; sources: AdminHotSourceItem[] }>("/api/admin/hot-sources");
+  return r.sources ?? [];
+}
+
+export async function createAdminHotSource(payload: {
+  slug: string;
+  name: string;
+  category?: string;
+  kind?: HotSourceKind;
+  routeOrUrl: string;
+  icon?: string | null;
+  enabled?: boolean;
+}): Promise<AdminHotSourceItem> {
+  const r = await apiJson<{ ok: true; source: AdminHotSourceItem }>("/api/admin/hot-sources", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+  return r.source;
+}
+
+export async function updateAdminHotSource(
+  id: string,
+  patch: Partial<Pick<AdminHotSourceItem, "slug" | "name" | "category" | "kind" | "routeOrUrl" | "icon" | "enabled">>
+) {
+  await apiJson(`/api/admin/hot-sources/${encodeURIComponent(id)}`, { method: "PUT", body: JSON.stringify(patch) });
+}
+
+export async function deleteAdminHotSource(id: string) {
+  await apiJson(`/api/admin/hot-sources/${encodeURIComponent(id)}`, { method: "DELETE", body: JSON.stringify({}) });
+}
+
+export async function reorderAdminHotSources(ids: string[]) {
+  await apiJson("/api/admin/hot-sources/reorder", { method: "PUT", body: JSON.stringify({ ids }) });
+}
+
 export async function getConfig(): Promise<SiteConfig> {
   // Avoid browser HTTP cache; config is also cached server-side via cache_version.
   const r = await apiJson<{ ok: true; config: SiteConfig }>("/api/config", { cache: "no-store" });

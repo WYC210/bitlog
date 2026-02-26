@@ -39,6 +39,16 @@ import {
   reorderTools,
   updateTool
 } from "./services/tools.js";
+import {
+  createHotSource,
+  deleteHotSource,
+  fetchHotLists,
+  fetchHotListsIncremental,
+  listHotSourcesAdmin,
+  listHotSourcesPublic,
+  reorderHotSources,
+  updateHotSource
+} from "./services/hot-sources.js";
 
 export interface ApiBindings {
   db: Db;
@@ -190,6 +200,39 @@ function parseToolGroup(value: string | null): ToolGroup | null {
   if (s.length > 48) return null;
   if (/[\u0000-\u001f\u007f]/.test(s)) return null;
   return s;
+}
+
+function parseHotQuery(url: URL): {
+  slugs: string[] | null;
+  category: string | null;
+  limit: number;
+  fresh: boolean;
+  cacheKey: string;
+} {
+  const sourcesRaw = String(url.searchParams.get("sources") ?? "").trim();
+  const categoryRaw = String(url.searchParams.get("category") ?? "").trim();
+  const limitRaw = String(url.searchParams.get("limit") ?? "").trim();
+  const fresh = url.searchParams.get("fresh") === "1";
+
+  const slugs = sourcesRaw
+    ? sourcesRaw
+        .split(",")
+        .map((x) => x.trim().toLowerCase())
+        .filter(Boolean)
+        .slice(0, 50)
+    : null;
+  const category = categoryRaw || null;
+  const limitNum = limitRaw ? Number(limitRaw) : NaN;
+  const limit = Number.isFinite(limitNum) ? Math.max(1, Math.min(50, Math.trunc(limitNum))) : 10;
+  const cacheKey = `hot:${(slugs ? slugs.join(",") : "all").slice(0, 180)}:${(category ?? "").slice(0, 80)}:${limit}`;
+
+  return { slugs, category, limit, fresh, cacheKey };
+}
+
+function toHotCacheRequest(request: Request): Request {
+  const url = new URL(request.url);
+  url.pathname = "/api/hot";
+  return new Request(url.toString(), { method: "GET" });
 }
 
 function safeDateMs(value: unknown): number {
@@ -706,6 +749,170 @@ export function createApiApp(bindings: ApiBindings) {
     return response;
   });
 
+  app.get("/api/hot/sources", async (c) => {
+    const fresh = new URL(c.req.url).searchParams.get("fresh") === "1";
+    if (!fresh) {
+      const maybeCached = await getCachedResponse(c.req.raw, bindings.db, "hot-sources");
+      if (maybeCached) return maybeCached;
+    }
+
+    const sources = await listHotSourcesPublic(bindings.db);
+    const categories: Record<string, Array<{ slug: string; name: string; icon: string | null }>> = {};
+    for (const s of sources) {
+      const key = s.category || "其他";
+      if (!categories[key]) categories[key] = [];
+      categories[key]!.push({ slug: s.slug, name: s.name, icon: s.icon });
+    }
+    const response = c.json({ ok: true, sources, categories });
+    await putCachedResponse(c.req.raw, response, bindings.db, "hot-sources", { ttlSeconds: 3 * 60 * 60 });
+    return response;
+  });
+
+  app.get("/api/hot", async (c) => {
+    const parsed = parseHotQuery(new URL(c.req.url));
+    if (!parsed.fresh) {
+      const maybeCached = await getCachedResponse(c.req.raw, bindings.db, parsed.cacheKey);
+      if (maybeCached) return maybeCached;
+    }
+
+    const { lists, failed } = await fetchHotLists(bindings.db, {
+      ...(parsed.slugs ? { slugs: parsed.slugs } : {}),
+      ...(parsed.category ? { category: parsed.category } : {}),
+      perSourceLimit: parsed.limit
+    });
+    const response = c.json({ ok: true, lists, failed });
+    await putCachedResponse(c.req.raw, response, bindings.db, parsed.cacheKey, { ttlSeconds: 3 * 60 * 60 });
+    return response;
+  });
+
+  app.get("/api/hot/stream", async (c) => {
+    const parsed = parseHotQuery(new URL(c.req.url));
+    const hotCacheRequest = toHotCacheRequest(c.req.raw);
+    let cachedData: { lists?: unknown; failed?: unknown } | null = null;
+
+    if (!parsed.fresh) {
+      const maybeCached = await getCachedResponse(hotCacheRequest, bindings.db, parsed.cacheKey);
+      if (maybeCached) {
+        cachedData = ((await maybeCached.clone().json().catch(() => null)) as any) ?? null;
+      }
+    }
+
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      start(controller) {
+        let closed = false;
+
+        const write = (event: string, data: unknown) => {
+          if (closed) return;
+          try {
+            controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
+          } catch {
+            closed = true;
+          }
+        };
+        const close = () => {
+          if (closed) return;
+          closed = true;
+          try {
+            controller.close();
+          } catch {
+            // already closed
+          }
+        };
+
+        const run = async () => {
+          if (cachedData) {
+            const lists = Array.isArray(cachedData.lists) ? (cachedData.lists as any[]) : [];
+            const failed = Array.isArray(cachedData.failed) ? (cachedData.failed as any[]) : [];
+            const total = lists.length + failed.length;
+            let completed = 0;
+            let success = 0;
+            let failedCount = 0;
+
+            write("start", { total, cached: true });
+            for (const list of lists) {
+              completed += 1;
+              success += 1;
+              write("hotlist", list);
+              write("progress", { completed, total, success, failed: failedCount });
+            }
+            for (const failure of failed) {
+              completed += 1;
+              failedCount += 1;
+              write("failed", failure);
+              write("progress", { completed, total, success, failed: failedCount });
+            }
+            write("done", { total, success, failed: failedCount, cached: true });
+            close();
+            return;
+          }
+
+          let started = false;
+          const emitStart = (total: number) => {
+            if (started) return;
+            started = true;
+            write("start", { total, cached: false });
+          };
+
+          try {
+            const { lists, failed, total } = await fetchHotListsIncremental(
+              bindings.db,
+              {
+                ...(parsed.slugs ? { slugs: parsed.slugs } : {}),
+                ...(parsed.category ? { category: parsed.category } : {}),
+                perSourceLimit: parsed.limit,
+                onStart: ({ total }) => {
+                  emitStart(total);
+                }
+              },
+              (event) => {
+                emitStart(event.total);
+                if (event.type === "hotlist") {
+                  write("hotlist", event.list);
+                } else {
+                  write("failed", event.failure);
+                }
+                write("progress", {
+                  completed: event.completed,
+                  total: event.total,
+                  success: event.success,
+                  failed: event.failed
+                });
+              }
+            );
+
+            if (!started) emitStart(total);
+            write("done", { total, success: lists.length, failed: failed.length, cached: false });
+
+            const response = new Response(JSON.stringify({ ok: true, lists, failed }), {
+              headers: { "content-type": "application/json; charset=utf-8" }
+            });
+            await putCachedResponse(hotCacheRequest, response, bindings.db, parsed.cacheKey, {
+              ttlSeconds: 3 * 60 * 60
+            });
+          } catch (e) {
+            const message = e instanceof Error ? e.message : "Stream failed";
+            write("error", { message });
+            write("done", { total: 0, success: 0, failed: 0, cached: false });
+          } finally {
+            close();
+          }
+        };
+
+        void run();
+      }
+    });
+
+    return new Response(stream, {
+      headers: {
+        "content-type": "text/event-stream; charset=utf-8",
+        "cache-control": "no-cache, no-transform",
+        connection: "keep-alive",
+        "x-accel-buffering": "no"
+      }
+    });
+  });
+
   app.get("/api/categories", async (c) => {
     const url = new URL(c.req.url);
     const limitRaw = url.searchParams.get("limit");
@@ -1153,63 +1360,6 @@ export function createApiApp(bindings: ApiBindings) {
       errors,
       raw: { cf: cf ?? null, ipLocation: locRaw }
     });
-  });
-
-  // Public: Daily news image (proxy uapis.cn).
-  app.get("/api/news-image", async (c) => {
-    const maybeCached = await getCachedResponse(c.req.raw, bindings.db, "news-image");
-    if (maybeCached) return maybeCached;
-
-    const upstream = `https://uapis.cn/api/v1/daily/news-image`;
-    const res = await fetchWithTimeout(
-      upstream,
-      { method: "GET", headers: { accept: "image/*,*/*;q=0.8", "user-agent": "bitlog" } },
-      12_000
-    );
-    if (!res.ok) return c.json(jsonError("Upstream error", 502), 502);
-
-    const headers = new Headers();
-    const ct = res.headers.get("content-type") ?? "image/jpeg";
-    if (!ct.includes("image/")) {
-      const data = (await res.json().catch(() => null)) as any;
-      const msg = data?.message ? String(data.message) : "Upstream invalid content";
-      return c.json(jsonError(msg, 502), 502);
-    }
-    headers.set("content-type", ct);
-    const len = res.headers.get("content-length");
-    if (len) headers.set("content-length", len);
-    headers.set("cache-control", "public, max-age=600");
-
-    const response = new Response(res.body, { status: 200, headers });
-    await putCachedResponse(c.req.raw, response, bindings.db, "news-image");
-    return response;
-  });
-
-  // Public: Programmer history today (proxy uapis.cn).
-  app.get("/api/programmer-history", async (c) => {
-    const maybeCached = await getCachedResponse(c.req.raw, bindings.db, "programmer-history");
-    if (maybeCached) return maybeCached;
-
-    const upstream = `https://uapis.cn/api/v1/history/programmer/today`;
-    const res = await fetchWithTimeout(
-      upstream,
-      { method: "GET", headers: { accept: "application/json", "user-agent": "bitlog" } },
-      12_000
-    );
-    if (!res.ok) return c.json(jsonError("Upstream error", 502), 502);
-
-    const data = (await res.json().catch(() => null)) as any;
-    if (!data || typeof data !== "object") return c.json(jsonError("Upstream invalid JSON", 502), 502);
-
-    const response = c.json({
-      ok: true,
-      message: data.message ? String(data.message) : "",
-      date: data.date ? String(data.date) : "",
-      events: Array.isArray(data.events) ? data.events : [],
-      raw: data
-    });
-    await putCachedResponse(c.req.raw, response, bindings.db, "programmer-history");
-    return response;
   });
 
   // Public tools: DNS query (powered by uapis.cn).
@@ -2544,6 +2694,77 @@ export function createApiApp(bindings: ApiBindings) {
     const ids = Array.isArray(body?.ids) ? body.ids : null;
     if (!ids) return c.json(jsonError("Invalid JSON", 400), 400);
     await reorderTools(bindings.db, ids);
+    await bumpCacheVersion(bindings.db);
+    return c.json({ ok: true });
+  });
+
+  app.get("/api/admin/hot-sources", async (c) => {
+    if (!isSameOriginRequest(c.req.raw)) return c.json(jsonError("Forbidden", 403), 403);
+    const session = await requireAdmin(bindings, c.req.raw);
+    if (!session) return c.json(jsonError("Unauthorized", 401), 401);
+    const sources = await listHotSourcesAdmin(bindings.db);
+    return c.json({ ok: true, sources });
+  });
+
+  app.post("/api/admin/hot-sources", async (c) => {
+    if (!isSameOriginRequest(c.req.raw, { requireOrigin: true, requireSameSite: true })) {
+      return c.json(jsonError("Forbidden", 403), 403);
+    }
+    const session = await requireAdmin(bindings, c.req.raw);
+    if (!session) return c.json(jsonError("Unauthorized", 401), 401);
+    const body = (await c.req.json().catch(() => null)) as any;
+    if (!body || typeof body !== "object") return c.json(jsonError("Invalid JSON", 400), 400);
+    try {
+      const source = await createHotSource(bindings.db, body);
+      await bumpCacheVersion(bindings.db);
+      return c.json({ ok: true, source });
+    } catch (e) {
+      return c.json(jsonError((e as Error).message || "Bad Request", 400), 400);
+    }
+  });
+
+  app.put("/api/admin/hot-sources/reorder", async (c) => {
+    if (!isSameOriginRequest(c.req.raw, { requireOrigin: true, requireSameSite: true })) {
+      return c.json(jsonError("Forbidden", 403), 403);
+    }
+    const session = await requireAdmin(bindings, c.req.raw);
+    if (!session) return c.json(jsonError("Unauthorized", 401), 401);
+    const body = (await c.req.json().catch(() => null)) as any;
+    const ids = Array.isArray(body?.ids) ? body.ids : null;
+    if (!ids) return c.json(jsonError("Invalid JSON", 400), 400);
+    await reorderHotSources(bindings.db, ids);
+    await bumpCacheVersion(bindings.db);
+    return c.json({ ok: true });
+  });
+
+  app.put("/api/admin/hot-sources/:id", async (c) => {
+    if (!isSameOriginRequest(c.req.raw, { requireOrigin: true, requireSameSite: true })) {
+      return c.json(jsonError("Forbidden", 403), 403);
+    }
+    const session = await requireAdmin(bindings, c.req.raw);
+    if (!session) return c.json(jsonError("Unauthorized", 401), 401);
+    const id = c.req.param("id");
+    const body = (await c.req.json().catch(() => null)) as any;
+    if (!body || typeof body !== "object") return c.json(jsonError("Invalid JSON", 400), 400);
+    try {
+      await updateHotSource(bindings.db, id, body);
+      await bumpCacheVersion(bindings.db);
+      return c.json({ ok: true });
+    } catch (e) {
+      const msg = (e as Error).message || "Bad Request";
+      const status = msg === "Not found" ? 404 : 400;
+      return c.json(jsonError(msg, status), status);
+    }
+  });
+
+  app.delete("/api/admin/hot-sources/:id", async (c) => {
+    if (!isSameOriginRequest(c.req.raw, { requireOrigin: true, requireSameSite: true })) {
+      return c.json(jsonError("Forbidden", 403), 403);
+    }
+    const session = await requireAdmin(bindings, c.req.raw);
+    if (!session) return c.json(jsonError("Unauthorized", 401), 401);
+    const id = c.req.param("id");
+    await deleteHotSource(bindings.db, id);
     await bumpCacheVersion(bindings.db);
     return c.json({ ok: true });
   });

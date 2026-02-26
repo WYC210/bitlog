@@ -2,7 +2,7 @@
   if (window.__bitlogSpaNavInstalled) return;
   window.__bitlogSpaNavInstalled = true;
 
-  const SPA_PATHS = new Set(["/", "/articles", "/projects", "/tools", "/about"]);
+  const SPA_PATHS = new Set(["/", "/articles", "/hot", "/projects", "/tools", "/about"]);
   const CORE_STYLES = ["/ui/base.css", "/ui/style-pack.css"];
   const MAX_CACHE = 12;
 
@@ -137,7 +137,19 @@
   function updateNavActive(url) {
     const path = normalizePathname(url.pathname);
     const want =
-      path === "/" ? "/" : path === "/articles" ? "/articles" : path === "/projects" ? "/projects" : path === "/tools" ? "/tools" : path === "/about" ? "/about" : "";
+      path === "/"
+        ? "/"
+        : path === "/articles"
+          ? "/articles"
+          : path === "/hot"
+            ? "/hot"
+            : path === "/projects"
+              ? "/projects"
+              : path === "/tools"
+                ? "/tools"
+                : path === "/about"
+                  ? "/about"
+                  : "";
 
     const links = document.querySelectorAll(".nav.nav-main a[href]");
     let used = false;
@@ -223,6 +235,21 @@
       const src = mod.getAttribute("src") || "";
       if (src) {
         const key = "/ui/about/about.js";
+        if (!document.querySelector(`script[type="module"][data-spa-key="${key}"]`)) {
+          const s = document.createElement("script");
+          s.type = "module";
+          s.src = src;
+          s.setAttribute("data-spa-key", key);
+          document.body.appendChild(s);
+        }
+      }
+    }
+
+    const hot = nextDoc.querySelector('script[type="module"][src*="/ui/hot/hot.js"]');
+    if (hot) {
+      const src = hot.getAttribute("src") || "";
+      if (src) {
+        const key = "/ui/hot/hot.js";
         if (!document.querySelector(`script[type="module"][data-spa-key="${key}"]`)) {
           const s = document.createElement("script");
           s.type = "module";

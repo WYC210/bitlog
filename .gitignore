@@ -21,6 +21,7 @@ target/
 helloagents/
 plan/
 .claude/
+hotpush-main/
 # ==================== 通用忽略项（非依赖但常用） ====================
 # 操作系统文件
 .DS_Store

@@ -3,7 +3,7 @@ export type Route =
   | { page: "posts" }
   | { page: "edit"; id: string | "new" }
   | { page: "account" }
-  | { page: "settings"; section?: "site" | "projects" | "tools" | "about" | null };
+  | { page: "settings"; section?: "site" | "projects" | "tools" | "about" | "hot" | null };
 
 export function parseRoute(hash: string): Route {
   const raw = (hash || "#/posts").replace(/^#/, "");
@@ -16,6 +16,7 @@ export function parseRoute(hash: string): Route {
     if (sub === "projects") return { page: "settings", section: "projects" };
     if (sub === "tools") return { page: "settings", section: "tools" };
     if (sub === "about") return { page: "settings", section: "about" };
+    if (sub === "hot") return { page: "settings", section: "hot" };
     return { page: "settings", section: null };
   }
   if (parts[0] === "posts" && parts[1]) return { page: "edit", id: parts[1] as any };

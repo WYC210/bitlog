@@ -895,6 +895,85 @@ ${filter}
     });
   });
 
+  app.get("/hot", async (c) => {
+    const cfg = await getConfig(c.env);
+    if (!isWebPathEnabledByNav(cfg, "/hot")) return c.text("Not found", 404);
+    return maybeCachePage(c.req.raw, cfg, "web:hot", async () => {
+      const year = String(new Date().getFullYear());
+      const footer = renderSiteFooter(cfg, year);
+      const cv = escapeHtml(cacheVersionForRequest(cfg, c.req.url));
+      const html = replaceAll((await loadTemplates(c.env, c.req.url)).page, {
+        "{{PAGE_TITLE}}": escapeHtml(cfg.title ? `${cfg.title} · 今日热点` : "今日热点"),
+        "{{CACHE_VERSION}}": cv,
+        "{{UI_WEB_STYLE}}": escapeHtml(String(cfg.webStyle ?? "current")),
+        "{{CMD_LAYOUT}}": escapeHtml(String(cfg.commandMenuLayout ?? "arc")),
+        "{{CMD_CONFIRM}}": escapeHtml(String(cfg.commandMenuConfirmMode ?? "enter")),
+        "{{CMD_MOBILE_SYNC}}": escapeHtml((cfg.commandMenuMobileSync ? "1" : "0")),
+        "{{SHORTCUTS_TEXT}}": JSON.stringify(cfg.shortcutsJson ?? ""),
+        "{{WEB_NAV_JSON}}": JSON.stringify((cfg as any).webNav ?? []),
+        "{{PAGE_ID}}": "hot",
+        "{{SEARCH_VALUE}}": "",
+        "{{NAV_HOME_ACTIVE}}": "",
+        "{{NAV_ARTICLES_ACTIVE}}": "",
+        "{{NAV_PROJECTS_ACTIVE}}": "",
+        "{{NAV_TOOLS_ACTIVE}}": "",
+        "{{NAV_ABOUT_ACTIVE}}": "",
+        "{{HERO_SECTION}}": "",
+        "{{STATS_SECTION}}": "",
+        "{{MAIN_CONTENT}}": `
+<div class="hot-page" data-side="open">
+  <div class="hot-main">
+    <section class="hot-loading-dock" id="hotLoadingDock" data-state="hidden" aria-live="polite">
+      <div class="hot-loading-row">
+        <div class="hot-loading-left">
+          <span class="hot-dot hot-dot--pending"></span>
+          <span id="hotLoadingText">正在抓取来源...</span>
+        </div>
+        <div class="hot-loading-right" id="hotLoadingCount">0 / 0</div>
+      </div>
+      <div class="hot-loading-track">
+        <div class="hot-loading-fill" id="hotLoadingFill"></div>
+      </div>
+    </section>
+
+    <section class="hot-toolbar">
+      <div class="tag-list hot-categories" id="hot-categories"></div>
+    </section>
+
+    <section id="hot-grid" class="cards-grid hot-grid" aria-live="polite"></section>
+  </div>
+
+  <aside class="hot-side card" id="hot-sidePanel" aria-live="polite">
+    <button
+      class="hot-side-handle"
+      id="hotSideToggle"
+      type="button"
+      aria-controls="hot-sidePanel"
+      aria-expanded="true"
+    >
+      收起
+    </button>
+    <div class="card-body hot-side-body">
+      <div class="hot-side-head">
+        <div class="hot-side-title">状态监测</div>
+      </div>
+      <div class="hot-side-list" id="hot-sideList"></div>
+    </div>
+  </aside>
+
+  <button class="hot-side-float" id="hotSideFloat" type="button" aria-controls="hot-sidePanel" aria-expanded="false">
+    状态栏
+  </button>
+  <button class="hot-side-backdrop" id="hotSideBackdrop" type="button" aria-label="关闭状态栏"></button>
+</div>
+        `.trim(),
+        "{{SITE_FOOTER}}": footer,
+        "{{TOOL_SCRIPT}}": `<script type="module" src="/ui/hot/hot.js?__cv=${cv}"></script>`,
+      });
+      return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
+    });
+  });
+
   app.get("/tools", async (c) => {
     const cfg = await getConfig(c.env);
     if (!isWebPathEnabledByNav(cfg, "/tools")) return c.text("Not found", 404);

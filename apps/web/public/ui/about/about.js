@@ -313,7 +313,7 @@ async function fetchJson(path) {
 
 let heatmapInstance = null;
 let lastVisitedPlaces = [];
-let aboutSidebarFlags = { dailyNews: true, historyToday: true, travel: true };
+let aboutSidebarFlags = { travel: true };
 
 function flashElement(el) {
   if (!el) return;
@@ -410,15 +410,8 @@ async function loadConfigAndRender() {
   const visitedPlacesJson = typeof config.visitedPlacesJson === "string" ? config.visitedPlacesJson : "";
   const timelineJson = typeof config.timelineJson === "string" ? config.timelineJson : "";
   aboutSidebarFlags = {
-    dailyNews: config.sidebarDailyNewsEnabled !== false,
-    historyToday: config.sidebarHistoryTodayEnabled !== false,
     travel: config.sidebarTravelEnabled !== false
   };
-
-  const dailyCard = document.getElementById("about-news-card");
-  if (dailyCard) dailyCard.style.display = aboutSidebarFlags.dailyNews ? "" : "none";
-  const historyCard = document.getElementById("about-history-card");
-  if (historyCard) historyCard.style.display = aboutSidebarFlags.historyToday ? "" : "none";
   const travelCard = document.getElementById("about-travel-card");
   if (travelCard) travelCard.style.display = aboutSidebarFlags.travel ? "" : "none";
 
@@ -468,46 +461,6 @@ async function updateSidebarWeather() {
     if (detailEls.length >= 3) detailEls[2].textContent = "—";
   } catch (e) {
     if (descEl) descEl.textContent = `获取失败：${String(e?.message || e)}`;
-  }
-}
-
-async function updateSidebarBrief() {
-  const card = document.getElementById("about-history-card") || findSidebarCardByTitle("今日快讯");
-  if (!card) return;
-  setGlassCardTitle(card, "历史上的今日");
-  const list = card.querySelector(".glass-list");
-  const badge = card.querySelector(".glass-card-badge");
-  if (!list) return;
-
-  try {
-    const data = await fetchJson("/api/programmer-history");
-    const events = Array.isArray(data?.events) ? data.events : [];
-    const top = events.slice(0, 6);
-    if (badge) badge.textContent = String(events.length);
-
-    list.innerHTML = top
-      .map((ev) => {
-        const year = ev?.year ?? "";
-        const title = ev?.title ? String(ev.title) : "";
-        const subtitle = year ? `${year}` : "";
-        return `
-<div class="glass-list-item">
-  <div class="glass-list-item-icon">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <circle cx="12" cy="12" r="10"></circle>
-      <polyline points="12 6 12 12 16 14"></polyline>
-    </svg>
-  </div>
-  <div class="glass-list-item-content">
-    <div class="glass-list-item-title">${escapeHtml(title)}</div>
-    <div class="glass-list-item-subtitle"><span>${escapeHtml(subtitle || "历史上的今日")}</span></div>
-  </div>
-</div>
-`.trim();
-      })
-      .join("");
-  } catch {
-    // ignore
   }
 }
 
@@ -614,139 +567,6 @@ async function updateSidebarTravel() {
   }
 }
 
-function refreshNewsImage() {
-  const img = $("about-news-image");
-  if (!img) return;
-  if (!img.getAttribute("data-zoom-bound")) {
-    img.setAttribute("data-zoom-bound", "1");
-    img.setAttribute("loading", "lazy");
-    img.setAttribute("decoding", "async");
-    img.addEventListener("click", () => {
-      const src = String(img.currentSrc || img.src || "").trim();
-      if (!src) return;
-      window.open(src, "_blank", "noopener,noreferrer");
-    });
-
-    if (!$("about-news-hint")) {
-      try {
-        const section = img.closest("section");
-        const meta = section ? section.querySelector(".meta") : null;
-        if (meta) meta.textContent = "每日新闻图片";
-      } catch {
-        // ignore
-      }
-
-      const hint = document.createElement("div");
-      hint.className = "meta";
-      hint.style.marginTop = "6px";
-      hint.textContent = "点击查看大图";
-      img.insertAdjacentElement("afterend", hint);
-    }
-
-    const mq = window.matchMedia ? window.matchMedia("(min-width: 1680px)") : null;
-    const onChange = () => refreshNewsImage();
-    if (mq && typeof mq.addEventListener === "function") mq.addEventListener("change", onChange);
-    else if (mq && typeof mq.addListener === "function") mq.addListener(onChange);
-    window.addEventListener("resize", onChange, { passive: true });
-  }
-
-  const mq = window.matchMedia ? window.matchMedia("(min-width: 1680px)") : null;
-  const wide = mq ? mq.matches : window.innerWidth >= 1680;
-  const hint = $("about-news-hint");
-  if (!wide) {
-    img.removeAttribute("src");
-    if (hint) hint.style.display = "none";
-    return;
-  }
-  if (hint) hint.style.display = "";
-  if (!img.getAttribute("src")) img.src = `/api/news-image?__t=${Date.now()}`;
-}
-
-let floatNewsEls = null;
-
-function ensureFloatNewsCard() {
-  if (floatNewsEls) return floatNewsEls;
-
-  const root = document.createElement("div");
-  root.id = "about-float-news";
-  root.className = "glass-card about-float-news";
-  root.style.display = "none";
-
-  const header = document.createElement("div");
-  header.className = "glass-card-header";
-
-  const title = document.createElement("div");
-  title.className = "glass-card-title";
-  title.innerHTML = `
-<span class="glass-card-icon" aria-hidden="true">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-    <path d="M4 4h16v16H4z"></path>
-    <path d="M8 8h8M8 12h8M8 16h5"></path>
-  </svg>
-</span>
-<span>每日新闻</span>
-`.trim();
-
-  const actions = document.createElement("div");
-  actions.style.display = "flex";
-  actions.style.gap = "8px";
-  actions.style.alignItems = "center";
-
-  const openBtn = document.createElement("a");
-  openBtn.className = "chip";
-  openBtn.href = "/api/news-image";
-  openBtn.target = "_blank";
-  openBtn.rel = "noopener noreferrer";
-  openBtn.textContent = "查看";
-  openBtn.title = "新窗口打开";
-
-  actions.appendChild(openBtn);
-  header.appendChild(title);
-  header.appendChild(actions);
-
-  const body = document.createElement("div");
-  body.className = "glass-card-body";
-
-  root.appendChild(header);
-  root.appendChild(body);
-  document.body.appendChild(root);
-
-  floatNewsEls = { root, body };
-  return floatNewsEls;
-}
-
-function setupFloatingNewsImage() {
-  const img = $("about-news-image");
-  const inlineWrap = $("about-news-inline");
-  if (!img || !inlineWrap) return;
-
-  const floatCard = ensureFloatNewsCard();
-  const mq = window.matchMedia ? window.matchMedia("(min-width: 1860px)") : null;
-
-  const apply = () => {
-    const enabled = mq ? mq.matches : window.innerWidth >= 1860;
-    if (enabled) {
-      document.body.classList.add("about-float-news-enabled");
-      floatCard.root.style.display = "";
-      if (!floatCard.body.contains(img)) floatCard.body.appendChild(img);
-      return;
-    }
-
-    document.body.classList.remove("about-float-news-enabled");
-    floatCard.root.style.display = "none";
-    if (!inlineWrap.contains(img)) inlineWrap.appendChild(img);
-  };
-
-  if (!img.getAttribute("data-float-wired")) {
-    img.setAttribute("data-float-wired", "1");
-    if (mq && typeof mq.addEventListener === "function") mq.addEventListener("change", apply);
-    else if (mq && typeof mq.addListener === "function") mq.addListener(apply);
-    window.addEventListener("resize", apply, { passive: true });
-  }
-
-  apply();
-}
-
 async function mountHeatmap() {
   const root = $("about-heatmap");
   if (!root) return;
@@ -775,126 +595,9 @@ async function main() {
   }
 
   await loadConfigAndRender().catch(() => null);
-  if (aboutSidebarFlags.dailyNews) refreshNewsImage();
   await mountHeatmap();
-  if (aboutSidebarFlags.historyToday) void updateSidebarBrief();
   if (aboutSidebarFlags.travel) void updateSidebarTravel();
 }
-let previewEl = null;
-function ensureImagePreview() {
-  if (previewEl) return previewEl;
-
-  const overlay = document.createElement("div");
-  overlay.style.position = "fixed";
-  overlay.style.inset = "0";
-  overlay.style.zIndex = "9999";
-  overlay.style.display = "none";
-  overlay.style.pointerEvents = "none";
-
-  const panel = document.createElement("div");
-  panel.style.position = "fixed";
-  panel.style.left = "16px";
-  panel.style.top = "92px";
-  panel.style.bottom = "16px";
-  panel.style.width = "min(520px, 92vw)";
-  panel.style.display = "flex";
-  panel.style.flexDirection = "column";
-  panel.style.gap = "10px";
-  panel.style.padding = "12px";
-  panel.style.borderRadius = "16px";
-  panel.style.border = "1px solid rgba(255,255,255,0.12)";
-  panel.style.background = "rgba(15, 23, 42, 0.72)";
-  panel.style.backdropFilter = "blur(12px)";
-  panel.style.boxShadow = "0 18px 70px rgba(0,0,0,0.55)";
-  panel.style.pointerEvents = "auto";
-
-  const header = document.createElement("div");
-  header.style.display = "flex";
-  header.style.alignItems = "center";
-  header.style.justifyContent = "space-between";
-  header.style.gap = "10px";
-
-  const title = document.createElement("div");
-  title.className = "meta";
-  title.style.fontWeight = "800";
-  title.textContent = "每日新闻图片";
-
-  const closeBtn = document.createElement("button");
-  closeBtn.type = "button";
-  closeBtn.className = "chip";
-  closeBtn.textContent = "关闭";
-
-  header.appendChild(title);
-  header.appendChild(closeBtn);
-  panel.appendChild(header);
-
-  const img = document.createElement("img");
-  img.style.width = "100%";
-  img.style.height = "100%";
-  img.style.maxHeight = "calc(100vh - 160px)";
-  img.style.objectFit = "contain";
-  img.style.borderRadius = "12px";
-  img.style.border = "1px solid rgba(255,255,255,0.10)";
-  img.style.background = "rgba(0,0,0,0.2)";
-  img.alt = "news-image";
-  panel.appendChild(img);
-  overlay.appendChild(panel);
-
-  const close = () => {
-    overlay.style.display = "none";
-    img.src = "";
-  };
-
-  closeBtn.addEventListener("click", close);
-
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") close();
-  });
-
-  document.body.appendChild(overlay);
-  const applyLayout = () => {
-    const small = window.matchMedia && window.matchMedia("(max-width: 720px)").matches;
-    if (small) {
-      // Mobile: use fullscreen modal.
-      overlay.style.pointerEvents = "auto";
-      overlay.style.background = "rgba(0,0,0,0.72)";
-      overlay.style.backdropFilter = "blur(8px)";
-      panel.style.left = "50%";
-      panel.style.top = "50%";
-      panel.style.bottom = "auto";
-      panel.style.transform = "translate(-50%, -50%)";
-      panel.style.width = "min(96vw, 720px)";
-      panel.style.maxHeight = "92vh";
-    } else {
-      // Desktop: left floating panel (doesn't block page).
-      overlay.style.pointerEvents = "none";
-      overlay.style.background = "transparent";
-      overlay.style.backdropFilter = "";
-      panel.style.left = "16px";
-      panel.style.top = "92px";
-      panel.style.bottom = "16px";
-      panel.style.transform = "";
-      panel.style.width = "min(520px, 92vw)";
-      panel.style.maxHeight = "";
-    }
-  };
-
-  window.addEventListener("resize", applyLayout, { passive: true });
-  applyLayout();
-
-  previewEl = { overlay, img, close, applyLayout };
-  return previewEl;
-}
-
-function openImagePreview(url) {
-  const u = String(url ?? "").trim();
-  if (!u) return;
-  const p = ensureImagePreview();
-  if (typeof p.applyLayout === "function") p.applyLayout();
-  p.img.src = u;
-  p.overlay.style.display = "block";
-}
-
 let initRunning = false;
 async function initAbout() {
   if (initRunning) return;

@@ -28,13 +28,19 @@ export async function putCachedResponse(
   request: Request,
   response: Response,
   db: Db,
-  key: string
+  key: string,
+  opts?: { ttlSeconds?: number }
 ): Promise<void> {
   if (request.method !== "GET") return;
   if (!hasCachesDefault()) return;
   if (!response.ok) return;
 
   const cfg = await getSiteConfig(db);
+  const overrideTtl = opts?.ttlSeconds;
+  const ttlSeconds =
+    Number.isFinite(overrideTtl) && typeof overrideTtl === "number" && overrideTtl > 0
+      ? Math.min(86400, Math.trunc(overrideTtl))
+      : cfg.cacheTtlSeconds;
   const url = new URL(request.url);
   url.searchParams.set("__cv", String(cfg.cacheVersion));
   url.searchParams.set("__k", key);
@@ -42,7 +48,7 @@ export async function putCachedResponse(
   const cacheKey = new Request(url.toString(), { method: "GET" });
 
   const headers = new Headers(response.headers);
-  headers.set("cache-control", `public, max-age=${cfg.cacheTtlSeconds}`);
+  headers.set("cache-control", `public, max-age=${ttlSeconds}`);
   const toCache = new Response(response.clone().body, {
     status: response.status,
     headers

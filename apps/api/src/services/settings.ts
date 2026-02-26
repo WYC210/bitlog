@@ -113,6 +113,7 @@ function defaultWebNav(): WebNavItem[] {
   return [
     { id: "home", label: "首页", href: "/", enabled: true },
     { id: "articles", label: "文章", href: "/articles", enabled: true },
+    { id: "hot", label: "今日热点", href: "/hot", enabled: true },
     { id: "projects", label: "项目", href: "/projects", enabled: true },
     { id: "tools", label: "工具中心", href: "/tools", enabled: true },
     { id: "about", label: "关于我", href: "/about", enabled: true }

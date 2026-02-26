@@ -54,9 +54,61 @@ body[data-page="projects"] .about-contact {
   display: none;
 }
 
-/* Left sidebar: only enabled on wide About page */
-.about-sidebar--left {
+/* Tools/Projects: flatten content area (no card shell). */
+body[data-page="tools"] .about-main > article.card:has(.cards-grid),
+body[data-page="projects"] .about-main > article.card:has(.cards-grid) {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+body[data-page="tools"] .about-main > article.card:has(.cards-grid):hover,
+body[data-page="projects"] .about-main > article.card:has(.cards-grid):hover {
+  transform: none;
+  box-shadow: none;
+}
+
+body[data-page="tools"] .about-main > article.card:has(.cards-grid) > .card-body,
+body[data-page="projects"] .about-main > article.card:has(.cards-grid) > .card-body {
+  padding: 0;
+}
+
+/* Tools/Projects: flatten item list (no item cards). */
+body[data-page="tools"] .cards-grid,
+body[data-page="projects"] .cards-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+body[data-page="tools"] .cards-grid > .card-link,
+body[data-page="projects"] .cards-grid > .card-link {
+  padding: 14px 0;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+body[data-page="tools"] .cards-grid > .card-link:hover,
+body[data-page="projects"] .cards-grid > .card-link:hover {
+  transform: none;
+  border-color: var(--border);
+  background: transparent;
+  box-shadow: none;
+}
+
+/* Hot: reuse shared template but hide About-only sections/sidebars */
+body[data-page="hot"] .about-sidebar,
+body[data-page="hot"] .about-section,
+body[data-page="hot"] .about-contact {
   display: none;
+}
+
+body[data-page="hot"] .about-layout {
+  grid-template-columns: 1fr;
 }
 
 @media (min-width: 1680px) {
@@ -69,28 +121,8 @@ body[data-page="projects"] .about-contact {
   }
 
   body[data-page="about"] .about-layout {
-    grid-template-columns: 320px 1fr 360px;
+    grid-template-columns: 1fr 360px;
   }
-
-  body[data-page="about"] .about-sidebar--left {
-    display: flex;
-  }
-}
-
-/* About page: daily news image in left sidebar */
-body[data-page="about"] #about-news-card .glass-card-body {
-  max-height: calc(100vh - 220px);
-  overflow: auto;
-}
-
-body[data-page="about"] #about-news-image {
-  display: block;
-  width: 100%;
-  height: auto;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(0, 0, 0, 0.15);
-  cursor: pointer;
 }
 
 /* Custom scrollbar for sidebar */
