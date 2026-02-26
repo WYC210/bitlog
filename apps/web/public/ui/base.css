@@ -14,8 +14,8 @@
   --danger: #ef4444;
   --radius: 16px;
   --radius-sm: 12px;
-  --shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
-  --shadow-soft: 0 6px 16px rgba(15, 23, 42, 0.06);
+  --shadow: none;
+  --shadow-soft: none;
   --focus: 0 0 0 3px rgba(75, 107, 255, 0.25);
   --font: "Noto Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
   --theme-transition: 320ms;
@@ -41,8 +41,8 @@
   --primary: #4b6bff;
   --primary-700: #839dff;
   --primary-100: rgba(75, 107, 255, 0.2);
-  --shadow: 0 12px 24px rgba(0, 0, 0, 0.35);
-  --shadow-soft: 0 6px 16px rgba(0, 0, 0, 0.25);
+  --shadow: none;
+  --shadow-soft: none;
   --bg-glow-1: rgba(75, 107, 255, 0.2);
   --bg-glow-2: rgba(99, 102, 241, 0.14);
   --bg-glow-3: rgba(56, 189, 248, 0.1);
@@ -2589,4 +2589,40 @@ select:focus {
   .markdown-editor textarea {
     transition: none !important;
   }
+}
+
+/* Unified blog card policy: no shadows on card-like surfaces. */
+body[data-page] .card,
+body[data-page] .card:hover,
+body[data-page] .card.is-active,
+body[data-page] .card.soft,
+body[data-page] .card-link,
+body[data-page] .card-link:hover,
+body[data-page] .widget,
+body[data-page] .widget:hover,
+body[data-page] .sidebar-card,
+body[data-page] .sidebar-card:hover,
+body[data-page] .articles-header,
+body[data-page] .pagination-bar,
+body[data-page] .sort-menu,
+body[data-page] .related-post-card,
+body[data-page] .related-post-card:hover,
+body[data-page] .post-nav-item,
+body[data-page] .post-nav-item:hover,
+body[data-page] .about-stat-card,
+body[data-page] .about-stat-card:hover,
+body[data-page] .about-skill-card,
+body[data-page] .about-skill-card:hover,
+body[data-page] .about-contact,
+body[data-page] .glass-card,
+body[data-page] .glass-card:hover,
+body[data-page] .hot-ticker,
+body[data-page] .hot-loading-dock,
+body[data-page] .hot-side,
+body[data-page] .hot-side-float,
+body[data-page] .embed-card,
+body[data-page] .embed-card:hover,
+body[data-page] .code-block,
+body[data-page] .code-block:hover {
+  box-shadow: none !important;
 }

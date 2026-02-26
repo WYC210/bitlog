@@ -43,7 +43,7 @@ body[data-page="hot"] .about-layout {
   --hot-panel-2: rgba(16, 33, 60, 0.88);
   --hot-surface-2: rgba(23, 42, 72, 0.72);
   --hot-border: rgba(255, 255, 255, 0.12);
-  --hot-shadow: 0 18px 40px rgba(3, 8, 20, 0.42);
+  --hot-shadow: none;
   --hot-hover: rgba(255, 255, 255, 0.05);
   --hot-dash: rgba(255, 255, 255, 0.14);
   --hot-side-width: 286px;
@@ -66,7 +66,7 @@ html[data-theme="light"] body[data-page="hot"] .hot-page {
   --hot-panel-2: rgba(240, 247, 255, 0.94);
   --hot-surface-2: rgba(227, 238, 250, 0.92);
   --hot-border: rgba(26, 49, 84, 0.12);
-  --hot-shadow: 0 14px 34px rgba(30, 52, 84, 0.12);
+  --hot-shadow: none;
   --hot-hover: rgba(22, 48, 92, 0.06);
   --hot-dash: rgba(22, 48, 92, 0.16);
 }
@@ -187,7 +187,7 @@ html[data-theme="light"] body[data-page="hot"] .hot-ticker {
   border-radius: 14px;
   border: 1px solid var(--hot-border);
   background: color-mix(in srgb, var(--hot-panel-2) 90%, transparent);
-  box-shadow: 0 16px 32px rgba(2, 8, 22, 0.42);
+  box-shadow: none;
   padding: 10px 12px;
   display: grid;
   gap: 7px;
@@ -688,12 +688,12 @@ html[data-theme="light"] body[data-page="hot"] .hot-side {
     line-height: 1;
     padding: 10px 14px;
     cursor: pointer;
-    box-shadow: 0 10px 24px rgba(2, 8, 20, 0.34);
+    box-shadow: none;
   }
 
   html[data-theme="light"] body[data-page="hot"] .hot-side-float {
     background: color-mix(in srgb, var(--hot-panel-2) 92%, #fff 8%);
-    box-shadow: 0 8px 20px rgba(22, 48, 92, 0.14);
+    box-shadow: none;
   }
 
   .hot-page[data-side="open"] .hot-side-float {

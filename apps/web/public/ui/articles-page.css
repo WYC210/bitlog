@@ -66,13 +66,13 @@ body[data-page="articles"] .article-card:hover::before {
 
 body[data-page="articles"] .article-card:hover {
   transform: translateY(-4px) !important;
-  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12) !important;
+  box-shadow: none !important;
   border-color: color-mix(in srgb, var(--primary) 20%, var(--border)) !important;
   border-left-color: transparent !important;
 }
 
 [data-theme="dark"] body[data-page="articles"] .article-card:hover {
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4) !important;
+  box-shadow: none !important;
   border-color: rgba(131, 157, 255, 0.3) !important;
 }
 

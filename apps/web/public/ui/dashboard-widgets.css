@@ -6,7 +6,7 @@
   --dashboard-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   --glass-bg: rgba(255, 255, 255, 0.1);
   --glass-border: rgba(255, 255, 255, 0.2);
-  --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+  --glass-shadow: none;
   --glass-blur: 12px;
   --card-radius: 20px;
   --card-padding: 24px;
@@ -16,7 +16,7 @@
 [data-theme="dark"] {
   --glass-bg: rgba(30, 41, 59, 0.7);
   --glass-border: rgba(148, 163, 184, 0.2);
-  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+  --glass-shadow: none;
 }
 
 /* Dashboard Container */
@@ -76,12 +76,12 @@
 
 .glass-card:hover {
   transform: translateY(-8px) scale(1.02);
-  box-shadow: 0 16px 48px 0 rgba(31, 38, 135, 0.5);
+  box-shadow: none;
   border-color: rgba(255, 255, 255, 0.3);
 }
 
 [data-theme="dark"] .glass-card:hover {
-  box-shadow: 0 16px 48px 0 rgba(0, 0, 0, 0.7);
+  box-shadow: none;
 }
 
 /* Card Header */

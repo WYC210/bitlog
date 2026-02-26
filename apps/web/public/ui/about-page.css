@@ -680,7 +680,7 @@ body[data-page="hot"] .about-layout {
 
 [data-theme="dark"] .about-stat-card:hover,
 [data-theme="dark"] .about-skill-card:hover {
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+  box-shadow: none;
 }
 
 /* Animations */
@@ -762,13 +762,13 @@ body[data-page="hot"] .about-layout {
 
 @keyframes bitlogFlashRing {
   0% {
-    box-shadow: 0 0 0 0 rgba(75, 107, 255, 0.0), 0 10px 40px rgba(0, 0, 0, 0.35);
+    box-shadow: none;
   }
   20% {
-    box-shadow: 0 0 0 6px rgba(75, 107, 255, 0.22), 0 18px 60px rgba(0, 0, 0, 0.45);
+    box-shadow: none;
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(75, 107, 255, 0.0), 0 10px 40px rgba(0, 0, 0, 0.35);
+    box-shadow: none;
   }
 }
 
@@ -782,12 +782,12 @@ body[data-page="hot"] .about-layout {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(0, 0, 0, 0.1);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  box-shadow: none;
 }
 
 [data-theme="light"] .glass-card:hover {
   border-color: rgba(0, 0, 0, 0.15);
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.15);
+  box-shadow: none;
 }
 
 [data-theme="light"] .glass-card-title {
@@ -861,5 +861,5 @@ body[data-page="hot"] .about-layout {
 }
 
 [data-theme="dark"] .glass-card:hover {
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7);
+  box-shadow: none;
 }

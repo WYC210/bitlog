@@ -275,3 +275,13 @@ html[data-ui-style="terminal"] body {
     radial-gradient(900px 520px at 50% 110%, var(--bg-glow-3), transparent 65%);
 }
 
+/* Unified blog card policy: style packs must not reintroduce card shadows. */
+html[data-ui-style] {
+  --shadow: none;
+  --shadow-soft: none;
+}
+
+html[data-ui-style][data-theme="dark"] {
+  --shadow: none;
+  --shadow-soft: none;
+}
