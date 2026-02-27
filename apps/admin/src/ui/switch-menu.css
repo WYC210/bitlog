@@ -14,10 +14,99 @@
   overscroll-behavior: contain;
 }
 
+.switch-overlay.layout-arc {
+  background:
+    radial-gradient(900px 520px at 50% 110%, rgba(244, 63, 94, 0.22), transparent 66%),
+    linear-gradient(180deg, rgba(15, 23, 42, 0.16), rgba(3, 7, 18, 0.56)),
+    color-mix(in srgb, #000 72%, transparent);
+}
+
+.switch-overlay.layout-grid {
+  background:
+    linear-gradient(90deg, rgba(96, 165, 250, 0.08) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(96, 165, 250, 0.08) 1px, transparent 1px),
+    radial-gradient(900px 480px at 50% -20%, rgba(96, 165, 250, 0.2), transparent 68%),
+    color-mix(in srgb, #000 72%, transparent);
+  background-size: 32px 32px, 32px 32px, auto, auto;
+}
+
+.switch-overlay.layout-dial {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(34, 211, 238, 0.14), transparent 48%),
+    repeating-radial-gradient(circle at 50% 50%, rgba(34, 211, 238, 0.08) 0 2px, transparent 2px 22px),
+    color-mix(in srgb, #000 74%, transparent);
+}
+
+.switch-overlay.layout-cmd {
+  background:
+    radial-gradient(900px 480px at 40% -30%, rgba(34, 197, 94, 0.2), transparent 68%),
+    linear-gradient(180deg, rgba(3, 10, 7, 0.74), rgba(2, 6, 3, 0.82)),
+    color-mix(in srgb, #000 78%, transparent);
+}
+
 .switch-scene {
   position: relative;
   width: 100%;
   height: 100%;
+}
+
+.switch-stage-head {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  z-index: 10060;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--switch-accent) 45%, var(--border));
+  background: color-mix(in srgb, var(--panel2) 84%, transparent);
+  box-shadow:
+    0 8px 24px color-mix(in srgb, var(--switch-accent) 20%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--switch-accent) 25%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.switch-stage-sigil {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--switch-accent) 56%, transparent);
+  background: color-mix(in srgb, var(--switch-accent) 16%, transparent);
+  display: grid;
+  place-items: center;
+  font-weight: 900;
+  font-size: 12px;
+  letter-spacing: 0.2px;
+  color: color-mix(in srgb, var(--switch-accent) 92%, #fff);
+}
+
+.switch-stage-chip {
+  border-radius: 999px;
+  padding: 4px 9px;
+  border: 1px solid color-mix(in srgb, var(--switch-accent) 52%, transparent);
+  background: color-mix(in srgb, var(--switch-accent) 20%, transparent);
+  font: 700 11px/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  letter-spacing: 0.14em;
+  color: color-mix(in srgb, var(--text) 94%, transparent);
+}
+
+.switch-stage-copy {
+  font-size: 11px;
+  letter-spacing: 0.15px;
+  color: color-mix(in srgb, var(--muted) 95%, transparent);
+}
+
+.switch-stage-kbd {
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--switch-accent) 50%, transparent);
+  background: color-mix(in srgb, var(--switch-accent) 22%, transparent);
+  padding: 4px 8px;
+  font: 700 10px/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  letter-spacing: 0.04em;
+  color: color-mix(in srgb, var(--text) 92%, transparent);
 }
 
 .switch-handle {
@@ -88,7 +177,7 @@
 
 .switch-info {
   position: absolute;
-  top: 34px;
+  top: 80px;
   left: 34px;
   z-index: 10050;
   min-width: 260px;
@@ -280,6 +369,14 @@
   font-weight: 750;
 }
 
+.switch-cmd-foot {
+  padding: 10px 12px;
+  border-top: 1px solid color-mix(in srgb, #fff 10%, transparent);
+  color: color-mix(in srgb, #fff 62%, transparent);
+  font: 700 11px/1.2 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  letter-spacing: 0.12px;
+}
+
 .switch-dial {
   position: relative;
   width: 100%;
@@ -463,6 +560,19 @@
   border-radius: 999px;
   background: radial-gradient(closest-side at 40% 30%, color-mix(in srgb, #fff 10%, transparent), transparent 62%);
   opacity: 0.75;
+}
+
+@media (max-width: 980px) {
+  .switch-stage-head {
+    top: 14px;
+    right: 14px;
+  }
+
+  .switch-info {
+    top: 68px;
+    left: 18px;
+    max-width: calc(100vw - 36px);
+  }
 }
 
 .switch-tile {

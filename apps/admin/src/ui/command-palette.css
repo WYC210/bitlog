@@ -97,15 +97,55 @@
   color: rgba(248, 113, 113, 0.95);
 }
 
+.cmdp-item.is-danger .cmdp-tag {
+  border-color: rgba(248, 113, 113, 0.48);
+  background: rgba(248, 113, 113, 0.14);
+  color: rgba(248, 113, 113, 0.95);
+}
+
 .cmdp-main {
   flex: 1;
   min-width: 0;
+}
+
+.cmdp-title-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+
+.cmdp-tag {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  border: var(--border-w) solid var(--border);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--muted);
+  padding: 3px 8px;
+  font: 700 10px/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  letter-spacing: 0.06em;
+}
+
+.cmdp-tag--action {
+  border-color: color-mix(in srgb, var(--accent) 44%, var(--border));
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: color-mix(in srgb, var(--text) 94%, transparent);
+}
+
+.cmdp-tag--setStyle {
+  border-color: rgba(248, 113, 113, 0.45);
+  background: rgba(248, 113, 113, 0.14);
+  color: rgba(248, 113, 113, 0.95);
 }
 
 .cmdp-title {
   font-weight: 750;
   font-size: 13px;
   letter-spacing: 0.2px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .cmdp-desc {
@@ -142,4 +182,3 @@
   color: var(--muted2);
   font-size: 12px;
 }
-

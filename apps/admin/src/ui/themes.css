@@ -304,7 +304,7 @@ html[data-ui-style="brutal"] {
   --accent: #ff2d55;
   --warn: #ffd60a;
   --danger: #ff453a;
-  --shadow: 10px 10px 0 rgba(0, 0, 0, 0.55);
+  --shadow: 0 0 0 rgba(0, 0, 0, 0);
   --border-w: 2px;
   --radius: 10px;
   --radius-sm: 10px;
@@ -357,7 +357,7 @@ html[data-ui-style="brutal"] .me,
 html[data-ui-style="brutal"] .table,
 html[data-ui-style="brutal"] .kpi,
 html[data-ui-style="brutal"] .segmented {
-  box-shadow: var(--shadow);
+  box-shadow: none;
 }
 
 html[data-ui-style="brutal"] .nav a {
@@ -379,7 +379,7 @@ html[data-ui-style="brutal"][data-theme="light"] {
   --accent: #ff2d55;
   --warn: #b45309;
   --danger: #dc2626;
-  --shadow: 10px 10px 0 rgba(15, 23, 42, 0.18);
+  --shadow: 0 0 0 rgba(0, 0, 0, 0);
   --focus: 0 0 0 3px rgba(255, 45, 85, 0.22);
 
   --sidebar-bg: linear-gradient(180deg, rgba(255, 45, 85, 0.08), rgba(255, 255, 255, 0.72));

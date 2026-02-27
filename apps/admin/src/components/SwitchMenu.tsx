@@ -131,8 +131,8 @@ function polar(cx: number, cy: number, r: number, deg: number) {
 export function SwitchMenu(props: {
   enabled: boolean;
   items: SwitchMenuItem[];
-  layout?: SwitchMenuLayout;
-  confirmMode?: SwitchMenuConfirmMode;
+  layout?: SwitchMenuLayout | undefined;
+  confirmMode?: SwitchMenuConfirmMode | undefined;
 }) {
   const items = props.items ?? [];
   const [open, setOpen] = useState(false);
@@ -938,6 +938,7 @@ export function SwitchMenu(props: {
 
   const shouldCloseFromBackdropClick = (target: HTMLElement | null) => {
     if (!target) return false;
+    if (target.closest(".switch-stage-head")) return false;
     if (target.closest(".switch-cmd-panel")) return false;
     if (target.closest(".switch-tile")) return false;
     if (target.closest(".switch-dial")) return false;
@@ -948,6 +949,13 @@ export function SwitchMenu(props: {
 
   const stripLayoutClass =
     layout === "arc" ? "is-arc" : layout === "grid" ? "is-grid" : layout === "cmd" ? "is-cmd" : "is-dial";
+  const layoutMeta: Record<SwitchMenuLayout, { title: string; subtitle: string; hotkey: string; sigil: string }> = {
+    arc: { title: "ARC//01", subtitle: "Cinematic Coverflow", hotkey: "ALT+1", sigil: "◢" },
+    grid: { title: "GRID//02", subtitle: "Brutal Matrix Board", hotkey: "ALT+2", sigil: "▦" },
+    dial: { title: "DIAL//03", subtitle: "Neon Orbit Console", hotkey: "ALT+3", sigil: "◎" },
+    cmd: { title: "CMD//04", subtitle: "Terminal Battle Deck", hotkey: "ALT+4", sigil: ">_" }
+  };
+  const activeMeta = layoutMeta[layout];
 
   return (
     <>
@@ -977,7 +985,7 @@ export function SwitchMenu(props: {
       {open ? (
         <div
        ref={overlayRef}
-       className="switch-overlay"
+       className={`switch-overlay layout-${layout}`}
        role="dialog"
        aria-modal="true"
        onClickCapture={(e) => {
@@ -1004,6 +1012,13 @@ export function SwitchMenu(props: {
        }}
      >
       <div className="switch-scene">
+        <div className="switch-stage-head" aria-hidden="true">
+          <span className="switch-stage-sigil">{activeMeta.sigil}</span>
+          <span className="switch-stage-chip">{activeMeta.title}</span>
+          <span className="switch-stage-copy">{activeMeta.subtitle}</span>
+          <span className="switch-stage-kbd">{activeMeta.hotkey}</span>
+        </div>
+
         {layout === "dial" || layout === "cmd" ? null : (
           <div className="switch-info" aria-hidden="true">
             <div className="switch-info-title">{selected?.title ?? ""}</div>
@@ -1072,6 +1087,7 @@ export function SwitchMenu(props: {
                   })
                 )}
               </div>
+              <div className="switch-cmd-foot">{visible.length} items | Up/Down | Enter | Esc</div>
             </div>
           ) : layout === "dial" ? (
             <div

@@ -16,6 +16,44 @@ import type { AdminActionId } from "./shortcuts/actions";
 import { getAdminContextKey, getActionBinding, getEffectiveBindings, isTypingTarget, matchChord, mergeShortcuts, parseSeq, parseShortcutsJson, SeqBuffer } from "./shortcuts/shortcuts";
 
 const TOPBAR_STICKY_SCROLL_THRESHOLD = 96;
+const QM_V4_STORAGE_KEY = "bitlog:admin:qm:v4";
+
+function parseBoolFlag(raw: string | null | undefined): boolean | undefined {
+  const v = String(raw ?? "").trim().toLowerCase();
+  if (!v) return undefined;
+  if (v === "1" || v === "true" || v === "on" || v === "yes" || v === "v4" || v === "enabled") return true;
+  if (v === "0" || v === "false" || v === "off" || v === "no" || v === "legacy" || v === "old" || v === "disabled") return false;
+  return undefined;
+}
+
+function resolveQuickMenuV4(cfg: SiteConfig | null): boolean {
+  if (typeof window === "undefined") return true;
+
+  const fromQuery = parseBoolFlag(new URLSearchParams(window.location.search).get("qm_v4"));
+  if (fromQuery !== undefined) {
+    try {
+      localStorage.setItem(QM_V4_STORAGE_KEY, fromQuery ? "1" : "0");
+    } catch {
+      // ignore
+    }
+    return fromQuery;
+  }
+
+  try {
+    const fromStorage = parseBoolFlag(localStorage.getItem(QM_V4_STORAGE_KEY));
+    if (fromStorage !== undefined) return fromStorage;
+  } catch {
+    // ignore
+  }
+
+  const fromConfig = parseBoolFlag(
+    String((cfg as any)?.commandMenuVisualVariant ?? (cfg as any)?.commandMenuVariant ?? (cfg as any)?.ui?.command_menu_visual_variant ?? "")
+  );
+  if (fromConfig !== undefined) return fromConfig;
+
+  // Default to v4 visual layer in admin until explicit rollback.
+  return true;
+}
 
 function useRoute() {
   const [route, setRoute] = useState<Route>(() => parseRoute(window.location.hash));
@@ -37,6 +75,7 @@ export function App() {
   const toastTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const [theme, setThemeState] = useState<"light" | "dark">(() => getTheme());
   const [cmdOpen, setCmdOpen] = useState(false);
+  const [quickMenuV4, setQuickMenuV4] = useState<boolean>(() => resolveQuickMenuV4(null));
   const sidebarHoverExpandedRef = React.useRef(false);
   const topbarRef = React.useRef<HTMLElement | null>(null);
 
@@ -124,6 +163,14 @@ export function App() {
       // ignore
     }
   }, [(cfg as any)?.adminStyle]);
+
+  useEffect(() => {
+    setQuickMenuV4(resolveQuickMenuV4(cfg));
+  }, [cfg]);
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-qm-v4", quickMenuV4 ? "1" : "0");
+  }, [quickMenuV4]);
 
   useEffect(() => {
     const page =

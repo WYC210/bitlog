@@ -11,8 +11,8 @@ type PaletteItem =
       kind: "action";
       actionId: AdminActionId;
       label: string;
-      description?: string;
-      binding?: string;
+      description?: string | undefined;
+      binding?: string | undefined;
       danger?: "normal" | "siteSetting";
     }
   | {
@@ -21,7 +21,7 @@ type PaletteItem =
       target: "web" | "admin";
       value: UiStyle;
       label: string;
-      description?: string;
+      description?: string | undefined;
       danger: "siteSetting";
     };
 
@@ -216,12 +216,16 @@ export function CommandPalette(props: {
             <button
               key={it.key}
               type="button"
-              className={`cmdp-item${it.kind === "setStyle" ? " is-danger" : it.danger === "siteSetting" ? " is-danger" : ""}`}
+              className={`cmdp-item cmdp-item--${it.kind}${it.kind === "setStyle" ? " is-danger" : it.danger === "siteSetting" ? " is-danger" : ""}`}
+              data-kind={it.kind}
               disabled={!!busyKey}
               onClick={() => void run(it)}
             >
               <div className="cmdp-main">
-                <div className="cmdp-title">{it.label}</div>
+                <div className="cmdp-title-row">
+                  <span className={`cmdp-tag cmdp-tag--${it.kind}`}>{it.kind === "setStyle" ? "STYLE" : "ACTION"}</span>
+                  <div className="cmdp-title">{it.label}</div>
+                </div>
                 {"description" in it && it.description ? <div className="cmdp-desc">{it.description}</div> : null}
               </div>
               {"binding" in it && it.binding ? <kbd className="cmdp-kbd">{it.binding}</kbd> : null}

@@ -7,6 +7,8 @@ import "./ui/compat.css";
 import "./ui/editor.css";
 import "./ui/command-palette.css";
 import "./ui/switch-menu.css";
+import "./ui/command-palette.v4.css";
+import "./ui/switch-menu.v4.css";
 import "./ui/notice-dialog.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(

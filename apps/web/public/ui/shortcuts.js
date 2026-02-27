@@ -705,6 +705,7 @@
       if (state.visible.length === 0) state.active = 0;
       if (state.active >= state.visible.length) state.active = 0;
 
+      overlay.className = `blsw-overlay layout-${state.layout}`;
       strip.className = `blsw-strip is-${state.layout}`;
       strip.innerHTML = "";
 
@@ -757,7 +758,18 @@
           const p = polar(50, 50, 47.2, mid);
           btn.style.left = `${p.x.toFixed(3)}%`;
           btn.style.top = `${p.y.toFixed(3)}%`;
-          btn.textContent = String(a.label || "").trim().slice(0, 1) || "•";
+          btn.innerHTML = `
+            <span class="blsw-dial-item-ico" aria-hidden="true">${iconSvg(a.id)}</span>
+            <span class="blsw-dial-item-label">${escapeHtml(String(a.label || ""))}</span>
+          `;
+          btn.addEventListener("mouseenter", () => {
+            state.active = i;
+            renderSelection();
+          });
+          btn.addEventListener("focus", () => {
+            state.active = i;
+            renderSelection();
+          });
           btn.addEventListener("click", (ev) => {
             ev.stopPropagation();
             state.active = i;
