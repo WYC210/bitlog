@@ -246,7 +246,7 @@ export function EditorPage(props: {
     };
   }, []);
 
-  const applySnippet = useCallback((kind: "blur" | "inlineCode" | "codeBlock" | "link" | "image" | "embed") => {
+  const applySnippet = useCallback((kind: "blur" | "inlineCode" | "codeBlock" | "details" | "link" | "image" | "embed") => {
     const editor = editorRef.current;
     if (!editor) return;
     const selected = editor.getSelectionText();
@@ -268,6 +268,13 @@ export function EditorPage(props: {
       const rep = `\n\n\`\`\`ts\n${inner}\n\`\`\`\n\n`;
       const start = "\n\n```ts\n".length;
       editor.replaceSelection(rep, start, start + inner.length);
+      return;
+    }
+    if (kind === "details") {
+      const inner = selected || "内容";
+      const rep = `\n\n:::details 标题\n${inner}\n:::\n\n`;
+      const titleStart = "\n\n:::details ".length;
+      editor.replaceSelection(rep, titleStart, titleStart + 2);
       return;
     }
     if (kind === "link") {
@@ -296,7 +303,7 @@ export function EditorPage(props: {
     const onTool = (e: Event) => {
       const kind = String((e as any)?.detail?.kind ?? "");
       if (!kind) return;
-      if (!["blur", "inlineCode", "codeBlock", "link", "image", "embed"].includes(kind)) return;
+      if (!["blur", "inlineCode", "codeBlock", "details", "link", "image", "embed"].includes(kind)) return;
       applySnippet(kind as any);
     };
     window.addEventListener("bitlog:admin:editorTool", onTool as any);

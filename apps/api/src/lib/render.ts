@@ -286,6 +286,7 @@ function remarkBitlogShortcodes(options: RenderOptions) {
     // Markdown will parse `@[provider](value)` as a plain `@` text node followed by a `link` node.
     // Convert that pair back into our embed shortcode.
     transformEmbedLinks(tree, options);
+    transformDetailsBlocks(tree);
   };
 }
 
@@ -377,6 +378,69 @@ function mdText(node: any): string {
   return "";
 }
 
+function transformDetailsBlocks(node: any) {
+  if (!node || typeof node !== "object") return;
+  const children = (node as any).children;
+  if (!Array.isArray(children) || children.length === 0) return;
+
+  for (const child of children) transformDetailsBlocks(child);
+
+  for (let i = 0; i < children.length; i++) {
+    const start = parseDetailsFence(children[i]);
+    if (!start || start.kind !== "open") continue;
+
+    let depth = 1;
+    let end = -1;
+    for (let j = i + 1; j < children.length; j++) {
+      const marker = parseDetailsFence(children[j]);
+      if (!marker) continue;
+      if (marker.kind === "open") depth += 1;
+      else depth -= 1;
+      if (depth === 0) {
+        end = j;
+        break;
+      }
+    }
+
+    if (end === -1) continue;
+
+    const innerRoot = { children: children.slice(i + 1, end) };
+    transformDetailsBlocks(innerRoot);
+
+    const replacement: MdContent[] = [
+      {
+        type: "html",
+        value: `<details class="md-details"${start.open ? " open" : ""}><summary class="md-details-summary">${escapeHtml(start.summary)}</summary><div class="md-details-body">`
+      } as any,
+      ...(innerRoot.children as MdContent[]),
+      { type: "html", value: "</div></details>" } as any
+    ];
+
+    children.splice(i, end - i + 1, ...replacement);
+    i += replacement.length - 1;
+  }
+}
+
+function parseDetailsFence(
+  node: any
+): { kind: "open"; summary: string; open: boolean } | { kind: "close" } | null {
+  if (!node || typeof node !== "object" || node.type !== "paragraph") return null;
+  const text = mdText(node).trim();
+  if (!text) return null;
+  if (/^:::\s*$/.test(text)) return { kind: "close" };
+
+  const match = text.match(/^:::(details|details-open)(?:\s+(.+))?$/i);
+  if (!match) return null;
+  const kind = match[1] ?? "details";
+  const summary = match[2] ?? "";
+
+  return {
+    kind: "open",
+    open: kind.toLowerCase() === "details-open",
+    summary: String(summary).trim() || "详情"
+  };
+}
+
 function minPositive(a: number, b: number): number {
   if (a === -1) return b;
   if (b === -1) return a;
@@ -417,12 +481,18 @@ function rehypeBitlogSanitize(options: { embedAllowlist: Set<string> }) {
     "strong",
     "em",
     "del",
+    "ins",
+    "mark",
+    "kbd",
+    "sub",
     "table",
     "thead",
     "tbody",
     "tr",
     "th",
     "td",
+    "figure",
+    "figcaption",
     "details",
     "summary",
     "span",
@@ -473,6 +543,8 @@ function rehypeBitlogSanitize(options: { embedAllowlist: Set<string> }) {
       }
       return null;
     }
+
+    applySafePresentation(node);
 
     const tag = String(node.tagName ?? "").toLowerCase();
     if (!allowedTags.has(tag)) return null;
@@ -574,4 +646,107 @@ function sanitizeIframe(props: Record<string, unknown>, allowlist: Set<string>) 
   } catch {
     delete props.src;
   }
+}
+
+function applySafePresentation(node: any) {
+  if (!node || typeof node !== "object") return;
+  const props = (node.properties ??= {});
+  const rawTag = String(node.tagName ?? "").toLowerCase();
+
+  if (rawTag === "center") node.tagName = "div";
+  if (rawTag === "font") node.tagName = "span";
+
+  const align = sanitizePresentationAlign((props as any).align);
+  if (align) (props as any)["data-md-align"] = align;
+  delete (props as any).align;
+
+  const color = sanitizePresentationColor((props as any).color);
+  if (color) (props as any)["data-md-color"] = color;
+  delete (props as any).color;
+
+  const parsedStyle = parsePresentationStyle((props as any).style);
+  if (parsedStyle.align && !(props as any)["data-md-align"]) {
+    (props as any)["data-md-align"] = parsedStyle.align;
+  }
+  if (parsedStyle.color && !(props as any)["data-md-color"]) {
+    (props as any)["data-md-color"] = parsedStyle.color;
+  }
+  delete (props as any).style;
+
+  if (rawTag === "center" && !(props as any)["data-md-align"]) {
+    (props as any)["data-md-align"] = "center";
+  }
+}
+
+function parsePresentationStyle(input: unknown): { align?: "left" | "center" | "right"; color?: string } {
+  const raw = String(input ?? "");
+  if (!raw) return {};
+
+  const out: { align?: "left" | "center" | "right"; color?: string } = {};
+  for (const declaration of raw.split(";")) {
+    const idx = declaration.indexOf(":");
+    if (idx === -1) continue;
+
+    const prop = declaration.slice(0, idx).trim().toLowerCase();
+    const value = declaration
+      .slice(idx + 1)
+      .trim()
+      .replace(/\s*!important\s*$/i, "");
+    if (!value) continue;
+
+    if (prop === "text-align") {
+      const align = sanitizePresentationAlign(value);
+      if (align) out.align = align;
+      continue;
+    }
+
+    if (prop === "color") {
+      const color = sanitizePresentationColor(value);
+      if (color) out.color = color;
+    }
+  }
+
+  return out;
+}
+
+function sanitizePresentationAlign(input: unknown): "left" | "center" | "right" | null {
+  const value = String(input ?? "")
+    .trim()
+    .toLowerCase();
+  if (value === "left" || value === "center" || value === "right") return value;
+  return null;
+}
+
+function sanitizePresentationColor(input: unknown): string | null {
+  const value = String(input ?? "")
+    .trim()
+    .toLowerCase();
+  if (!value) return null;
+
+  const map: Record<string, string> = {
+    red: "red",
+    crimson: "red",
+    danger: "red",
+    blue: "blue",
+    dodgerblue: "blue",
+    green: "green",
+    limegreen: "green",
+    success: "green",
+    orange: "orange",
+    amber: "orange",
+    yellow: "orange",
+    warning: "orange",
+    purple: "purple",
+    violet: "purple",
+    pink: "pink",
+    rose: "pink",
+    gray: "gray",
+    grey: "gray",
+    slate: "gray",
+    muted: "gray",
+    teal: "teal",
+    cyan: "teal"
+  };
+
+  return map[value] ?? null;
 }

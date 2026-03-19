@@ -190,8 +190,10 @@
 
 /* Enhanced TOC */
 .post-toc {
-  position: sticky;
-  top: 80px;
+  --post-sidebar-gap: 20px;
+  --post-sidebar-lower-reserve: 136px;
+  position: relative;
+  top: auto;
   padding: 18px;
   border-radius: 18px;
   border: 1px solid color-mix(in srgb, var(--border) 75%, transparent);
@@ -205,7 +207,7 @@
 }
 
 .post-toc {
-  max-height: calc(100vh - 96px);
+  max-height: calc(100vh - 96px - var(--post-sidebar-lower-reserve) - var(--post-sidebar-gap));
   overflow: auto;
   scrollbar-width: thin;
   scroll-behavior: smooth;
@@ -500,7 +502,12 @@ details.post-toc[open] > summary.toc-title {
 }
 
 body[data-page="post"] .layout > aside {
-  align-self: stretch;
+  position: sticky;
+  top: 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  align-self: start;
 }
 
 /* Article body should read as a flat document, not a card. */
@@ -782,8 +789,14 @@ body[data-page="post"] .layout > section > article.card > .card-body {
 
 /* Responsive */
 @media (max-width: 980px) {
+  body[data-page="post"] .layout > aside {
+    position: static;
+    top: auto;
+  }
+
   .post-toc {
     position: static;
+    max-height: none;
   }
 
   /* Mobile: flatten aside cards, remove heavy shadows and hover lift. */

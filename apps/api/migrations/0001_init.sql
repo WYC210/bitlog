@@ -12,6 +12,25 @@ CREATE TABLE IF NOT EXISTS admin_users (
   updated_at INTEGER NOT NULL
 );
 
+INSERT OR IGNORE INTO admin_users (
+  id,
+  username,
+  password_hash,
+  password_salt,
+  password_iterations,
+  created_at,
+  updated_at
+)
+VALUES (
+  'KOowqXKfRJrG0ygiypguMQ',
+  'admin',
+  X'47ffed3fd35861c7fd426fbcfb7d2f511be794b0116e41d0ba44fc4d8fbb8394',
+  X'3398e3dd6593cb2c5bf79d6bad3618cd',
+  100000,
+  1771598880009,
+  1771598880009
+);
+
 CREATE TABLE IF NOT EXISTS admin_sessions (
   id TEXT PRIMARY KEY,
   admin_user_id TEXT NOT NULL,

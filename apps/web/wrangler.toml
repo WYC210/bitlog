@@ -2,10 +2,9 @@ name = "bitlog-web"
 main = "src/entry.worker.ts"
 compatibility_date = "2026-02-15"
 
-# Recommended (same-domain routing):
-# routes = [
-#   { pattern = "example.com/*", zone_name = "example.com" }
-# ]
+routes = [
+  { pattern = "example.com/*", zone_name = "example.com" }
+]
 
 services = [{ binding = "API", service = "bitlog-api" }]
 

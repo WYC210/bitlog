@@ -229,6 +229,18 @@
   }
 
   function ensurePageScripts(nextDoc) {
+    const ensureClassicScript = (needle) => {
+      const script = nextDoc.querySelector(`script[src*="${needle}"]`);
+      if (!script) return;
+      const src = script.getAttribute("src") || "";
+      if (!src) return;
+      if (document.querySelector(`script[src="${src}"]`)) return;
+      const s = document.createElement("script");
+      s.src = src;
+      s.setAttribute("data-spa-key", needle);
+      document.body.appendChild(s);
+    };
+
     // Only allowlist known module scripts we need for DOM-hydration pages.
     const mod = nextDoc.querySelector('script[type="module"][src*="/ui/about/about.js"]');
     if (mod) {
@@ -259,6 +271,14 @@
         }
       }
     }
+
+    ensureClassicScript("/ui/back-to-top.js");
+  }
+
+  function syncFloatingPageNodes(nextDoc) {
+    const wantsBackToTop = !!nextDoc.querySelector("#scrollToTop");
+    const currentBackToTop = document.getElementById("scrollToTop");
+    if (!wantsBackToTop && currentBackToTop) currentBackToTop.remove();
   }
 
   function canonicalizeUrl(url) {
@@ -337,9 +357,11 @@
       const nextTitle = nextDoc.querySelector("title")?.textContent || "";
       if (nextTitle) document.title = nextTitle;
 
-      const nextPage = nextDoc.body?.getAttribute("data-page");
+      const nextPage = String(nextDoc.body?.getAttribute("data-page") || "").trim();
       if (nextPage) document.body.setAttribute("data-page", nextPage);
+      else document.body.removeAttribute("data-page");
 
+      syncFloatingPageNodes(nextDoc);
       syncStyles(nextDoc);
       ensurePageScripts(nextDoc);
       applyWebNavConfig(url);

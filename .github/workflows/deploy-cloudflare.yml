@@ -3,14 +3,167 @@ name: Deploy to Cloudflare Workers
 on:
   push:
     branches: [master, main]
-  workflow_dispatch: {}
+    paths:
+      - "apps/api/**"
+      - "apps/web/**"
+      - "apps/admin/**"
+      - "packages/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "tsconfig.json"
+      - "tsconfig.base.json"
+      - ".github/workflows/deploy-cloudflare.yml"
+  workflow_dispatch:
+    inputs:
+      deploy_action:
+        description: "Deployment mode: init or update"
+        required: false
+        default: "update"
+      deploy_target:
+        description: "Deploy target: api, web, both, auto"
+        required: false
+        default: "auto"
+      apply_migrations:
+        description: "Apply D1 migrations: true, false, auto"
+        required: false
+        default: "auto"
 
 concurrency:
   group: deploy-cloudflare-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  check-config:
+    runs-on: ubuntu-latest
+    outputs:
+      should_deploy: ${{ steps.plan.outputs.should_deploy }}
+      deploy_action: ${{ steps.plan.outputs.deploy_action }}
+      deploy_target: ${{ steps.plan.outputs.deploy_target }}
+      apply_migrations: ${{ steps.plan.outputs.apply_migrations }}
+      deploy_api: ${{ steps.plan.outputs.deploy_api }}
+      deploy_web: ${{ steps.plan.outputs.deploy_web }}
+      should_migrate: ${{ steps.plan.outputs.should_migrate }}
+      api_changed: ${{ steps.changes.outputs.api_changed }}
+      web_changed: ${{ steps.changes.outputs.web_changed }}
+      migrations_changed: ${{ steps.changes.outputs.migrations_changed }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed scope
+        id: changes
+        run: |
+          echo "api_changed=false" >> "$GITHUB_OUTPUT"
+          echo "web_changed=false" >> "$GITHUB_OUTPUT"
+          echo "migrations_changed=false" >> "$GITHUB_OUTPUT"
+
+          if [[ "${{ github.event_name }}" != "push" ]]; then
+            exit 0
+          fi
+
+          before="${{ github.event.before }}"
+          if [[ -z "$before" || "$before" == "0000000000000000000000000000000000000000" ]]; then
+            echo "api_changed=true" >> "$GITHUB_OUTPUT"
+            echo "web_changed=true" >> "$GITHUB_OUTPUT"
+            echo "migrations_changed=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if ! git cat-file -e "$before^{commit}" 2>/dev/null; then
+            echo "api_changed=true" >> "$GITHUB_OUTPUT"
+            echo "web_changed=true" >> "$GITHUB_OUTPUT"
+            echo "migrations_changed=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          CHANGED=$(git diff --name-only "$before" "${{ github.sha }}")
+
+          if echo "$CHANGED" | grep -Eq '^(apps/api/|packages/|package\.json$|pnpm-lock\.yaml$|pnpm-workspace\.yaml$|tsconfig(\.base)?\.json$|\.github/workflows/deploy-cloudflare\.yml$)'; then
+            echo "api_changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+          if echo "$CHANGED" | grep -Eq '^(apps/web/|apps/admin/|packages/|package\.json$|pnpm-lock\.yaml$|pnpm-workspace\.yaml$|tsconfig(\.base)?\.json$|\.github/workflows/deploy-cloudflare\.yml$)'; then
+            echo "web_changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+          if echo "$CHANGED" | grep -q '^apps/api/migrations/'; then
+            echo "migrations_changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build deploy plan
+        id: plan
+        run: |
+          event="${{ github.event_name }}"
+          deploy_action="${{ github.event.inputs.deploy_action }}"
+          deploy_target="${{ github.event.inputs.deploy_target }}"
+          apply_migrations="${{ github.event.inputs.apply_migrations }}"
+
+          [[ -z "$deploy_action" ]] && deploy_action="update"
+          [[ -z "$deploy_target" ]] && deploy_target="auto"
+          [[ -z "$apply_migrations" ]] && apply_migrations="auto"
+
+          if [[ "$deploy_action" == "init" ]]; then
+            deploy_target="both"
+            apply_migrations="true"
+          fi
+
+          api_changed="${{ steps.changes.outputs.api_changed }}"
+          web_changed="${{ steps.changes.outputs.web_changed }}"
+          migrations_changed="${{ steps.changes.outputs.migrations_changed }}"
+
+          deploy_api="false"
+          deploy_web="false"
+
+          case "$deploy_target" in
+            api)
+              deploy_api="true"
+              ;;
+            web)
+              deploy_web="true"
+              ;;
+            both)
+              deploy_api="true"
+              deploy_web="true"
+              ;;
+            auto|*)
+              if [[ "$event" == "push" ]]; then
+                [[ "$api_changed" == "true" ]] && deploy_api="true"
+                [[ "$web_changed" == "true" ]] && deploy_web="true"
+              else
+                deploy_api="true"
+                deploy_web="true"
+              fi
+              ;;
+          esac
+
+          should_migrate="false"
+          if [[ "$apply_migrations" == "true" ]]; then
+            should_migrate="true"
+          elif [[ "$apply_migrations" == "auto" ]]; then
+            if [[ "$event" == "push" && "$migrations_changed" == "true" ]]; then
+              should_migrate="true"
+            fi
+          fi
+
+          should_deploy="false"
+          if [[ "$deploy_api" == "true" || "$deploy_web" == "true" || "$should_migrate" == "true" ]]; then
+            should_deploy="true"
+          fi
+
+          echo "deploy_action=$deploy_action" >> "$GITHUB_OUTPUT"
+          echo "deploy_target=$deploy_target" >> "$GITHUB_OUTPUT"
+          echo "apply_migrations=$apply_migrations" >> "$GITHUB_OUTPUT"
+          echo "deploy_api=$deploy_api" >> "$GITHUB_OUTPUT"
+          echo "deploy_web=$deploy_web" >> "$GITHUB_OUTPUT"
+          echo "should_migrate=$should_migrate" >> "$GITHUB_OUTPUT"
+          echo "should_deploy=$should_deploy" >> "$GITHUB_OUTPUT"
+
   deploy:
+    needs: check-config
+    if: needs.check-config.outputs.should_deploy == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -45,43 +198,170 @@ jobs:
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_D1_DATABASE_ID: ${{ secrets.CLOUDFLARE_D1_DATABASE_ID }}
           CLOUDFLARE_ZONE_NAME: ${{ secrets.CLOUDFLARE_ZONE_NAME }}
           CLOUDFLARE_ROUTE_HOSTNAME: ${{ secrets.CLOUDFLARE_ROUTE_HOSTNAME }}
         run: |
           set -euo pipefail
           test -n "${CLOUDFLARE_ACCOUNT_ID}" || (echo "Missing secret: CLOUDFLARE_ACCOUNT_ID" && exit 1)
           test -n "${CLOUDFLARE_API_TOKEN}" || (echo "Missing secret: CLOUDFLARE_API_TOKEN" && exit 1)
-          test -n "${CLOUDFLARE_D1_DATABASE_ID}" || (echo "Missing secret: CLOUDFLARE_D1_DATABASE_ID" && exit 1)
           test -n "${CLOUDFLARE_ZONE_NAME}" || (echo "Missing secret: CLOUDFLARE_ZONE_NAME" && exit 1)
           test -n "${CLOUDFLARE_ROUTE_HOSTNAME}" || (echo "Missing secret: CLOUDFLARE_ROUTE_HOSTNAME" && exit 1)
 
-      - name: Patch routes/zone_name (apps/api + apps/web)
+      - name: Show deploy plan
+        run: |
+          echo "event=${{ github.event_name }}"
+          echo "ref=${{ github.ref }}"
+          echo "deploy_action=${{ needs.check-config.outputs.deploy_action }}"
+          echo "deploy_target=${{ needs.check-config.outputs.deploy_target }}"
+          echo "apply_migrations=${{ needs.check-config.outputs.apply_migrations }}"
+          echo "api_changed=${{ needs.check-config.outputs.api_changed }}"
+          echo "web_changed=${{ needs.check-config.outputs.web_changed }}"
+          echo "migrations_changed=${{ needs.check-config.outputs.migrations_changed }}"
+          echo "deploy_api=${{ needs.check-config.outputs.deploy_api }}"
+          echo "deploy_web=${{ needs.check-config.outputs.deploy_web }}"
+          echo "should_migrate=${{ needs.check-config.outputs.should_migrate }}"
+
+      - name: Resolve or create D1 database
+        if: needs.check-config.outputs.deploy_api == 'true' || needs.check-config.outputs.should_migrate == 'true'
+        id: d1
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          PROVIDED_D1_ID: ${{ secrets.CLOUDFLARE_D1_DATABASE_ID }}
+        run: |
+          set -euo pipefail
+          DATABASE_NAME="bitlog"
+          DATABASE_ID="${PROVIDED_D1_ID:-}"
+
+          find_database_id() {
+            DATABASE_NAME="$1" DATABASE_LIST="$2" node - <<'NODE'
+const raw = process.env.DATABASE_LIST || "[]";
+const target = process.env.DATABASE_NAME || "";
+let list = [];
+try {
+  list = JSON.parse(raw);
+} catch {}
+const match = Array.isArray(list) ? list.find((item) => item && item.name === target) : null;
+process.stdout.write(match?.uuid || "");
+NODE
+          }
+
+          if [ -n "$DATABASE_ID" ]; then
+            echo "Using D1 database id from secret override."
+          else
+            echo "Checking for existing D1 database: $DATABASE_NAME"
+            DATABASE_LIST=$(pnpm exec wrangler d1 list --json --cwd apps/api -c wrangler.toml 2>/dev/null || echo "[]")
+            DATABASE_ID=$(find_database_id "$DATABASE_NAME" "$DATABASE_LIST")
+
+            if [ -z "$DATABASE_ID" ]; then
+              echo "Creating D1 database: $DATABASE_NAME"
+              CREATE_OUTPUT=$(pnpm exec wrangler d1 create "$DATABASE_NAME" --cwd apps/api -c wrangler.toml 2>&1)
+              echo "$CREATE_OUTPUT"
+              DATABASE_ID=$(CREATE_OUTPUT="$CREATE_OUTPUT" node - <<'NODE'
+const raw = process.env.CREATE_OUTPUT || "";
+const patterns = [
+  /database_id\s*=\s*"([^"]+)"/i,
+  /\b([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\b/i
+];
+for (const re of patterns) {
+  const match = raw.match(re);
+  if (match?.[1]) {
+    process.stdout.write(match[1]);
+    process.exit(0);
+  }
+}
+NODE
+              )
+
+              if [ -z "$DATABASE_ID" ]; then
+                DATABASE_LIST=$(pnpm exec wrangler d1 list --json --cwd apps/api -c wrangler.toml 2>/dev/null || echo "[]")
+                DATABASE_ID=$(find_database_id "$DATABASE_NAME" "$DATABASE_LIST")
+              fi
+            fi
+          fi
+
+          if [ -z "$DATABASE_ID" ]; then
+            echo "Failed to resolve D1 database id for ${DATABASE_NAME}" >&2
+            exit 1
+          fi
+
+          echo "Resolved D1 database id: $DATABASE_ID"
+          echo "database_name=$DATABASE_NAME" >> "$GITHUB_OUTPUT"
+          echo "database_id=$DATABASE_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Patch route config
         env:
           ROUTE_HOSTNAME: ${{ secrets.CLOUDFLARE_ROUTE_HOSTNAME }}
           ZONE_NAME: ${{ secrets.CLOUDFLARE_ZONE_NAME }}
         run: |
-          node -e "const fs=require('fs');const host=String(process.env.ROUTE_HOSTNAME||'').trim();const zone=String(process.env.ZONE_NAME||'').trim();if(!host) throw new Error('Missing ROUTE_HOSTNAME');if(!zone) throw new Error('Missing ZONE_NAME');function patch(p){let s=fs.readFileSync(p,'utf8');let changed=false;const next=s.replace(/zone_name\\s*=\\s*\"[^\"]*\"/g,()=>{changed=true;return 'zone_name = \"'+zone+'\"';}).replace(/pattern\\s*=\\s*\"([^\"]+)\"/g,(m,pat)=>{const i=pat.indexOf('/');const out=(i===-1)?host:(host+pat.slice(i));if(out!==pat) changed=true;return 'pattern = \"'+out+'\"';});if(!changed) throw new Error('No changes made while patching routes in '+p);fs.writeFileSync(p,next);}patch('apps/api/wrangler.toml');patch('apps/web/wrangler.toml');"
+          node - <<'NODE'
+const fs = require("fs");
 
-      - name: Patch D1 database_id
+const routeHost = String(process.env.ROUTE_HOSTNAME || "").trim();
+const zone = String(process.env.ZONE_NAME || "").trim();
+
+if (!routeHost) throw new Error("Missing ROUTE_HOSTNAME");
+if (!zone) throw new Error("Missing ZONE_NAME");
+
+const patchRoutes = (source, file) => {
+  if (!/routes\s*=/.test(source)) {
+    throw new Error(`Missing routes config in ${file}`);
+  }
+  return source
+    .replace(/zone_name\s*=\s*"[^"]*"/g, `zone_name = "${zone}"`)
+    .replace(/pattern\s*=\s*"([^"]+)"/g, (_match, pattern) => {
+      const slashIndex = String(pattern).indexOf("/");
+      const suffix = slashIndex >= 0 ? String(pattern).slice(slashIndex) : "/*";
+      return `pattern = "${routeHost}${suffix}"`;
+    });
+};
+
+for (const file of ["apps/api/wrangler.toml", "apps/web/wrangler.toml"]) {
+  const before = fs.readFileSync(file, "utf8");
+  const after = patchRoutes(before, file);
+  fs.writeFileSync(file, after);
+}
+NODE
+
+      - name: Patch API D1 config
+        if: needs.check-config.outputs.deploy_api == 'true' || needs.check-config.outputs.should_migrate == 'true'
         env:
-          D1_ID: ${{ secrets.CLOUDFLARE_D1_DATABASE_ID }}
+          D1_ID: ${{ steps.d1.outputs.database_id }}
         run: |
-          node -e "const fs=require('fs');const p='apps/api/wrangler.toml';let s=fs.readFileSync(p,'utf8');const next=s.replace(/database_id\\s*=\\s*\"[^\"]*\"/g,(m)=>m.replace(/\"[^\"]*\"/, '\"'+process.env.D1_ID+'\"'));if(next===s){throw new Error('Failed to patch database_id in '+p);}fs.writeFileSync(p,next);"
+          node - <<'NODE'
+const fs = require("fs");
+
+const d1Id = String(process.env.D1_ID || "").trim();
+if (!d1Id) throw new Error("Missing D1_ID");
+
+const file = "apps/api/wrangler.toml";
+const before = fs.readFileSync(file, "utf8");
+if (!/database_id\s*=/.test(before)) {
+  throw new Error(`Missing database_id in ${file}`);
+}
+const after = before.replace(/database_id\s*=\s*"[^"]*"/, `database_id = "${d1Id}"`);
+fs.writeFileSync(file, after);
+NODE
+
+      - name: Disable Wrangler telemetry
+        run: pnpm exec wrangler telemetry disable
 
       - name: Apply D1 migrations
+        if: needs.check-config.outputs.should_migrate == 'true'
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: pnpm exec wrangler d1 migrations apply bitlog --cwd apps/api -c wrangler.toml
+        run: pnpm exec wrangler d1 migrations apply DB --remote --cwd apps/api -c wrangler.toml
 
       - name: Deploy API Worker
+        if: needs.check-config.outputs.deploy_api == 'true'
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: pnpm run deploy:api
 
       - name: Deploy API Worker secrets (optional)
+        if: needs.check-config.outputs.deploy_api == 'true'
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -97,12 +377,14 @@ jobs:
           pnpm exec wrangler secret bulk "$tmp" --cwd apps/api -c wrangler.toml
 
       - name: Deploy Web Worker (includes Admin build)
+        if: needs.check-config.outputs.deploy_web == 'true'
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: pnpm run deploy:web
 
       - name: Deploy Web Worker secrets (optional)
+        if: needs.check-config.outputs.deploy_web == 'true'
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

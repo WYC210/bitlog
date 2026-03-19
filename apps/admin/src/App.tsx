@@ -708,6 +708,23 @@ export function App() {
                 </svg>
                 <span className="topbar-toolbox-label">代码块</span>
               </button>
+              <button
+                className="iconbtn"
+                type="button"
+                aria-label="折叠块"
+                title="折叠块：:::details 标题"
+                onClick={() =>
+                  window.dispatchEvent(new CustomEvent("bitlog:admin:editorTool", { detail: { kind: "details" } }))
+                }
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                  <path d="m9 6 6 6-6 6" />
+                  <path d="M5 6h2" />
+                  <path d="M5 12h2" />
+                  <path d="M5 18h2" />
+                </svg>
+                <span className="topbar-toolbox-label">折叠</span>
+              </button>
               <span className="topbar-toolbox-divider" aria-hidden="true" />
               <button
                 className="iconbtn"
