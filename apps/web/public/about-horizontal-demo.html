@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>About Horizontal Blocks Demo</title>
+    <link rel="stylesheet" href="./ui/about-horizontal-demo.css" />
+  </head>
+  <body>
+    <div class="demo-shell">
+      <header class="demo-topbar">
+        <div class="demo-brand">
+          <span class="demo-brand-mark"></span>
+          <div>
+            <div class="demo-eyebrow">Bitlog Demo</div>
+            <div class="demo-title">About / 连续横向 Block Demo</div>
+          </div>
+        </div>
+        <div class="demo-status">
+          <span class="demo-status-dot"></span>
+          <span>参考 NeutralPress 的连续网格思路，但保留 Bitlog 的内容结构</span>
+        </div>
+      </header>
+
+      <div class="demo-hint">
+        <span>滚轮推动横向阅读</span>
+        <span class="demo-hint-sep"></span>
+        <span>方向键切换分组</span>
+        <span class="demo-hint-sep"></span>
+        <span>按住拖动也可以</span>
+      </div>
+
+      <nav class="demo-nav" aria-label="关于页面分组导航">
+        <button class="demo-nav-item is-active" type="button" data-target="intro">关于</button>
+        <button class="demo-nav-item" type="button" data-target="skills">专长</button>
+        <button class="demo-nav-item" type="button" data-target="career">经历</button>
+        <button class="demo-nav-item" type="button" data-target="travel">足迹</button>
+        <button class="demo-nav-item" type="button" data-target="next">继续</button>
+      </nav>
+
+      <main class="demo-scroll-wrap" id="demoScrollWrap">
+        <div class="demo-track" id="demoTrack">
+          <section class="demo-block demo-block-intro-main" data-block data-group="intro" style="--demo-width: 46vw;">
+            <div class="block-inner intro-main">
+              <div class="block-kicker">About / Opening</div>
+              <h1>把关于我拆成连续横向阅读的内容轨道，而不是几张互相分开的卡片。</h1>
+              <p class="block-lead">
+                这版 demo 不再按“一屏一个 section”去做，而是像参考站一样，把内容切成多个连续 block。
+                每个 block 都有明确边线，但它们仍然属于同一张横向画布。
+              </p>
+              <div class="intro-tags">
+                <span>Builder</span>
+                <span>Frontend</span>
+                <span>Content System</span>
+                <span>Product Sense</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="demo-block demo-block-intro-side" data-block data-group="intro" style="--demo-width: 24vw;">
+            <div class="block-inner intro-side">
+              <div class="avatar-wrap">
+                <div class="avatar-glow"></div>
+                <div class="avatar-core">YB</div>
+              </div>
+              <div class="intro-side-row">
+                <div class="mini-label">职位 / 职业</div>
+                <div class="mini-copy">独立开发者 / 博客作者 / 产品工程师</div>
+              </div>
+              <div class="intro-side-row">
+                <div class="mini-label">简介</div>
+                <div class="mini-copy">
+                  长期围绕内容系统、Markdown 体验、后台配置和页面叙事做迭代，希望把博客本身也做成作品的一部分。
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="demo-block demo-block-rail" data-block data-group="skills" style="--demo-width: 6.8vw;">
+            <div class="block-inner rail-inner">
+              <span class="rail-text">- SKILL SET -</span>
+            </div>
+          </section>
+
+          <section class="demo-block demo-block-brand" data-block data-group="skills" style="--demo-width: 38vw;">
+            <div class="block-inner brand-board">
+              <div class="block-kicker">AI / Tool Stack</div>
+              <div class="brand-wall">
+                <div class="brand-row brand-row-top">
+                  <div class="brand-track" data-brand-lane="top"></div>
+                </div>
+                <div class="brand-row brand-row-middle">
+                  <div class="brand-track" data-brand-lane="middle"></div>
+                </div>
+                <div class="brand-row brand-row-bottom">
+                  <div class="brand-track" data-brand-lane="bottom"></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="demo-block demo-block-skills-echo" data-block data-group="skills" style="--demo-width: 35vw;">
+            <div class="block-inner skill-echo-board" id="skillEchoBoard">
+              <div class="skill-echo-head">
+                <span class="block-kicker">Signal Echo</span>
+                <span class="skill-echo-note">中排图标靠近右侧分界线时，这里会自动切换</span>
+              </div>
+
+              <div class="skill-echo-stage">
+                <div class="skill-echo-glyph" id="skillEchoGlyph">◐</div>
+                <div class="skill-echo-copy">
+                  <div class="skill-echo-name" id="skillEchoName">Ollama</div>
+                  <p class="skill-echo-desc" id="skillEchoDesc">
+                    本地模型运行层。它靠近边缘时，右侧不再堆更多标签，而是把“本地推理”这个气质直接放大出来。
+                  </p>
+                </div>
+              </div>
+
+              <div class="skill-echo-wave" aria-hidden="true">
+                <span class="skill-echo-bar is-a"></span>
+                <span class="skill-echo-bar is-b"></span>
+                <span class="skill-echo-bar is-c"></span>
+                <span class="skill-echo-bar is-d"></span>
+              </div>
+
+              <div class="skill-echo-meta">
+                <div class="skill-echo-item">
+                  <span class="skill-echo-label">Role</span>
+                  <strong id="skillEchoRole">Local Runtime</strong>
+                </div>
+                <div class="skill-echo-item">
+                  <span class="skill-echo-label">Cue</span>
+                  <strong id="skillEchoCue">Edge-first</strong>
+                </div>
+                <div class="skill-echo-item">
+                  <span class="skill-echo-label">Use</span>
+                  <strong id="skillEchoUse">Offline Workflow</strong>
+                </div>
+              </div>
+
+              <div class="skill-echo-tail" id="skillEchoTail">OLLAMA · EDGE RESPONSE · LOCAL LOOP</div>
+            </div>
+          </section>
+
+          <section class="demo-block demo-block-rail" data-block data-group="career" style="--demo-width: 6.8vw;">
+            <div class="block-inner rail-inner">
+              <span class="rail-text">- CAREER PATH -</span>
+            </div>
+          </section>
+
+          <section class="demo-block demo-block-career" data-block data-group="career" style="--demo-width: 58vw;">
+            <div class="block-inner career-board">
+              <div class="career-stage" id="careerStage">
+                <div class="career-head">
+                  <div class="block-kicker">Career Journey</div>
+                  <h2>工作经历这一屏可以保持横向大结构，但内部改成纵向 Z 型时间线。</h2>
+                </div>
+                <div class="career-z-shell">
+                  <div class="career-z-scroll">
+                    <div class="career-z-flow">
+                      <div class="career-z-line" aria-hidden="true"></div>
+
+                      <article class="career-z-item is-left" data-career-item>
+                        <span class="career-z-dot" aria-hidden="true"></span>
+                        <div class="career-z-card">
+                          <span class="career-date">2019</span>
+                          <h3>起步阶段</h3>
+                          <p>从静态页面、博客主题和小型后台开始，逐步建立前端实现基础。</p>
+                        </div>
+                      </article>
+
+                      <article class="career-z-item is-right" data-career-item>
+                        <span class="career-z-dot" aria-hidden="true"></span>
+                        <div class="career-z-card">
+                          <span class="career-date">2020</span>
+                          <h3>主题打磨</h3>
+                          <p>开始把零散页面收拢成统一主题，逐步形成版式、变量系统和内容块之间的复用关系。</p>
+                        </div>
+                      </article>
+
+                      <article class="career-z-item is-left" data-career-item>
+                        <span class="career-z-dot" aria-hidden="true"></span>
+                        <div class="career-z-card">
+                          <span class="career-date">2021</span>
+                          <h3>工程体系</h3>
+                          <p>开始做组件抽象、接口约束和部署流程，逐步进入完整内容系统建设。</p>
+                        </div>
+                      </article>
+
+                      <article class="career-z-item is-right" data-career-item>
+                        <span class="career-z-dot" aria-hidden="true"></span>
+                        <div class="career-z-card">
+                          <span class="career-date">2022</span>
+                          <h3>内容工具</h3>
+                          <p>把编辑、预览、格式化和配置能力慢慢串起来，让内容生产流程开始具备明确的产品形态。</p>
+                        </div>
+                      </article>
+
+                      <article class="career-z-item is-left" data-career-item>
+                        <span class="career-z-dot" aria-hidden="true"></span>
+                        <div class="career-z-card">
+                          <span class="career-date">2023</span>
+                          <h3>全栈整合</h3>
+                          <p>把前台、后台、内容管理、数据库初始化和运维脚本串成闭环。</p>
+                        </div>
+                      </article>
+
+                      <article class="career-z-item is-right" data-career-item>
+                        <span class="career-z-dot" aria-hidden="true"></span>
+                        <div class="career-z-card">
+                          <span class="career-date">2024</span>
+                          <h3>服务与数据</h3>
+                          <p>继续往服务层和数据层延伸，开始系统化处理鉴权、日志、落盘和维护成本这些问题。</p>
+                        </div>
+                      </article>
+
+                      <article class="career-z-item is-left" data-career-item>
+                        <span class="career-z-dot" aria-hidden="true"></span>
+                        <div class="career-z-card">
+                          <span class="career-date">2025</span>
+                          <h3>交互叙事</h3>
+                          <p>开始把页面浏览路径本身也当成叙事的一部分，关注镜头感、节奏和内容的出场顺序。</p>
+                        </div>
+                      </article>
+
+                      <article class="career-z-item is-right is-highlight" data-career-item>
+                        <span class="career-z-dot" aria-hidden="true"></span>
+                        <div class="career-z-card">
+                          <span class="career-date">2026</span>
+                          <h3>产品化表达</h3>
+                          <p>开始更关注页面叙事与视觉结构，希望让博客本身也具备作品属性。</p>
+                        </div>
+                      </article>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="demo-block demo-block-travel-copy" data-block data-group="travel" style="--demo-width: 22vw;">
+            <div class="block-inner travel-copy">
+              <div class="block-kicker">Travel Footprint</div>
+              <h2>旅行足迹应该是一段完整内容，不是挂在右侧的小组件。</h2>
+              <p class="block-text">
+                这一格保留文字引导，下一格专门留给地图或热力图，让内容层次更清晰。
+              </p>
+              <div class="travel-list">
+                <span>东京 / 2024.04</span>
+                <span>巴黎 / 2023.12</span>
+                <span>香港 / 2023.08</span>
+                <span>成都 / 2022.10</span>
+                <span>上海 / 2021.07</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="demo-block demo-block-travel-map" data-block data-group="travel" style="--demo-width: 40vw;">
+            <div class="block-inner map-board">
+              <div class="map-surface" id="travelMapSurface">
+                <div class="travel-globe-shell" id="travelGlobeShell" aria-hidden="true">
+                  <div class="travel-globe-ring is-outer"></div>
+                  <div class="travel-globe-ring is-middle"></div>
+                  <div class="travel-globe">
+                    <span class="travel-globe-lat is-a"></span>
+                    <span class="travel-globe-lat is-b"></span>
+                    <span class="travel-globe-lat is-c"></span>
+                    <span class="travel-globe-meridian is-a"></span>
+                    <span class="travel-globe-meridian is-b"></span>
+                    <span class="travel-globe-meridian is-c"></span>
+                    <span class="travel-globe-node is-a"></span>
+                    <span class="travel-globe-node is-b"></span>
+                    <span class="travel-globe-node is-c"></span>
+                    <span class="travel-globe-node is-d"></span>
+                    <span class="travel-globe-node is-e"></span>
+                    <span class="travel-globe-glow"></span>
+                  </div>
+                </div>
+              </div>
+              <div class="map-caption">3D Heatmap / Canvas Slot</div>
+            </div>
+          </section>
+
+          <section class="demo-block demo-block-rail" data-block data-group="next" style="--demo-width: 6.8vw;">
+            <div class="block-inner rail-inner">
+              <span class="rail-text">- LEARN MORE -</span>
+            </div>
+          </section>
+
+          <section class="demo-block demo-block-next-quote" data-block data-group="next" style="--demo-width: 30vw;">
+            <div class="block-inner next-quote-board">
+              <span class="quote-mark">“</span>
+              <blockquote>
+                文章、项目和热点不应该停在页面末尾，它们应该像同一条浏览路径那样自然接上。
+              </blockquote>
+              <div class="quote-meta">
+                <strong>YanBin</strong>
+                <span>Bitlog / Builder</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="demo-block demo-block-next-links" data-block data-group="next" style="--demo-width: 24vw;">
+            <div class="block-inner next-links-board">
+              <a class="next-link is-primary" href="./post-reading-demo.html">
+                <span class="next-link-index">01</span>
+                <span class="next-link-label">文章阅读 Demo</span>
+                <span class="next-link-arrow">&#8599;</span>
+              </a>
+              <a class="next-link" href="./articles-list-demo.html">
+                <span class="next-link-index">02</span>
+                <span class="next-link-label">文章列表 Demo</span>
+                <span class="next-link-arrow">&#8599;</span>
+              </a>
+              <a class="next-link" href="./projects-wall-demo.html">
+                <span class="next-link-index">03</span>
+                <span class="next-link-label">项目墙 Demo</span>
+                <span class="next-link-arrow">&#8599;</span>
+              </a>
+            </div>
+          </section>
+        </div>
+
+        <div class="career-overlay" id="careerOverlay" aria-hidden="true"></div>
+      </main>
+
+      <div class="demo-progress">
+        <div class="demo-progress-bar" id="demoProgressBar"></div>
+      </div>
+    </div>
+
+    <script src="./ui/about-horizontal-demo.js"></script>
+  </body>
+</html>

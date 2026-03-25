@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>梦幻星空</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            height: 100vh;
+            background: radial-gradient(ellipse at bottom, #1B2735 0%, #090A0F 100%);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .stars {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 3s infinite;
+        }
+
+        .star:nth-child(odd) {
+            animation-delay: 1s;
+        }
+
+        .star:nth-child(3n) {
+            animation-delay: 2s;
+        }
+
+        .star.medium {
+            width: 3px;
+            height: 3px;
+            animation: twinkle 4s infinite;
+        }
+
+        .star.large {
+            width: 4px;
+            height: 4px;
+            animation: twinkle 5s infinite;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+        }
+
+        @keyframes twinkle {
+
+            0%,
+            100% {
+                opacity: 0.3;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 1;
+                transform: scale(1.2);
+            }
+        }
+
+        .shooting-star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: linear-gradient(45deg, white, transparent);
+            border-radius: 50%;
+            animation: shoot 3s linear infinite;
+        }
+
+        @keyframes shoot {
+            0% {
+                transform: translateX(-100px) translateY(100px);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateX(300px) translateY(-300px);
+                opacity: 0;
+            }
+        }
+
+        .moon {
+            position: absolute;
+            top: 10%;
+            right: 15%;
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #FFF 0%, #E6E6E6 100%);
+            box-shadow: 0 0 50px rgba(255, 255, 255, 0.3);
+            animation: moonGlow 6s ease-in-out infinite alternate;
+        }
+
+        @keyframes moonGlow {
+            0% {
+                box-shadow: 0 0 50px rgba(255, 255, 255, 0.3);
+            }
+
+            100% {
+                box-shadow: 0 0 80px rgba(255, 255, 255, 0.5);
+            }
+        }
+
+        .constellation {
+            position: absolute;
+            top: 30%;
+            left: 20%;
+        }
+
+        .constellation-star {
+            position: absolute;
+            width: 3px;
+            height: 3px;
+            background: #FFD700;
+            border-radius: 50%;
+            box-shadow: 0 0 8px rgba(255, 215, 0, 0.8);
+        }
+
+        .constellation-line {
+            position: absolute;
+            height: 1px;
+            background: rgba(255, 215, 0, 0.3);
+            transform-origin: left center;
+        }
+
+        .milky-way {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background:
+                radial-gradient(ellipse 800px 200px at 50% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+            transform: rotate(-15deg);
+            opacity: 0.7;
+        }
+
+        .title {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-family: 'Georgia', serif;
+            font-size: 3rem;
+            text-align: center;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
+            opacity: 0.9;
+            animation: titleGlow 4s ease-in-out infinite alternate;
+        }
+
+        @keyframes titleGlow {
+            0% {
+                text-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
+            }
+
+            100% {
+                text-shadow: 0 0 40px rgba(255, 255, 255, 1);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="milky-way"></div>
+    <div class="moon"></div>
+    <div class="stars" id="stars"></div>
+
+    <!-- 星座 -->
+    <div class="constellation">
+        <div class="constellation-star" style="top: 0; left: 0;"></div>
+        <div class="constellation-star" style="top: 20px; left: 30px;"></div>
+        <div class="constellation-star" style="top: 40px; left: 10px;"></div>
+        <div class="constellation-star" style="top: 60px; left: 40px;"></div>
+        <div class="constellation-line" style="top: 2px; left: 3px; width: 30px; transform: rotate(35deg);"></div>
+        <div class="constellation-line" style="top: 22px; left: 32px; width: 25px; transform: rotate(-40deg);"></div>
+        <div class="constellation-line" style="top: 42px; left: 13px; width: 35px; transform: rotate(45deg);"></div>
+    </div>
+
+    <div class="title">梦幻星空</div>
+
+    <script>
+        // 生成随机星星
+        function createStars() {
+            const starsContainer = document.getElementById('stars');
+            const starCount = 200;
+
+            for (let i = 0; i < starCount; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+
+                // 随机大小
+                const size = Math.random();
+                if (size > 0.8) {
+                    star.classList.add('large');
+                } else if (size > 0.6) {
+                    star.classList.add('medium');
+                }
+
+                // 随机位置
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+
+                // 随机动画延迟
+                star.style.animationDelay = Math.random() * 3 + 's';
+
+                starsContainer.appendChild(star);
+            }
+        }
+
+        // 生成流星
+        function createShootingStars() {
+            setInterval(() => {
+                if (Math.random() > 0.7) {
+                    const shootingStar = document.createElement('div');
+                    shootingStar.className = 'shooting-star';
+                    shootingStar.style.top = Math.random() * 50 + '%';
+                    shootingStar.style.left = Math.random() * 30 + '%';
+
+                    document.body.appendChild(shootingStar);
+
+                    setTimeout(() => {
+                        document.body.removeChild(shootingStar);
+                    }, 3000);
+                }
+            }, 2000);
+        }
+
+        // 初始化
+        createStars();
+        createShootingStars();
+
+        // 鼠标交互效果
+        document.addEventListener('mousemove', (e) => {
+            const mouseX = e.clientX / window.innerWidth;
+            const mouseY = e.clientY / window.innerHeight;
+
+            const stars = document.querySelectorAll('.star');
+            stars.forEach((star, index) => {
+                if (index % 5 === 0) {
+                    const moveX = (mouseX - 0.5) * 20;
+                    const moveY = (mouseY - 0.5) * 20;
+                    star.style.transform = `translate(${moveX}px, ${moveY}px)`;
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Articles List Demo</title>
+    <link rel="stylesheet" href="./ui/articles-list-demo.css" />
+  </head>
+  <body>
+    <header class="articles-demo-topbar">
+      <a class="articles-demo-brand" href="./about-horizontal-demo.html">
+        <span class="articles-demo-brand-mark"></span>
+        <span>Bitlog Demo</span>
+      </a>
+      <nav class="articles-demo-nav" aria-label="Demo navigation">
+        <a href="./about-horizontal-demo.html">关于我 Demo</a>
+        <a href="./post-reading-demo.html">文章页 Demo</a>
+        <a class="is-active" href="./articles-list-demo.html">列表页 Demo</a>
+        <a href="./projects-wall-demo.html">项目展墙 Demo</a>
+      </nav>
+    </header>
+
+    <main class="articles-demo-shell">
+      <section class="articles-hero">
+        <div class="articles-hero-copy">
+          <div class="hero-kicker">Articles / Editorial Browse</div>
+          <div class="hero-meta">
+            <span>42 篇文章</span>
+            <span>6 个分类</span>
+            <span>最近更新于 2026.03.19</span>
+          </div>
+          <h1>文章列表页应该像一本可浏览的编辑精选页，而不是一排空旷的标题卡。</h1>
+          <p>
+            它的职责不是沉浸阅读，也不是作品展示，而是帮助用户快速判断“现在值得点开哪一篇”。
+            所以它需要层级、密度、筛选和浏览节奏。
+          </p>
+        </div>
+
+        <div class="hero-control">
+          <label class="search-shell" aria-label="搜索文章">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"></circle>
+              <path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+            </svg>
+            <input type="text" value="" placeholder="搜索文章、标签或关键词" />
+          </label>
+
+          <div class="filter-rail" aria-label="Filters">
+            <button class="filter-chip is-active" type="button">全部</button>
+            <button class="filter-chip" type="button">前端</button>
+            <button class="filter-chip" type="button">教学</button>
+            <button class="filter-chip" type="button">工具</button>
+            <button class="filter-chip" type="button">杂谈</button>
+            <button class="filter-chip" type="button">游戏</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="featured-grid">
+        <a class="featured-card reveal-card" href="javascript:void(0)">
+          <div class="featured-badge">Editor's Pick</div>
+          <div class="featured-meta">
+            <span>2026.03.19</span>
+            <span>前端工程</span>
+            <span>12 min</span>
+          </div>
+          <h2>把关于我页面改成横向滚动时，哪些信息应该继续保持纵向阅读</h2>
+          <p>
+            这篇文章讨论展示型页面和阅读型页面的边界，适合作为首页、about、文章页三种结构统一改版时的总纲。
+          </p>
+          <div class="featured-tags">
+            <span># Information Architecture</span>
+            <span># Motion</span>
+            <span># UX Strategy</span>
+          </div>
+        </a>
+
+        <div class="featured-side">
+          <a class="side-card reveal-card" href="javascript:void(0)">
+            <div class="side-card-meta">2026.03.18 · 教学</div>
+            <h3>Markdown 渲染支持从“能用”走到“适合写作”需要哪些环节</h3>
+            <p>从解析、清洗、目录、代码块到短代码设计的完整思路。</p>
+          </a>
+          <a class="side-card reveal-card" href="javascript:void(0)">
+            <div class="side-card-meta">2026.03.14 · 产品设计</div>
+            <h3>NeutralPress 风格为什么更像杂志，而不是普通博客主题</h3>
+            <p>拆解横向叙事、慢显内容、封面构图与节奏控制。</p>
+          </a>
+          <a class="side-card reveal-card" href="javascript:void(0)">
+            <div class="side-card-meta">2026.03.12 · 工具流</div>
+            <h3>把图片转成 Markdown 导入时，真正有价值的是结构而不是 OCR 本身</h3>
+            <p>从图片转写到文档块重建，哪些步骤值得保留。</p>
+          </a>
+        </div>
+      </section>
+
+      <section class="articles-layout">
+        <section class="articles-main">
+          <div class="list-head">
+            <div>
+              <div class="list-kicker">Browse Stream</div>
+              <h2>最近更新</h2>
+            </div>
+            <div class="view-switch">
+              <button class="view-btn is-active" type="button" data-view="editorial">Editorial</button>
+              <button class="view-btn" type="button" data-view="compact">Compact</button>
+            </div>
+          </div>
+
+          <div class="article-flow" id="articleFlow">
+            <a class="flow-card reveal-card" href="javascript:void(0)">
+              <div class="flow-card-top">
+                <div class="flow-meta">2026.03.10 · 教学 · 8 min</div>
+                <div class="flow-index">01</div>
+              </div>
+              <h3>文章页为什么不适合照搬 about 页的横向体验</h3>
+              <p>阅读型页面最重要的是稳定和专注，而不是持续的视觉刺激。</p>
+              <div class="flow-bottom">
+                <span># Reading UX</span>
+                <span># Content Design</span>
+              </div>
+            </a>
+
+            <a class="flow-card reveal-card" href="javascript:void(0)">
+              <div class="flow-card-top">
+                <div class="flow-meta">2026.03.08 · 前端 · 10 min</div>
+                <div class="flow-index">02</div>
+              </div>
+              <h3>目录展开、粘性侧栏和返回顶部为什么常常会互相打架</h3>
+              <p>从定位上下文、滚动容器和交互优先级看这三个模块的关系。</p>
+              <div class="flow-bottom">
+                <span># TOC</span>
+                <span># Scroll Behavior</span>
+              </div>
+            </a>
+
+            <a class="flow-card reveal-card" href="javascript:void(0)">
+              <div class="flow-card-top">
+                <div class="flow-meta">2026.03.05 · 产品设计 · 6 min</div>
+                <div class="flow-index">03</div>
+              </div>
+              <h3>首页、列表页、详情页三种页面的“信息密度”应该怎么分配</h3>
+              <p>同样是内容站，但三类页面承担的是完全不同的任务。</p>
+              <div class="flow-bottom">
+                <span># Density</span>
+                <span># Layout System</span>
+              </div>
+            </a>
+
+            <a class="flow-card reveal-card" href="javascript:void(0)">
+              <div class="flow-card-top">
+                <div class="flow-meta">2026.03.02 · 工具流 · 7 min</div>
+                <div class="flow-index">04</div>
+              </div>
+              <h3>blog_format_tool 这类工具的真正价值，是把“素材”整理成“可发布内容”</h3>
+              <p>工具链不只是转格式，更是在帮你做文档结构和发布前整理。</p>
+              <div class="flow-bottom">
+                <span># Workflow</span>
+                <span># Publishing</span>
+              </div>
+            </a>
+
+            <a class="flow-card reveal-card" href="javascript:void(0)">
+              <div class="flow-card-top">
+                <div class="flow-meta">2026.02.27 · 杂谈 · 5 min</div>
+                <div class="flow-index">05</div>
+              </div>
+              <h3>为什么有些博客一看就“像作品”，有些博客只是“有内容”</h3>
+              <p>区别通常不在字体和配色，而在节奏、结构和每一屏承担的任务。</p>
+              <div class="flow-bottom">
+                <span># Editorial Feeling</span>
+                <span># Visual Narrative</span>
+              </div>
+            </a>
+
+            <a class="flow-card reveal-card" href="javascript:void(0)">
+              <div class="flow-card-top">
+                <div class="flow-meta">2026.02.21 · 游戏 · 4 min</div>
+                <div class="flow-index">06</div>
+              </div>
+              <h3>Minecraft、脚本和服务端插件，为什么总能引出一堆工程问题</h3>
+              <p>看起来是游戏话题，实际上很容易延伸到自动化、部署和插件生态。</p>
+              <div class="flow-bottom">
+                <span># Minecraft</span>
+                <span># Node.js</span>
+              </div>
+            </a>
+          </div>
+        </section>
+
+        <aside class="articles-rail">
+          <section class="rail-panel">
+            <div class="rail-title">浏览状态</div>
+            <div class="rail-stat-grid">
+              <div class="rail-stat">
+                <strong>42</strong>
+                <span>全部文章</span>
+              </div>
+              <div class="rail-stat">
+                <strong>12</strong>
+                <span>本月更新</span>
+              </div>
+              <div class="rail-stat">
+                <strong>6</strong>
+                <span>活跃分类</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="rail-panel">
+            <div class="rail-title">分类</div>
+            <div class="token-cloud">
+              <button class="token is-active" type="button">全部</button>
+              <button class="token" type="button">前端</button>
+              <button class="token" type="button">教学</button>
+              <button class="token" type="button">产品设计</button>
+              <button class="token" type="button">工具流</button>
+              <button class="token" type="button">杂谈</button>
+            </div>
+          </section>
+
+          <section class="rail-panel">
+            <div class="rail-title">热门标签</div>
+            <div class="token-cloud soft">
+              <span class="token soft">JavaScript × 11</span>
+              <span class="token soft">React × 7</span>
+              <span class="token soft">Next.js × 7</span>
+              <span class="token soft">node.js × 6</span>
+              <span class="token soft">Minecraft × 5</span>
+              <span class="token soft">Python × 4</span>
+            </div>
+          </section>
+
+          <section class="rail-panel">
+            <div class="rail-title">年份归档</div>
+            <div class="archive-list">
+              <a href="javascript:void(0)">2026 <span>18</span></a>
+              <a href="javascript:void(0)">2025 <span>12</span></a>
+              <a href="javascript:void(0)">2024 <span>7</span></a>
+              <a href="javascript:void(0)">2023 <span>5</span></a>
+            </div>
+          </section>
+        </aside>
+      </section>
+    </main>
+
+    <script src="./ui/articles-list-demo.js"></script>
+  </body>
+</html>

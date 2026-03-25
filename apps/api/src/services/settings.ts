@@ -180,7 +180,7 @@ export async function getSiteConfig(db: Db): Promise<SiteConfig> {
   const webStyle = parseUiStyle(map.get(KEY_UI_WEB_STYLE) ?? null) ?? "current";
   const adminStyle = parseUiStyle(map.get(KEY_UI_ADMIN_STYLE) ?? null) ?? "current";
   const commandMenuLayout = parseCommandMenuLayout(map.get(KEY_UI_COMMAND_MENU_LAYOUT) ?? null) ?? "arc";
-  const commandMenuConfirmMode = parseCommandMenuConfirmMode(map.get(KEY_UI_COMMAND_MENU_CONFIRM_MODE) ?? null) ?? "enter";
+  const commandMenuConfirmMode = parseCommandMenuConfirmMode(map.get(KEY_UI_COMMAND_MENU_CONFIRM_MODE) ?? null) ?? "release";
   const commandMenuMobileSync = parseLooseBool(map.get(KEY_UI_COMMAND_MENU_MOBILE_SYNC) ?? null);
 
   const timezone = map.get(KEY_TIMEZONE) ?? null;

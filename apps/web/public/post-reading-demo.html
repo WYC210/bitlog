@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Post Reading Demo</title>
+    <link rel="stylesheet" href="./ui/post-reading-demo.css" />
+  </head>
+  <body>
+    <div class="reading-progress">
+      <div class="reading-progress-bar" id="readingProgressBar"></div>
+    </div>
+
+    <header class="post-demo-topbar">
+      <a class="post-demo-brand" href="./about-horizontal-demo.html">
+        <span class="post-demo-brand-mark"></span>
+        <span>Bitlog Demo</span>
+      </a>
+      <nav class="post-demo-nav" aria-label="Demo navigation">
+        <a href="./about-horizontal-demo.html">关于我 Demo</a>
+        <a class="is-active" href="./post-reading-demo.html">文章页 Demo</a>
+        <a href="./articles-list-demo.html">列表页 Demo</a>
+        <a href="./projects-wall-demo.html">项目展墙 Demo</a>
+      </nav>
+    </header>
+
+    <main class="post-demo-shell">
+      <section class="post-hero">
+        <div class="post-hero-copy">
+          <div class="post-hero-kicker">Reading Experience / Article Demo</div>
+          <div class="post-hero-meta">
+            <span class="meta-pill">前端工程</span>
+            <span class="meta-pill">2026.03.19</span>
+            <span class="meta-pill">12 min read</span>
+            <span class="meta-pill">3,420 字</span>
+          </div>
+          <h1>文章页不做横向滚动，而是做成一篇有节奏、有沉浸感的阅读界面。</h1>
+          <p class="post-hero-summary">
+            这版 demo 的重点不是花哨，而是把“标题区、正文区、目录轨道、结尾推荐”做成一套更像编辑排版的阅读系统。
+            about 页负责吸引，文章页负责让人真正读下去。
+          </p>
+
+          <div class="hero-tag-row">
+            <span># Reading UX</span>
+            <span># Editorial Layout</span>
+            <span># TOC Rail</span>
+            <span># Motion Restraint</span>
+          </div>
+        </div>
+
+        <div class="post-hero-visual">
+          <div class="hero-surface">
+            <div class="hero-surface-grid"></div>
+            <div class="hero-quote">
+              <div class="hero-quote-mark">“</div>
+              <p>不是把文章做得更炫，而是让读者更容易进入内容。</p>
+            </div>
+            <div class="hero-stat-stack">
+              <div class="hero-stat">
+                <strong>01</strong>
+                <span>开篇抓住主题</span>
+              </div>
+              <div class="hero-stat">
+                <strong>02</strong>
+                <span>正文稳定好读</span>
+              </div>
+              <div class="hero-stat">
+                <strong>03</strong>
+                <span>目录持续陪读</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="post-layout">
+        <article class="post-article" id="demoArticle">
+          <div class="post-intro-card reveal-block">
+            <div class="intro-card-kicker">Article Opening</div>
+            <p>
+              这类页面本质上是阅读器，不是作品展板。你可以保留你现在已有的 Markdown 渲染能力、目录提取、标签系统和相关文章逻辑，
+              但视觉表现应该更像一本被认真编辑过的长文，而不是“标题 + 正文 + 侧栏”的默认博客模板。
+            </p>
+          </div>
+
+          <section class="article-section reveal-block" id="section-1">
+            <div class="section-index">01</div>
+            <h2>文章头部应该像开篇，而不是一个普通卡片</h2>
+            <p>
+              现在很多博客的标题区都太快进入正文了，读者还没建立预期，页面就已经开始讲内容。更好的做法是先用标题、摘要、分类、时间、
+              阅读时长这些信息给出一个“阅读入口”，让用户在 3 秒内知道这篇文章在讲什么、值不值得继续读。
+            </p>
+            <p>
+              如果有封面图，它不应该只是正文里的一张插图，而应该成为标题区的一部分。哪怕没有真实封面，也可以用抽象图形、网格、标语或数据块，
+              让头图承担情绪和节奏的作用。
+            </p>
+            <div class="pull-figure">
+              <div class="pull-figure-label">Design Note</div>
+              <p>标题区负责建立期待，正文区负责兑现期待。</p>
+            </div>
+          </section>
+
+          <section class="article-section reveal-block" id="section-2">
+            <div class="section-index">02</div>
+            <h2>正文要安静，但不能无聊</h2>
+            <p>
+              正文的核心任务是让眼睛舒服地往下读，所以它不适合横向滚动，也不适合过重的动画。真正有效的是细节层面的排版质量：
+              宽度、行高、段落间距、标题锚点、代码块、引用块、表格和图片的层次是否清晰。
+            </p>
+            <h3 id="section-2-1">轻动效应该跟着内容节点，而不是整页晃动</h3>
+            <p>
+              比如当前屏进入视口时，`h2`、引用块、插图说明可以轻微上浮和显现，这种感觉会让页面更有节奏；
+              但整篇正文如果一直漂、一直推、一直缩放，反而会破坏阅读专注度。
+            </p>
+            <blockquote>
+              文章页的动画应该像翻书时的空气感，而不是发布会大屏。
+            </blockquote>
+            <pre><code>const readingRule = {
+  hero: "有辨识度",
+  prose: "稳定可读",
+  motion: "轻量克制",
+  toc: "持续陪读"
+};</code></pre>
+          </section>
+
+          <section class="article-section reveal-block" id="section-3">
+            <div class="section-index">03</div>
+            <h2>目录不只是目录，它是阅读轨道</h2>
+            <p>
+              右侧目录在你的站里已经是一个很有价值的模块了，但它现在更像“功能列表”，还不够像“阅读轨道”。
+              如果升级它的视觉和行为，它就可以承担三件事：显示阅读位置、帮助跳转、降低长文焦虑。
+            </p>
+            <h3 id="section-3-1">目录区应该持续反馈当前阅读进度</h3>
+            <p>
+              目录中的当前章节需要有明显高亮，顶部最好补一个阅读进度数字或者横条，甚至可以显示“还剩 6 分钟”这种信息。
+              读者在长文里最怕迷路，所以侧栏一定要持续给状态反馈。
+            </p>
+            <div class="mini-grid">
+              <div class="mini-card">
+                <span>42%</span>
+                <small>已阅读</small>
+              </div>
+              <div class="mini-card">
+                <span>6 min</span>
+                <small>剩余时间</small>
+              </div>
+              <div class="mini-card">
+                <span>3 / 5</span>
+                <small>当前章节</small>
+              </div>
+            </div>
+          </section>
+
+          <section class="article-section reveal-block" id="section-4">
+            <div class="section-index">04</div>
+            <h2>结尾区域应该让阅读自然延续</h2>
+            <p>
+              很多文章页在正文结束后就突然结束了，或者只放一个“相关文章”。这会让阅读状态戛然而止。更好的做法是把结尾拆成两层：
+              一层是对当前文章的收束，一层是对下一篇内容的引导。
+            </p>
+            <h3 id="section-4-1">推荐区做成阅读路线，而不是普通卡片列表</h3>
+            <p>
+              你可以保留现在的相关文章数据逻辑，但视觉上建议更像“继续阅读”而不是“猜你喜欢”。这样能把文章页之间串起来，
+              让用户产生“下一篇也值得看”的感觉。
+            </p>
+          </section>
+
+          <section class="article-section reveal-block" id="section-5">
+            <div class="section-index">05</div>
+            <h2>这套 demo 最终可以怎样迁回你的真实文章页</h2>
+            <p>
+              实现上不需要推翻你现有的文章系统。你的服务端已经会把标题、摘要、标签、目录和相关文章塞进模板里，
+              所以真实改造时主要是三件事：重做头图区、重做侧栏视觉、补一个轻量滚动脚本。
+            </p>
+            <ul>
+              <li>模板层：提升 `post-header` 的结构密度和层次。</li>
+              <li>样式层：把正文变成更稳定的阅读版式。</li>
+              <li>交互层：增加阅读进度、高亮目录、轻量显现。</li>
+            </ul>
+          </section>
+
+          <section class="post-endcap reveal-block">
+            <div class="endcap-copy">
+              <div class="endcap-kicker">Reading Route</div>
+              <h2>文章结束后，不要把读者丢回列表页。</h2>
+              <p>结尾应该像一本书的下一章预告，顺手把人带到下一篇。</p>
+            </div>
+
+            <div class="related-route">
+              <a class="route-card" href="javascript:void(0)">
+                <span class="route-label">上一篇</span>
+                <strong>如何把 Markdown 支持做成可配置能力</strong>
+                <small>偏工程实现</small>
+              </a>
+              <a class="route-card highlight" href="javascript:void(0)">
+                <span class="route-label">继续阅读</span>
+                <strong>NeutralPress 风格首页为什么更像杂志而不是博客</strong>
+                <small>偏视觉结构</small>
+              </a>
+              <a class="route-card" href="javascript:void(0)">
+                <span class="route-label">下一篇</span>
+                <strong>关于我页面做成横向滚动时，哪些信息应该保留纵向阅读</strong>
+                <small>偏信息架构</small>
+              </a>
+            </div>
+          </section>
+        </article>
+
+        <aside class="post-rail">
+          <section class="rail-card rail-progress">
+            <div class="rail-kicker">Reading State</div>
+            <div class="rail-progress-value" id="readingProgressValue">0%</div>
+            <p>正文保持纵向阅读，节奏通过标题、目录和小范围显现来建立。</p>
+          </section>
+
+          <section class="rail-card rail-toc">
+            <div class="rail-title">目录</div>
+            <nav class="toc-list" aria-label="文章目录">
+              <a class="toc-link" href="#section-1" data-toc-link>文章头部应该像开篇</a>
+              <a class="toc-link" href="#section-2" data-toc-link>正文要安静，但不能无聊</a>
+              <a class="toc-link toc-link-sub" href="#section-2-1" data-toc-link>轻动效跟着内容节点</a>
+              <a class="toc-link" href="#section-3" data-toc-link>目录是阅读轨道</a>
+              <a class="toc-link toc-link-sub" href="#section-3-1" data-toc-link>目录持续反馈位置</a>
+              <a class="toc-link" href="#section-4" data-toc-link>结尾应该让阅读延续</a>
+              <a class="toc-link toc-link-sub" href="#section-4-1" data-toc-link>推荐区做成阅读路线</a>
+              <a class="toc-link" href="#section-5" data-toc-link>怎样迁回真实文章页</a>
+            </nav>
+          </section>
+
+          <section class="rail-card rail-tags">
+            <div class="rail-title">标签</div>
+            <div class="rail-tag-list">
+              <span>阅读体验</span>
+              <span>文章模板</span>
+              <span>目录设计</span>
+              <span>长文排版</span>
+              <span>交互节奏</span>
+            </div>
+          </section>
+        </aside>
+      </section>
+    </main>
+
+    <script src="./ui/post-reading-demo.js"></script>
+  </body>
+</html>

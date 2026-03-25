@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="zh-CN" data-demo-theme="current" data-color-mode="dark" data-density="compact">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bitlog Admin Architecture Demo</title>
+    <link rel="stylesheet" href="./ui/admin-ui-neutralpress-demo.css" />
+  </head>
+  <body>
+    <div class="demo-shell">
+      <aside class="demo-sidebar">
+        <div class="demo-brand">
+          <div class="demo-brand-mark"></div>
+          <p class="demo-brand-kicker">Bitlog</p>
+        </div>
+
+        <nav class="demo-nav" aria-label="Admin navigation">
+          <button class="demo-nav-item" type="button" data-page="dashboard" data-label="Dashboard" aria-label="Dashboard" title="Dashboard">
+            <span class="demo-nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <rect x="4" y="4" width="6" height="6"></rect>
+                <rect x="14" y="4" width="6" height="6"></rect>
+                <rect x="4" y="14" width="6" height="6"></rect>
+                <rect x="14" y="14" width="6" height="6"></rect>
+              </svg>
+            </span>
+            <span class="demo-sr-only">Dashboard</span>
+          </button>
+          <button class="demo-nav-item" type="button" data-page="posts" data-label="Posts" aria-label="Posts" title="Posts">
+            <span class="demo-nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M7 4h10l3 3v13H7z"></path>
+                <path d="M17 4v4h4"></path>
+                <path d="M10 12h7"></path>
+                <path d="M10 16h7"></path>
+              </svg>
+            </span>
+            <span class="demo-sr-only">Posts</span>
+          </button>
+          <button class="demo-nav-item" type="button" data-page="analytics" data-label="Analytics" aria-label="Analytics" title="Analytics">
+            <span class="demo-nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M5 19V9"></path>
+                <path d="M12 19V5"></path>
+                <path d="M19 19v-8"></path>
+              </svg>
+            </span>
+            <span class="demo-sr-only">Analytics</span>
+          </button>
+          <button class="demo-nav-item" type="button" data-page="tags" data-label="Tags" aria-label="Tags" title="Tags">
+            <span class="demo-nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M12 3H5v7l7 11 7-11V3z"></path>
+                <circle cx="12" cy="8" r="1.4" fill="currentColor" stroke="none"></circle>
+              </svg>
+            </span>
+            <span class="demo-sr-only">Tags</span>
+          </button>
+          <button class="demo-nav-item" type="button" data-page="settings" data-label="Settings" aria-label="Settings" title="Settings">
+            <span class="demo-nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <rect x="4" y="4" width="16" height="16"></rect>
+                <path d="M8 9h8"></path>
+                <path d="M8 13h8"></path>
+                <path d="M8 17h5"></path>
+              </svg>
+            </span>
+            <span class="demo-sr-only">Settings</span>
+          </button>
+          <button class="demo-nav-item" type="button" data-page="account" data-label="Account" aria-label="Account" title="Account">
+            <span class="demo-nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M20 21a8 8 0 1 0-16 0"></path>
+                <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z"></path>
+              </svg>
+            </span>
+            <span class="demo-sr-only">Account</span>
+          </button>
+        </nav>
+
+        <div class="demo-sidebar-foot">
+          <div class="demo-profile">
+            <div class="demo-avatar" title="Yan Bin">YB</div>
+          </div>
+        </div>
+      </aside>
+
+      <main class="demo-main">
+        <header class="demo-topbar">
+          <div>
+            <p class="demo-eyebrow" id="demoEyebrow">Bitlog Admin Architecture Demo</p>
+            <h2 id="demoTitle">Dashboard</h2>
+          </div>
+
+          <div class="demo-topbar-actions">
+            <div class="demo-switch-group" aria-label="Theme switch">
+              <button class="demo-switch" type="button" data-theme="current">Current</button>
+              <button class="demo-switch" type="button" data-theme="classic">Classic</button>
+              <button class="demo-switch" type="button" data-theme="glass">Glass</button>
+            </div>
+
+            <div class="demo-switch-group" aria-label="Color mode">
+              <button class="demo-switch" type="button" data-color-mode-target="light">Light</button>
+              <button class="demo-switch" type="button" data-color-mode-target="dark">Dark</button>
+            </div>
+
+            <button class="demo-iconbtn" type="button" data-action="open-command" aria-label="Command panel">
+              ?
+            </button>
+          </div>
+        </header>
+
+        <section class="demo-view" id="demoView" aria-live="polite"></section>
+      </main>
+    </div>
+
+    <div class="demo-toast" id="demoToast" hidden></div>
+
+    <div class="demo-modal" id="demoModal" hidden>
+      <div class="demo-modal-backdrop" data-action="close-modal"></div>
+      <div class="demo-modal-panel" role="dialog" aria-modal="true" aria-labelledby="demoModalTitle">
+        <div class="demo-modal-head">
+          <div>
+            <p class="demo-eyebrow" id="demoModalEyebrow">Demo overlay</p>
+            <h3 id="demoModalTitle">Modal</h3>
+          </div>
+          <button class="demo-iconbtn" type="button" data-action="close-modal" aria-label="Close">
+            x
+          </button>
+        </div>
+        <div class="demo-modal-body" id="demoModalBody"></div>
+      </div>
+    </div>
+
+    <script defer src="./ui/admin-ui-neutralpress-demo.js"></script>
+  </body>
+</html>

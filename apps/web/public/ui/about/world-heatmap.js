@@ -19,24 +19,109 @@ import { OrbitControls } from "/third/three/examples/jsm/controls/OrbitControls.
 import { CSS2DRenderer } from "/third/three/examples/jsm/renderers/CSS2DRenderer.js";
 import initWasm, { GeoProcessor } from "/wasm/geo/geo_wasm.js";
 
-function isDarkMode() {
-  return (
-    document.documentElement.classList.contains("dark") ||
-    document.documentElement.getAttribute("data-theme") === "dark"
-  );
+function getColors() {
+  return {
+    earthBase: "#07111f",
+    border: "#7f91b5",
+    visitedBorder: "#5eead4",
+    chinaBorder: "#fb7185",
+    highlight: "#ffd166",
+    labelBg: "rgba(3, 10, 24, 0.74)",
+    labelText: "#f8fbff"
+  };
 }
 
-function getColors() {
-  const dark = isDarkMode();
-  return {
-    earthBase: dark ? "#1e293b" : "#2a4d69",
-    border: dark ? "#6b7280" : "#e0e0e0",
-    visitedBorder: dark ? "#10b981" : "#0d9488",
-    chinaBorder: dark ? "#f87171" : "#ef4444",
-    highlight: dark ? "#fcd34d" : "#60a5fa",
-    labelBg: dark ? "rgba(0,0,0,0.55)" : "rgba(255,255,255,0.75)",
-    labelText: dark ? "#f9fafb" : "#0f172a"
-  };
+function randomBetween(min, max) {
+  return min + Math.random() * (max - min);
+}
+
+function buildStar(x, y, scaleBias = 1) {
+  const star = document.createElement("span");
+  const sizeRoll = Math.random();
+  const size =
+    sizeRoll > 0.94 ? randomBetween(3.1, 4.5) : sizeRoll > 0.72 ? randomBetween(2.1, 3.2) : randomBetween(1.1, 2.2);
+
+  star.className = "about-horizontal-star";
+  if (size > 3) {
+    star.classList.add("is-large");
+  } else if (size > 2) {
+    star.classList.add("is-medium");
+  }
+
+  star.style.setProperty("--star-x", `${x.toFixed(2)}%`);
+  star.style.setProperty("--star-y", `${y.toFixed(2)}%`);
+  star.style.setProperty("--star-size", `${(size * scaleBias).toFixed(2)}px`);
+  star.style.setProperty("--star-opacity", randomBetween(0.48, 1).toFixed(2));
+  star.style.setProperty("--star-scale", randomBetween(0.82, 1.36).toFixed(2));
+  star.style.setProperty("--star-duration", `${randomBetween(2.4, 6.1).toFixed(2)}s`);
+  star.style.setProperty("--star-delay", `${(-randomBetween(0, 5.8)).toFixed(2)}s`);
+
+  return star;
+}
+
+function createConstellation() {
+  const layer = document.createElement("div");
+  layer.className = "about-horizontal-constellation";
+  layer.innerHTML = `
+    <span class="constellation-star c1"></span>
+    <span class="constellation-star c2"></span>
+    <span class="constellation-star c3"></span>
+    <span class="constellation-star c4"></span>
+    <span class="constellation-line l1"></span>
+    <span class="constellation-line l2"></span>
+    <span class="constellation-line l3"></span>
+  `;
+  return layer;
+}
+
+function createStarfield(count = 220) {
+  const layer = document.createElement("div");
+  layer.className = "about-horizontal-starfield";
+
+  const nebulaLayer = document.createElement("div");
+  nebulaLayer.className = "about-horizontal-nebula";
+  layer.appendChild(nebulaLayer);
+
+  const starsLayer = document.createElement("div");
+  starsLayer.className = "about-horizontal-stars";
+  layer.appendChild(starsLayer);
+
+  const constellationLayer = createConstellation();
+  layer.appendChild(constellationLayer);
+
+  const shootingLayer = document.createElement("div");
+  shootingLayer.className = "about-horizontal-shooting-layer";
+  layer.appendChild(shootingLayer);
+
+  for (let index = 0; index < count; index += 1) {
+    let x = randomBetween(2, 98);
+    let y = randomBetween(2, 98);
+
+    if (index < 56) {
+      const t = index / 55;
+      x = 8 + t * 84 + randomBetween(-5.5, 5.5);
+      y = 18 + t * 42 + randomBetween(-9, 9);
+    }
+
+    starsLayer.appendChild(buildStar(x, y));
+  }
+
+  return { layer, shootingLayer };
+}
+
+function spawnShootingStar(layer) {
+  if (!(layer instanceof HTMLElement)) return;
+
+  const shootingStar = document.createElement("span");
+  shootingStar.className = "about-horizontal-shooting-star";
+  shootingStar.style.top = `${randomBetween(8, 36).toFixed(2)}%`;
+  shootingStar.style.left = `${randomBetween(4, 26).toFixed(2)}%`;
+  shootingStar.style.animationDuration = `${randomBetween(1.8, 2.8).toFixed(2)}s`;
+  layer.appendChild(shootingStar);
+
+  window.setTimeout(() => {
+    shootingStar.remove();
+  }, 3200);
 }
 
 function disposeObject3D(obj) {
@@ -56,20 +141,11 @@ export async function initWorldHeatmap(container, visitedPlaces) {
 
   container.innerHTML = "";
   container.style.position = "relative";
+  let shootingTimer = null;
+  const { layer: starfield, shootingLayer } = createStarfield();
+  container.appendChild(starfield);
 
-  const statusEl = document.createElement("div");
-  statusEl.className = "chip";
-  statusEl.style.position = "absolute";
-  statusEl.style.top = "10px";
-  statusEl.style.left = "10px";
-  statusEl.style.zIndex = "5";
-  statusEl.style.pointerEvents = "none";
-  container.appendChild(statusEl);
-
-  const setStatus = (s) => {
-    statusEl.textContent = s || "";
-    statusEl.style.display = s ? "" : "none";
-  };
+  const setStatus = () => {};
 
   setStatus("Loading...");
 
@@ -82,6 +158,24 @@ export async function initWorldHeatmap(container, visitedPlaces) {
   camera.position.copy(new Vector3(-2.1, 3.41, -6.5));
   camera.lookAt(0, 0, 0);
 
+  function getViewportSize() {
+    const rect = container.getBoundingClientRect();
+    let width = Math.max(1, Math.round(rect.width || container.clientWidth || 1));
+    let height = Math.max(1, Math.round(rect.height || container.clientHeight || 1));
+    const isMobile = window.matchMedia("(max-width: 640px)").matches;
+
+    if (isMobile) {
+      const side = Math.max(260, Math.min(width, 360));
+      container.style.height = `${side}px`;
+      height = side;
+      width = Math.max(1, Math.round(container.getBoundingClientRect().width || width));
+    } else {
+      container.style.height = "";
+    }
+
+    return { width, height };
+  }
+
   const renderer = new WebGLRenderer({
     antialias: true,
     alpha: true,
@@ -91,15 +185,33 @@ export async function initWorldHeatmap(container, visitedPlaces) {
   renderer.sortObjects = true;
   renderer.setClearColor(0x000000, 0);
   renderer.setPixelRatio(window.devicePixelRatio || 1);
-  renderer.setSize(container.clientWidth || 1, container.clientHeight || 1);
+  {
+    const { width, height } = getViewportSize();
+    renderer.setSize(width, height);
+  }
+  renderer.domElement.style.width = "100%";
+  renderer.domElement.style.height = "100%";
+  renderer.domElement.style.display = "block";
+  renderer.domElement.style.pointerEvents = "none";
+  renderer.domElement.style.outline = "none";
+  renderer.domElement.style.boxShadow = "none";
+  renderer.domElement.tabIndex = 0;
+  renderer.domElement.style.position = "relative";
+  renderer.domElement.style.zIndex = "2";
   container.appendChild(renderer.domElement);
 
   const labelRenderer = new CSS2DRenderer();
-  labelRenderer.setSize(container.clientWidth || 1, container.clientHeight || 1);
+  {
+    const { width, height } = getViewportSize();
+    labelRenderer.setSize(width, height);
+  }
   labelRenderer.domElement.style.position = "absolute";
   labelRenderer.domElement.style.top = "0";
   labelRenderer.domElement.style.left = "0";
+  labelRenderer.domElement.style.width = "100%";
+  labelRenderer.domElement.style.height = "100%";
   labelRenderer.domElement.style.pointerEvents = "none";
+  labelRenderer.domElement.style.zIndex = "3";
   container.appendChild(labelRenderer.domElement);
 
   const earth = new Mesh(
@@ -127,6 +239,7 @@ export async function initWorldHeatmap(container, visitedPlaces) {
 
   let autoRotateEnabled = true;
   let hoverPaused = false;
+  let interactive = false;
   const updateAutoRotate = () => {
     controls.autoRotate = !!autoRotateEnabled && !hoverPaused;
   };
@@ -141,28 +254,66 @@ export async function initWorldHeatmap(container, visitedPlaces) {
     updateAutoRotate();
   };
 
+  const activationLayer = document.createElement("button");
+  activationLayer.type = "button";
+  activationLayer.setAttribute("aria-label", "Activate globe interaction");
+  activationLayer.style.position = "absolute";
+  activationLayer.style.inset = "0";
+  activationLayer.style.zIndex = "6";
+  activationLayer.style.border = "0";
+  activationLayer.style.padding = "0";
+  activationLayer.style.margin = "0";
+  activationLayer.style.background = "transparent";
+  activationLayer.style.outline = "none";
+  activationLayer.style.boxShadow = "none";
+  activationLayer.style.cursor = "pointer";
+  activationLayer.style.zIndex = "6";
+  container.appendChild(activationLayer);
+
+  const setInteractive = (enabled) => {
+    interactive = !!enabled;
+    renderer.domElement.style.pointerEvents = interactive ? "auto" : "none";
+    activationLayer.style.pointerEvents = interactive ? "none" : "auto";
+    activationLayer.style.cursor = interactive ? "default" : "pointer";
+    container.classList.toggle("is-interactive", interactive);
+    if (interactive) {
+      container.setAttribute("data-horizontal-scroll-lock", "true");
+      renderer.domElement.focus({ preventScroll: true });
+      pauseAutoRotate();
+    } else {
+      container.removeAttribute("data-horizontal-scroll-lock");
+      resumeAutoRotate();
+    }
+  };
+  setInteractive(false);
+
   const onAutoEnter = () => pauseAutoRotate();
   const onAutoLeave = () => resumeAutoRotate();
   const onAutoPointerUp = () => resumeAutoRotate();
+  const onActivate = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!interactive) setInteractive(true);
+  };
+  const onDocumentPointerDown = (event) => {
+    if (!interactive) return;
+    if (container.contains(event.target)) return;
+    setInteractive(false);
+  };
+  const onEscape = (event) => {
+    if (event.key !== "Escape" || !interactive) return;
+    setInteractive(false);
+  };
 
   renderer.domElement.addEventListener("mouseenter", onAutoEnter, { passive: true });
   renderer.domElement.addEventListener("mouseleave", onAutoLeave, { passive: true });
   renderer.domElement.addEventListener("pointerdown", onAutoEnter, { passive: true });
+  activationLayer.addEventListener("pointerdown", onActivate);
+  document.addEventListener("pointerdown", onDocumentPointerDown, true);
+  window.addEventListener("keydown", onEscape);
   window.addEventListener("pointerup", onAutoPointerUp, { passive: true });
 
-  const hoverEl = document.createElement("div");
-  hoverEl.style.position = "absolute";
-  hoverEl.style.right = "10px";
-  hoverEl.style.top = "10px";
-  hoverEl.style.padding = "6px 10px";
-  hoverEl.style.borderRadius = "999px";
-  hoverEl.style.background = colors.labelBg;
-  hoverEl.style.color = colors.labelText;
-  hoverEl.style.fontSize = "12px";
-  hoverEl.style.fontWeight = "700";
-  hoverEl.style.pointerEvents = "none";
-  hoverEl.style.display = "none";
-  container.appendChild(hoverEl);
+  const hoverEl = null;
 
   const worldUrl = "/maps/world.zh.json";
   const chinaUrl = "/maps/china.json";
@@ -260,12 +411,16 @@ export async function initWorldHeatmap(container, visitedPlaces) {
     if (next) highlightLines(next);
 
     if (!next) {
-      hoverEl.style.display = "none";
-      hoverEl.textContent = "";
+      if (hoverEl) {
+        hoverEl.style.display = "none";
+        hoverEl.textContent = "";
+      }
       return;
     }
-    hoverEl.style.display = "";
-    hoverEl.textContent = next;
+    if (hoverEl) {
+      hoverEl.style.display = "";
+      hoverEl.textContent = next;
+    }
   };
 
   function resolveFocusName(place) {
@@ -336,46 +491,12 @@ export async function initWorldHeatmap(container, visitedPlaces) {
   renderer.domElement.addEventListener("mousemove", onMouseMove, { passive: true });
   renderer.domElement.addEventListener("mouseleave", onMouseLeave, { passive: true });
 
-  const themeObserver = new MutationObserver(() => {
-    const next = getColors();
-    earth.material.color.set(next.earthBase);
-    hoverEl.style.background = next.labelBg;
-    hoverEl.style.color = next.labelText;
-
-    colors.earthBase = next.earthBase;
-    colors.border = next.border;
-    colors.visitedBorder = next.visitedBorder;
-    colors.chinaBorder = next.chinaBorder;
-    colors.highlight = next.highlight;
-    colors.labelBg = next.labelBg;
-    colors.labelText = next.labelText;
-
-    for (const [name, list] of linesByName.entries()) {
-      const meta = lineMetaByName.get(name) || { isVisited: false };
-      const base = computeBaseColor(name, meta.isVisited);
-      for (const line of list) {
-        line.userData.baseColor = base;
-        if (hoveredName !== name) line.material.color.set(base);
-      }
-    }
-    if (hoveredName) {
-      const list = linesByName.get(hoveredName) || [];
-      for (const line of list) line.material.color.set(colors.highlight);
-    }
-  });
-
-  themeObserver.observe(document.documentElement, {
-    attributes: true,
-    attributeFilter: ["class", "data-theme"]
-  });
-
   const resize = () => {
-    const w = container.clientWidth || 1;
-    const h = container.clientHeight || 1;
-    camera.aspect = w / h;
+    const { width, height } = getViewportSize();
+    camera.aspect = width / height;
     camera.updateProjectionMatrix();
-    renderer.setSize(w, h);
-    labelRenderer.setSize(w, h);
+    renderer.setSize(width, height);
+    labelRenderer.setSize(width, height);
   };
 
   const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(resize) : null;
@@ -390,6 +511,11 @@ export async function initWorldHeatmap(container, visitedPlaces) {
     labelRenderer.render(scene, camera);
   };
   animate();
+  shootingTimer = window.setInterval(() => {
+    if (Math.random() > 0.4) {
+      spawnShootingStar(shootingLayer);
+    }
+  }, 1800);
 
   setStatus("");
 
@@ -401,13 +527,16 @@ export async function initWorldHeatmap(container, visitedPlaces) {
     },
     destroy() {
       if (raf) cancelAnimationFrame(raf);
+      if (shootingTimer) window.clearInterval(shootingTimer);
       ro?.disconnect();
-      themeObserver.disconnect();
       renderer.domElement.removeEventListener("mousemove", onMouseMove);
       renderer.domElement.removeEventListener("mouseleave", onMouseLeave);
       renderer.domElement.removeEventListener("mouseenter", onAutoEnter);
       renderer.domElement.removeEventListener("mouseleave", onAutoLeave);
       renderer.domElement.removeEventListener("pointerdown", onAutoEnter);
+      activationLayer.removeEventListener("pointerdown", onActivate);
+      document.removeEventListener("pointerdown", onDocumentPointerDown, true);
+      window.removeEventListener("keydown", onEscape);
       window.removeEventListener("pointerup", onAutoPointerUp);
       controls.dispose();
       disposeObject3D(scene);

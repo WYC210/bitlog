@@ -35,6 +35,168 @@ import {
 
 type WebNavItem = { id: string; label: string; href: string; enabled: boolean; external?: boolean };
 
+type AboutPageLinkConfig = {
+  label: string;
+  href: string;
+  variant?: "primary" | "ghost";
+};
+
+type AboutPageSectionConfig = {
+  kicker: string;
+  title: string;
+  lead: string;
+};
+
+type AboutPageContentConfig = {
+  hero: AboutPageSectionConfig & {
+    description: string;
+  };
+  profile: {
+    name: string;
+    role: string;
+    summary: string;
+    avatarUrl: string;
+  };
+  skills: AboutPageSectionConfig;
+  career: AboutPageSectionConfig;
+  travel: AboutPageSectionConfig;
+  next: AboutPageSectionConfig & {
+    quote: string;
+    signature: string;
+    bands: string[];
+    links: AboutPageLinkConfig[];
+  };
+};
+
+function createDefaultAboutPageContent(): AboutPageContentConfig {
+  return {
+    hero: {
+      kicker: "About / Opening",
+      title: "把内容、产品、工程和表达，收束成一页更像作品集的关于我。",
+      lead: "桌面端保留横向展开的阅读节奏，移动端则回退到稳定的纵向浏览。",
+      description: "这页不再只是罗列信息，而是按技能、经历和足迹分段展开，让访客先感受到你在做什么，再继续进入文章和项目。"
+    },
+    profile: {
+      name: "Yan Bin",
+      role: "Product-minded engineer / Builder / Blog author",
+      summary: "长期围绕内容系统、界面体验、后台配置和持续迭代做产品化实践。",
+      avatarUrl: ""
+    },
+    skills: {
+      kicker: "Skill Matrix",
+      title: "技能专长",
+      lead: "把能力结构拆成比例、重点模块和主题标签，读起来更像一张能力地图。"
+    },
+    career: {
+      kicker: "Career Journey",
+      title: "工作经历",
+      lead: "每段经历只保留最关键的阶段变化和角色重点，不再堆成长段履历。"
+    },
+    travel: {
+      kicker: "Travel Footprint",
+      title: "旅行足迹",
+      lead: "保留地图互动，把到过的地方单独做成一屏，视觉上更轻，信息上也更聚焦。"
+    },
+    next: {
+      kicker: "Continue",
+      title: "继续往下逛",
+      quote: "文章、项目和热点不该停在页面末尾，它们应该像同一条浏览路径那样自然接上。",
+      lead: "看完 about 之后，应该能自然衔接到文章、项目和热点，而不是停在页面末尾。",
+      signature: "Yan Bin",
+      bands: ["SEE YOU NEXT TIME", "ARTICLES / PROJECTS", "BEST WISHES", "FROM BITLOG"],
+      links: [
+        { label: "查看文章", href: "/articles", variant: "primary" },
+        { label: "浏览项目", href: "/projects", variant: "ghost" },
+        { label: "今日热点", href: "/hot", variant: "ghost" }
+      ]
+    }
+  };
+}
+
+function normalizeAboutPageLinks(input: unknown): AboutPageLinkConfig[] {
+  const defaults = createDefaultAboutPageContent().next.links;
+  if (!Array.isArray(input)) return defaults;
+
+  const links = input
+    .map((entry) => {
+      if (!entry || typeof entry !== "object") return null;
+      const label = String((entry as any).label ?? "").trim();
+      const href = String((entry as any).href ?? "").trim();
+      const variant = String((entry as any).variant ?? "").trim().toLowerCase();
+      if (!label || !href) return null;
+      return {
+        label,
+        href,
+        variant: variant === "ghost" ? "ghost" : "primary"
+      } as AboutPageLinkConfig;
+    })
+    .filter(Boolean) as AboutPageLinkConfig[];
+
+  return links.length ? links.slice(0, 3) : defaults;
+}
+
+function normalizeAboutPageBands(input: unknown): string[] {
+  const defaults = createDefaultAboutPageContent().next.bands;
+  if (!Array.isArray(input)) return defaults;
+
+  const bands = input
+    .filter((item) => typeof item === "string")
+    .map((item) => String(item).trim())
+    .filter(Boolean);
+
+  return bands.length ? bands.slice(0, 6) : defaults;
+}
+
+function normalizeAboutPageSection(input: unknown, fallback: AboutPageSectionConfig): AboutPageSectionConfig {
+  const source = input && typeof input === "object" ? (input as Record<string, unknown>) : {};
+  return {
+    kicker: String(source.kicker ?? fallback.kicker).trim() || fallback.kicker,
+    title: String(source.title ?? fallback.title).trim() || fallback.title,
+    lead: String(source.lead ?? fallback.lead).trim() || fallback.lead
+  };
+}
+
+function parseAboutPageContent(raw: string | null | undefined): AboutPageContentConfig {
+  const fallback = createDefaultAboutPageContent();
+  const text = String(raw ?? "").trim();
+  if (!text) return fallback;
+
+  try {
+    const parsed = JSON.parse(text) as Record<string, unknown>;
+    const heroSource = parsed.hero && typeof parsed.hero === "object" ? (parsed.hero as Record<string, unknown>) : {};
+    const heroSection = normalizeAboutPageSection(parsed.hero, fallback.hero);
+    const nextSection = normalizeAboutPageSection(parsed.next, fallback.next);
+    const profileSource = parsed.profile && typeof parsed.profile === "object" ? (parsed.profile as Record<string, unknown>) : {};
+
+    return {
+      hero: {
+        ...heroSection,
+        description: String(heroSource.description ?? fallback.hero.description).trim() || fallback.hero.description
+      },
+      profile: {
+        name: String(profileSource.name ?? fallback.profile.name).trim() || fallback.profile.name,
+        role: String(profileSource.role ?? fallback.profile.role).trim() || fallback.profile.role,
+        summary: String(profileSource.summary ?? fallback.profile.summary).trim() || fallback.profile.summary,
+        avatarUrl: String(profileSource.avatarUrl ?? fallback.profile.avatarUrl).trim()
+      },
+      skills: normalizeAboutPageSection(parsed.skills, fallback.skills),
+      career: normalizeAboutPageSection(parsed.career, fallback.career),
+      travel: normalizeAboutPageSection(parsed.travel, fallback.travel),
+      next: {
+        ...nextSection,
+        quote: String((parsed.next as Record<string, unknown> | undefined)?.quote ?? fallback.next.quote).trim() || fallback.next.quote,
+        signature:
+          String((parsed.next as Record<string, unknown> | undefined)?.signature ?? fallback.next.signature).trim() ||
+          fallback.next.signature,
+        bands: normalizeAboutPageBands((parsed.next as Record<string, unknown> | undefined)?.bands),
+        links: normalizeAboutPageLinks((parsed.next as Record<string, unknown> | undefined)?.links)
+      }
+    };
+  } catch {
+    return fallback;
+  }
+}
+
 export function SettingsPage(props: {
   cfg: SiteConfig | null;
   onCfg: (c: SiteConfig) => void;
@@ -44,6 +206,7 @@ export function SettingsPage(props: {
   const ABOUT_KEY_TECH_STACK = "about.tech_stack_json";
   const ABOUT_KEY_VISITED_PLACES = "about.visited_places_json";
   const ABOUT_KEY_TIMELINE = "about.timeline_json";
+  const ABOUT_KEY_PAGE_JSON = "about.page_json";
   const ABOUT_KEY_SIDEBAR_DAILY_NEWS = "about.sidebar_daily_news_enabled";
   const ABOUT_KEY_SIDEBAR_HISTORY_TODAY = "about.sidebar_history_today_enabled";
   const ABOUT_KEY_SIDEBAR_TRAVEL = "about.sidebar_travel_enabled";
@@ -79,7 +242,7 @@ export function SettingsPage(props: {
   );
   const [webNavBuiltinToAdd, setWebNavBuiltinToAdd] = useState<"home" | "articles" | "hot" | "projects" | "tools" | "about">("home");
   const [switchMenuLayout, setSwitchMenuLayout] = useState<"arc" | "grid" | "dial" | "cmd">(props.cfg?.commandMenuLayout ?? "arc");
-  const [switchMenuConfirmMode, setSwitchMenuConfirmMode] = useState<"enter" | "release">(props.cfg?.commandMenuConfirmMode ?? "enter");
+  const [switchMenuConfirmMode, setSwitchMenuConfirmMode] = useState<"enter" | "release">(props.cfg?.commandMenuConfirmMode ?? "release");
   const [switchMenuMobileSync, setSwitchMenuMobileSync] = useState<boolean>(props.cfg?.commandMenuMobileSync ?? false);
   const [switchBindingsCount, setSwitchBindingsCount] = useState(0);
   const [autoSummaryEnabled, setAutoSummaryEnabled] = useState(false);
@@ -128,6 +291,7 @@ export function SettingsPage(props: {
   const [aboutTechStackJson, setAboutTechStackJson] = useState("");
   const [aboutVisitedPlacesJson, setAboutVisitedPlacesJson] = useState("");
   const [aboutTimelineJson, setAboutTimelineJson] = useState("");
+  const [aboutPageContent, setAboutPageContent] = useState<AboutPageContentConfig>(() => createDefaultAboutPageContent());
   const [aboutSidebarDailyNewsEnabled, setAboutSidebarDailyNewsEnabled] = useState(true);
   const [aboutSidebarHistoryTodayEnabled, setAboutSidebarHistoryTodayEnabled] = useState(true);
   const [aboutSidebarTravelEnabled, setAboutSidebarTravelEnabled] = useState(true);
@@ -242,6 +406,29 @@ export function SettingsPage(props: {
     }
   }
 
+  function updateAboutBlock<K extends keyof AboutPageContentConfig>(
+    block: K,
+    patch: Partial<AboutPageContentConfig[K]>
+  ) {
+    setAboutPageContent((prev) => ({
+      ...prev,
+      [block]: {
+        ...prev[block],
+        ...patch
+      }
+    }));
+  }
+
+  function updateAboutNextLink(index: number, patch: Partial<AboutPageLinkConfig>) {
+    setAboutPageContent((prev) => ({
+      ...prev,
+      next: {
+        ...prev.next,
+        links: prev.next.links.map((link, idx) => (idx === index ? { ...link, ...patch } : link))
+      }
+    }));
+  }
+
   async function formatToolDraftClientCode() {
     if (!toolDraft) return;
     const code = String((toolDraft as any).clientCode ?? "");
@@ -285,7 +472,7 @@ export function SettingsPage(props: {
     setWebStyle(props.cfg.webStyle ?? "current");
     setAdminStyle(props.cfg.adminStyle ?? "current");
     setSwitchMenuLayout(props.cfg.commandMenuLayout ?? "arc");
-    setSwitchMenuConfirmMode(props.cfg.commandMenuConfirmMode ?? "enter");
+    setSwitchMenuConfirmMode(props.cfg.commandMenuConfirmMode ?? "release");
     setSwitchMenuMobileSync(props.cfg.commandMenuMobileSync ?? false);
     if (props.cfg.webNav) setWebNav(props.cfg.webNav as any);
   }, [props.cfg]);
@@ -321,6 +508,7 @@ export function SettingsPage(props: {
           ABOUT_KEY_TECH_STACK,
           ABOUT_KEY_VISITED_PLACES,
           ABOUT_KEY_TIMELINE,
+          ABOUT_KEY_PAGE_JSON,
           ABOUT_KEY_SIDEBAR_DAILY_NEWS,
           ABOUT_KEY_SIDEBAR_HISTORY_TODAY,
           ABOUT_KEY_SIDEBAR_TRAVEL,
@@ -331,6 +519,7 @@ export function SettingsPage(props: {
         setAboutTechStackJson(settings[ABOUT_KEY_TECH_STACK] ?? "");
         setAboutVisitedPlacesJson(settings[ABOUT_KEY_VISITED_PLACES] ?? "");
         setAboutTimelineJson(settings[ABOUT_KEY_TIMELINE] ?? "");
+        setAboutPageContent(parseAboutPageContent(settings[ABOUT_KEY_PAGE_JSON]));
         setAboutSidebarDailyNewsEnabled(
           settings[ABOUT_KEY_SIDEBAR_DAILY_NEWS] === null || settings[ABOUT_KEY_SIDEBAR_DAILY_NEWS] === undefined
             ? true
@@ -498,6 +687,36 @@ export function SettingsPage(props: {
       const techText = String(aboutTechStackJson ?? "").trim();
       const placesText = String(aboutVisitedPlacesJson ?? "").trim();
       const timelineText = String(aboutTimelineJson ?? "").trim();
+      const aboutPageJson = JSON.stringify(
+        {
+          ...aboutPageContent,
+          hero: {
+            ...aboutPageContent.hero
+          },
+          profile: {
+            ...aboutPageContent.profile,
+            avatarUrl: String(aboutPageContent.profile.avatarUrl ?? "").trim()
+          },
+          next: {
+            ...aboutPageContent.next,
+            quote: String(aboutPageContent.next.quote ?? "").trim(),
+            signature: String(aboutPageContent.next.signature ?? "").trim(),
+            bands: (aboutPageContent.next.bands ?? [])
+              .map((item) => String(item ?? "").trim())
+              .filter(Boolean)
+              .slice(0, 6),
+            links: (aboutPageContent.next.links ?? [])
+              .map((link) => ({
+                label: String(link.label ?? "").trim(),
+                href: String(link.href ?? "").trim(),
+                variant: link.variant === "ghost" ? "ghost" : "primary"
+              }))
+              .filter((link) => link.label && link.href)
+          }
+        },
+        null,
+        2
+      );
 
       if (techText) JSON.parse(techText);
       if (placesText) JSON.parse(placesText);
@@ -507,6 +726,7 @@ export function SettingsPage(props: {
         [ABOUT_KEY_TECH_STACK]: aboutTechStackJson,
         [ABOUT_KEY_VISITED_PLACES]: aboutVisitedPlacesJson,
         [ABOUT_KEY_TIMELINE]: aboutTimelineJson,
+        [ABOUT_KEY_PAGE_JSON]: aboutPageJson,
         [ABOUT_KEY_SIDEBAR_DAILY_NEWS]: aboutSidebarDailyNewsEnabled ? "1" : "0",
         [ABOUT_KEY_SIDEBAR_HISTORY_TODAY]: aboutSidebarHistoryTodayEnabled ? "1" : "0",
         [ABOUT_KEY_SIDEBAR_TRAVEL]: aboutSidebarTravelEnabled ? "1" : "0"
@@ -1980,6 +2200,216 @@ export function SettingsPage(props: {
           </label>
         </div>
 
+        <div style={{ height: 14 }} />
+        <div className="grid" style={{ gap: 14 }}>
+          <div className="card" style={{ padding: 16, background: "rgba(255,255,255,0.02)" }}>
+            <h3 style={{ margin: "0 0 8px" }}>开场区</h3>
+            <div className="muted">控制桌面端第一屏的标题、导语和补充说明。</div>
+            <div style={{ height: 12 }} />
+            <div className="row">
+              <label>
+                Kicker
+                <input
+                  value={aboutPageContent.hero.kicker}
+                  onChange={(e) => updateAboutBlock("hero", { kicker: e.target.value })}
+                  placeholder="About / Opening"
+                />
+              </label>
+              <label>
+                主标题
+                <input
+                  value={aboutPageContent.hero.title}
+                  onChange={(e) => updateAboutBlock("hero", { title: e.target.value })}
+                  placeholder="关于我主标题"
+                />
+              </label>
+            </div>
+            <div style={{ height: 10 }} />
+            <label>
+              导语
+              <textarea
+                value={aboutPageContent.hero.lead}
+                onChange={(e) => updateAboutBlock("hero", { lead: e.target.value })}
+                style={{ minHeight: 72 }}
+              />
+            </label>
+            <label>
+              补充说明
+              <textarea
+                value={aboutPageContent.hero.description}
+                onChange={(e) => updateAboutBlock("hero", { description: e.target.value })}
+                style={{ minHeight: 88 }}
+              />
+            </label>
+          </div>
+
+          <div className="card" style={{ padding: 16, background: "rgba(255,255,255,0.02)" }}>
+            <h3 style={{ margin: "0 0 8px" }}>个人卡片</h3>
+            <div className="muted">控制右侧头像卡片，可直接填写头像 URL，也可以使用你上传后的站内图片地址。</div>
+            <div style={{ height: 12 }} />
+            <div className="row">
+              <label>
+                名称
+                <input
+                  value={aboutPageContent.profile.name}
+                  onChange={(e) => updateAboutBlock("profile", { name: e.target.value })}
+                  placeholder="Yan Bin"
+                />
+              </label>
+              <label>
+                职位 / 职业
+                <input
+                  value={aboutPageContent.profile.role}
+                  onChange={(e) => updateAboutBlock("profile", { role: e.target.value })}
+                  placeholder="Product-minded engineer / Builder"
+                />
+              </label>
+            </div>
+            <div style={{ height: 10 }} />
+            <label>
+              简介
+              <textarea
+                value={aboutPageContent.profile.summary}
+                onChange={(e) => updateAboutBlock("profile", { summary: e.target.value })}
+                style={{ minHeight: 88 }}
+              />
+            </label>
+            <label>
+              头像 URL
+              <input
+                value={aboutPageContent.profile.avatarUrl}
+                onChange={(e) => updateAboutBlock("profile", { avatarUrl: e.target.value })}
+                placeholder="/assets/me.jpg 或 https://..."
+              />
+            </label>
+          </div>
+
+          <div className="card" style={{ padding: 16, background: "rgba(255,255,255,0.02)" }}>
+            <h3 style={{ margin: "0 0 8px" }}>分区文案</h3>
+            <div className="muted">分别控制技能、经历、足迹和收尾区的标题与说明。</div>
+            <div style={{ height: 12 }} />
+
+            {(["skills", "career", "travel", "next"] as const).map((blockKey) => {
+              const labels: Record<"skills" | "career" | "travel" | "next", string> = {
+                skills: "技能专长",
+                career: "工作经历",
+                travel: "旅行足迹",
+                next: "继续浏览"
+              };
+              const block = aboutPageContent[blockKey];
+              return (
+                <div key={blockKey} style={{ paddingTop: blockKey === "skills" ? 0 : 14, borderTop: blockKey === "skills" ? "none" : "1px solid var(--border)" }}>
+                  <div style={{ fontWeight: 700, marginBottom: 8 }}>{labels[blockKey]}</div>
+                  <div className="row">
+                    <label>
+                      Kicker
+                      <input
+                        value={block.kicker}
+                        onChange={(e) => updateAboutBlock(blockKey, { kicker: e.target.value } as any)}
+                      />
+                    </label>
+                    <label>
+                      标题
+                      <input
+                        value={block.title}
+                        onChange={(e) => updateAboutBlock(blockKey, { title: e.target.value } as any)}
+                      />
+                    </label>
+                  </div>
+                  <div style={{ height: 10 }} />
+                  <label>
+                    说明
+                    <textarea
+                      value={block.lead}
+                      onChange={(e) => updateAboutBlock(blockKey, { lead: e.target.value } as any)}
+                      style={{ minHeight: 72 }}
+                    />
+                  </label>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="card" style={{ padding: 16, background: "rgba(255,255,255,0.02)" }}>
+            <h3 style={{ margin: "0 0 8px" }}>收尾区</h3>
+            <div className="muted">控制最后一屏的引言文案、标语带、落款和跳转链接。</div>
+            <div style={{ height: 12 }} />
+            <label>
+              引言文案
+              <textarea
+                value={aboutPageContent.next.quote}
+                onChange={(e) => updateAboutBlock("next", { quote: e.target.value })}
+                style={{ minHeight: 88 }}
+                placeholder="大号引言文案"
+              />
+            </label>
+            <div style={{ height: 10 }} />
+            <label>
+              落款
+              <input
+                value={aboutPageContent.next.signature}
+                onChange={(e) => updateAboutBlock("next", { signature: e.target.value })}
+                placeholder="Yan Bin"
+              />
+            </label>
+            <div style={{ height: 10 }} />
+            <label>
+              标语带
+              <textarea
+                value={(aboutPageContent.next.bands ?? []).join("\n")}
+                onChange={(e) =>
+                  updateAboutBlock("next", {
+                    bands: e.target.value
+                      .split(/\r?\n/)
+                      .map((item) => item.trim())
+                      .filter(Boolean)
+                      .slice(0, 6)
+                  })
+                }
+                style={{ minHeight: 110 }}
+                placeholder={`每行一条，例如：\nSEE YOU NEXT TIME\nARTICLES / PROJECTS`}
+              />
+            </label>
+            <div style={{ height: 12 }} />
+            {aboutPageContent.next.links.map((link, index) => (
+              <div key={`${link.href}-${index}`} style={{ paddingTop: index === 0 ? 0 : 12, borderTop: index === 0 ? "none" : "1px solid var(--border)" }}>
+                <div style={{ fontWeight: 700, marginBottom: 8 }}>链接 {index + 1}</div>
+                <div className="row">
+                  <label>
+                    文案
+                    <input
+                      value={link.label}
+                      onChange={(e) => updateAboutNextLink(index, { label: e.target.value })}
+                      placeholder="查看文章"
+                    />
+                  </label>
+                  <label>
+                    链接
+                    <input
+                      value={link.href}
+                      onChange={(e) => updateAboutNextLink(index, { href: e.target.value })}
+                      placeholder="/articles"
+                    />
+                  </label>
+                </div>
+                <div style={{ height: 10 }} />
+                <label>
+                  样式
+                  <SelectBox
+                    value={link.variant === "ghost" ? "ghost" : "primary"}
+                    options={[
+                      { value: "primary", label: "主按钮" },
+                      { value: "ghost", label: "次按钮" }
+                    ]}
+                    onChange={(v) => updateAboutNextLink(index, { variant: v === "ghost" ? "ghost" : "primary" })}
+                  />
+                </label>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ height: 16 }} />
         <AboutSkillsEditor value={aboutTechStackJson} onChange={(v) => setAboutTechStackJson(v)} />
         <div style={{ height: 16 }} />
         <AboutVisitedPlacesEditor value={aboutVisitedPlacesJson} onChange={(v) => setAboutVisitedPlacesJson(v)} />

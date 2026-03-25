@@ -63,6 +63,7 @@ type ToolGroup = string;
 const ABOUT_KEY_TECH_STACK = "about.tech_stack_json";
 const ABOUT_KEY_VISITED_PLACES = "about.visited_places_json";
 const ABOUT_KEY_TIMELINE = "about.timeline_json";
+const ABOUT_KEY_PAGE_JSON = "about.page_json";
 const ABOUT_KEY_SIDEBAR_DAILY_NEWS = "about.sidebar_daily_news_enabled";
 const ABOUT_KEY_SIDEBAR_HISTORY_TODAY = "about.sidebar_history_today_enabled";
 const ABOUT_KEY_SIDEBAR_TRAVEL = "about.sidebar_travel_enabled";
@@ -726,6 +727,7 @@ export function createApiApp(bindings: ApiBindings) {
       ABOUT_KEY_TECH_STACK,
       ABOUT_KEY_VISITED_PLACES,
       ABOUT_KEY_TIMELINE,
+      ABOUT_KEY_PAGE_JSON,
       ABOUT_KEY_SIDEBAR_DAILY_NEWS,
       ABOUT_KEY_SIDEBAR_HISTORY_TODAY,
       ABOUT_KEY_SIDEBAR_TRAVEL
@@ -737,6 +739,7 @@ export function createApiApp(bindings: ApiBindings) {
         techStackJson: map.get(ABOUT_KEY_TECH_STACK) ?? null,
         visitedPlacesJson: map.get(ABOUT_KEY_VISITED_PLACES) ?? null,
         timelineJson: map.get(ABOUT_KEY_TIMELINE) ?? null,
+        pageJson: map.get(ABOUT_KEY_PAGE_JSON) ?? null,
         sidebarDailyNewsEnabled:
           map.has(ABOUT_KEY_SIDEBAR_DAILY_NEWS) ? parseLooseBool(map.get(ABOUT_KEY_SIDEBAR_DAILY_NEWS)) : true,
         sidebarHistoryTodayEnabled:

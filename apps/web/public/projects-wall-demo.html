@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Projects Wall Demo</title>
+    <link rel="stylesheet" href="./ui/projects-wall-demo.css" />
+  </head>
+  <body>
+    <div class="projects-demo-shell">
+      <header class="projects-demo-header">
+        <a class="projects-demo-avatar" href="./about-horizontal-demo.html" aria-label="Back to demo hub">
+          <span>BL</span>
+        </a>
+
+        <div class="projects-demo-titlebar">
+          <div class="projects-demo-title">项目</div>
+        </div>
+
+        <button class="projects-demo-menu" type="button" aria-label="Open menu">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+      </header>
+
+      <main class="projects-demo-stage" id="projectsDemoStage">
+        <div class="projects-demo-track" id="projectsDemoTrack">
+          <section class="projects-demo-intro-card" data-panel="intro">
+            <div class="intro-banner">WORKS. CRAFTS. LABS.</div>
+            <div class="intro-body">
+              <h1>Projects / 项目</h1>
+              <p>
+                这版 demo 不再是“居中卡片列表”，而是直接模拟一块横向展墙。
+                重点是固定页框、横向排版、低透明图片层和更硬朗的分栏结构。
+              </p>
+              <p>
+                你看到的背景“透明滑动感”，本质上是图片层在下面缓慢位移，文字层和边框层固定压在上面。
+              </p>
+            </div>
+            <div class="intro-footer">
+              <span>当前正在查看 项目列表。</span>
+              <a href="#project-1" class="intro-jump">开始浏览 ↗</a>
+            </div>
+          </section>
+
+          <section class="projects-demo-divider" aria-hidden="true">
+            <span>- EXPLORE MORE -</span>
+          </section>
+
+          <section class="projects-demo-pair" id="project-1" data-panel="project-1">
+            <a class="project-card project-card-image" href="javascript:void(0)">
+              <div class="project-media" data-parallax-layer="0.24">
+                <div class="project-shot shot-forum">
+                  <span class="shot-chip">XEO OS</span>
+                  <strong>Emoji / Feed / Notice</strong>
+                </div>
+                <div class="project-shot shot-dark">
+                  <span class="shot-chip">DISCUSS</span>
+                  <strong>Topic / Reply / Search</strong>
+                </div>
+                <div class="project-shot shot-thin">
+                  <span class="shot-chip">SIDEKIT</span>
+                  <strong>Badge / Meta / User</strong>
+                </div>
+              </div>
+
+              <div class="project-overlay project-overlay-bottom">
+                <h2>xeo-forum</h2>
+                <div class="project-links">
+                  <span>xeoos.net</span>
+                  <span>github.com/xeo-os/xeo-forum</span>
+                </div>
+                <div class="project-meta-line">
+                  <span>★ 13</span>
+                  <span>⑂ 5</span>
+                  <span>AGPL-3.0</span>
+                  <span>2025/6/7 - 至今</span>
+                  <span class="meta-accent">DEVELOPING</span>
+                  <span class="meta-accent">FEATURED</span>
+                </div>
+                <p>
+                  Emoji 风格的多语言 AI 翻译论坛系统。具有自动 AI 审核、全文搜索、实时通知、Markdown 编辑器等功能。
+                </p>
+              </div>
+            </a>
+
+            <div class="project-card project-card-text">
+              <div class="project-copy">
+                <div class="copy-kicker">Project Note</div>
+                <p>
+                  参考站的左半块并不是普通封面，而是一种“低透明运行中的系统截图”。
+                  它不负责清晰展示细节，只负责提供氛围、密度和工程感。
+                </p>
+                <div class="project-copy-foot">
+                  <span># TypeScript / JavaScript / CSS / Batchfile</span>
+                  <a href="javascript:void(0)">查看项目详情 »</a>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="projects-demo-pair reverse" id="project-2" data-panel="project-2">
+            <a class="project-card project-card-text" href="javascript:void(0)">
+              <div class="project-copy">
+                <div class="copy-kicker">Featured Project</div>
+                <h2>EverydayNews</h2>
+                <p>
+                  新版的 EverydayNews，存储每日 60s 新闻，支持 RSS、搜索和 API。这个块更接近你截图里的“图片在下，文字压在上”的状态。
+                </p>
+                <div class="project-meta-line">
+                  <span>★ 219</span>
+                  <span>⑂ 21</span>
+                  <span>MIT</span>
+                  <span>2022/6/3 - 至今</span>
+                </div>
+                <div class="project-links">
+                  <span>news.ravelloh.top</span>
+                  <span>github.com/RavelloH/EverydayNews</span>
+                </div>
+              </div>
+            </a>
+
+            <a class="project-card project-card-image" href="javascript:void(0)">
+              <div class="project-media" data-parallax-layer="0.18">
+                <div class="project-shot shot-news">
+                  <span class="shot-chip">FEED</span>
+                  <strong>Daily / Search / API</strong>
+                </div>
+                <div class="project-shot shot-github">
+                  <span class="shot-chip">REPO</span>
+                  <strong>Commits / Issues / About</strong>
+                </div>
+                <div class="project-shot shot-wide">
+                  <span class="shot-chip">TIMELINE</span>
+                  <strong>Scroll / Index / Sync</strong>
+                </div>
+              </div>
+
+              <div class="project-overlay project-overlay-middle">
+                <h2>EverydayNews</h2>
+              </div>
+            </a>
+          </section>
+
+          <section class="projects-demo-pair narrow" id="project-3" data-panel="project-3">
+            <a class="project-card project-card-image" href="javascript:void(0)">
+              <div class="project-media" data-parallax-layer="0.22">
+                <div class="project-shot shot-timepulse">
+                  <span class="shot-chip">TIMEPULSE</span>
+                  <strong>Beautiful / Glass / Focus</strong>
+                </div>
+                <div class="project-shot shot-ghost">
+                  <span class="shot-chip">WIDGET</span>
+                  <strong>Shadow / Blur / Depth</strong>
+                </div>
+              </div>
+
+              <div class="project-overlay project-overlay-bottom">
+                <h2>TimePulse</h2>
+                <div class="project-meta-line">
+                  <span>★ 118</span>
+                  <span>⑂ 23</span>
+                  <span>2025/3/23 - 至今</span>
+                  <span class="meta-accent">FEATURED</span>
+                </div>
+              </div>
+            </a>
+
+            <div class="project-card project-card-text">
+              <div class="project-copy">
+                <div class="copy-kicker">Layout Insight</div>
+                <p>
+                  真正支撑这页气质的是“固定页框 + 稠密分栏 + 局部透明图层”。
+                  不是把卡片做得花，而是让整页像一个被切开的横向杂志版面。
+                </p>
+                <div class="project-copy-foot">
+                  <span># JavaScript / CSS / Layout System</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="projects-demo-endcap" data-panel="ending">
+            <div class="endcap-copy">
+              <div class="copy-kicker">Demo Summary</div>
+              <h2>如果这个方向对，下一步就可以把 Bitlog 的项目页和 about 页拆成真正的横向展墙系统。</h2>
+              <p>
+                这版只做 demo，不碰线上。你确认方向后，再决定是先实装项目页，还是先继续收 about 页的全屏页框和透明图层。
+              </p>
+              <div class="endcap-actions">
+                <a href="./about-horizontal-demo.html">关于我 Demo</a>
+                <a href="./post-reading-demo.html">文章页 Demo</a>
+                <a href="./articles-list-demo.html">列表页 Demo</a>
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
+
+      <footer class="projects-demo-footer">
+        <nav class="projects-demo-nav" aria-label="Demo navigation">
+          <a href="./about-horizontal-demo.html">关于我 Demo</a>
+          <a href="./post-reading-demo.html">文章页 Demo</a>
+          <a href="./articles-list-demo.html">列表页 Demo</a>
+          <a class="is-active" href="./projects-wall-demo.html">项目展墙 Demo</a>
+        </nav>
+        <div class="projects-demo-progress">
+          <div class="projects-demo-progress-bar" id="projectsDemoProgressBar"></div>
+        </div>
+      </footer>
+    </div>
+
+    <script src="./ui/projects-wall-demo.js"></script>
+  </body>
+</html>

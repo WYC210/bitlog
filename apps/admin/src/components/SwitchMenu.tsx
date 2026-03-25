@@ -73,9 +73,9 @@ function writeBindings(next: Record<string, string>) {
 function readConfirmMode(): SwitchMenuConfirmMode {
   try {
     const raw = String(localStorage.getItem(CONFIRM_MODE_KEY) || "").toLowerCase();
-    return raw === "release" ? "release" : "enter";
+    return raw === "enter" ? "enter" : "release";
   } catch {
-    return "enter";
+    return "release";
   }
 }
 

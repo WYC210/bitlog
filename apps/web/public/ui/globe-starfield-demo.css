@@ -1,0 +1,668 @@
+:root {
+  color-scheme: light;
+  --demo-bg:
+    radial-gradient(circle at 16% 18%, rgba(116, 186, 255, 0.28), transparent 0 24%),
+    radial-gradient(circle at 78% 72%, rgba(255, 205, 132, 0.16), transparent 0 24%),
+    linear-gradient(180deg, #d6e6fb 0%, #c4d8f2 100%);
+  --demo-shell: rgba(248, 251, 255, 0.52);
+  --demo-shell-border: rgba(255, 255, 255, 0.42);
+  --demo-frame:
+    radial-gradient(circle at 14% 14%, rgba(135, 199, 255, 0.24), transparent 0 22%),
+    radial-gradient(circle at 84% 78%, rgba(255, 201, 128, 0.14), transparent 0 24%),
+    linear-gradient(180deg, rgba(241, 247, 255, 0.96), rgba(220, 233, 250, 0.92));
+  --demo-surface:
+    radial-gradient(circle at 14% 16%, rgba(113, 183, 255, 0.2), transparent 0 18%),
+    radial-gradient(circle at 82% 82%, rgba(255, 198, 120, 0.12), transparent 0 20%),
+    linear-gradient(180deg, #dcecff 0%, #c7def8 38%, #abcaf0 100%);
+  --demo-text: #12213f;
+  --demo-muted: rgba(18, 33, 63, 0.68);
+  --demo-accent: #4d8fff;
+  --demo-star: rgba(255, 255, 255, 0.62);
+  --demo-star-halo: rgba(124, 178, 255, 0.16);
+  --demo-band-opacity: 0.18;
+  --demo-band-blur: 18px;
+  --demo-vignette: rgba(10, 18, 34, 0.02);
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --demo-bg:
+    radial-gradient(circle at 16% 18%, rgba(46, 109, 214, 0.18), transparent 0 22%),
+    radial-gradient(circle at 74% 72%, rgba(255, 184, 74, 0.12), transparent 0 24%),
+    linear-gradient(180deg, #18243e 0%, #22304d 100%);
+  --demo-shell: rgba(16, 25, 44, 0.7);
+  --demo-shell-border: rgba(105, 126, 170, 0.18);
+  --demo-frame:
+    radial-gradient(circle at 14% 16%, rgba(35, 102, 220, 0.18), transparent 0 24%),
+    radial-gradient(circle at 76% 74%, rgba(255, 176, 72, 0.1), transparent 0 24%),
+    linear-gradient(180deg, rgba(8, 14, 28, 0.98), rgba(4, 8, 18, 0.98));
+  --demo-surface:
+    radial-gradient(circle at 12% 18%, rgba(28, 94, 216, 0.16), transparent 0 18%),
+    radial-gradient(circle at 82% 80%, rgba(255, 178, 76, 0.08), transparent 0 22%),
+    linear-gradient(180deg, #030814 0%, #061022 38%, #060d1b 100%);
+  --demo-text: #e8eefc;
+  --demo-muted: rgba(232, 238, 252, 0.68);
+  --demo-accent: #94b8ff;
+  --demo-star: rgba(255, 255, 255, 0.96);
+  --demo-star-halo: rgba(112, 174, 255, 0.32);
+  --demo-band-opacity: 0.96;
+  --demo-band-blur: 28px;
+  --demo-vignette: rgba(0, 0, 0, 0.34);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  font-family: "Space Grotesk", "Segoe UI", sans-serif;
+  background: var(--demo-bg);
+  color: var(--demo-text);
+}
+
+.globe-demo-shell {
+  min-height: 100vh;
+  padding: 34px;
+}
+
+.globe-demo-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  max-width: 1480px;
+  margin: 0 auto 22px;
+}
+
+.globe-demo-brand {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.globe-demo-mark {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #8ed0ff, #ffc36b);
+  box-shadow: 0 0 22px rgba(120, 173, 255, 0.46);
+}
+
+.globe-demo-eyebrow {
+  margin: 0 0 6px;
+  font-size: 12px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--demo-muted);
+}
+
+.globe-demo-brand h1 {
+  margin: 0;
+  font-size: clamp(26px, 2.4vw, 40px);
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.globe-demo-switch {
+  display: inline-flex;
+  padding: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(16px);
+}
+
+.globe-demo-switch-btn {
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  padding: 12px 18px;
+  background: transparent;
+  color: var(--demo-muted);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 180ms ease;
+}
+
+.globe-demo-switch-btn.is-active {
+  background: rgba(255, 255, 255, 0.18);
+  color: var(--demo-text);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+
+.globe-demo-stage {
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: 18px;
+  border-radius: 36px;
+  background: var(--demo-shell);
+  border: 1px solid var(--demo-shell-border);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 22px 60px rgba(36, 58, 101, 0.16);
+}
+
+.globe-demo-card {
+  min-height: calc(100vh - 150px);
+  border-radius: 30px;
+  padding: 26px;
+  background: var(--demo-frame);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.globe-demo-copy {
+  max-width: 760px;
+  margin: 0 0 24px;
+  position: relative;
+  z-index: 3;
+}
+
+.globe-demo-kicker {
+  margin: 0 0 10px;
+  color: var(--demo-accent);
+  font-size: 12px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+.globe-demo-copy h2 {
+  margin: 0;
+  max-width: 16ch;
+  font-size: clamp(34px, 3.6vw, 60px);
+  line-height: 0.96;
+  letter-spacing: -0.05em;
+}
+
+.globe-demo-copy p {
+  margin: 14px 0 0;
+  max-width: 64ch;
+  color: var(--demo-muted);
+  font-size: 15px;
+  line-height: 1.8;
+}
+
+.globe-demo-view {
+  display: flex;
+  min-height: 620px;
+}
+
+.globe-demo-frame {
+  position: relative;
+  width: 100%;
+  min-height: inherit;
+  border-radius: 28px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 10% 16%, rgba(104, 168, 255, 0.1), transparent 0 22%),
+    radial-gradient(circle at 82% 82%, rgba(255, 186, 98, 0.06), transparent 0 24%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(119, 156, 214, 0.08));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+}
+
+.globe-demo-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.globe-demo-layer-stars {
+  z-index: 1;
+}
+
+.globe-demo-layer-nebula {
+  z-index: 1;
+  opacity: 0.9;
+}
+
+.globe-demo-layer-sun,
+.globe-demo-layer-haze,
+.globe-demo-layer-constellation,
+.globe-demo-layer-shooting {
+  z-index: 2;
+}
+
+.globe-demo-surface {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--demo-surface);
+  z-index: 4;
+}
+
+.globe-demo-surface::before,
+.globe-demo-surface::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.globe-demo-surface::before {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.06), transparent 0 56%);
+  box-shadow: inset 0 0 140px var(--demo-vignette);
+}
+
+.globe-demo-surface::after {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 16%),
+    radial-gradient(circle at 16% 14%, rgba(88, 149, 255, 0.14), transparent 0 16%),
+    radial-gradient(circle at 82% 86%, rgba(255, 184, 88, 0.1), transparent 0 18%);
+}
+
+.globe-demo-frame::before {
+  content: "";
+  position: absolute;
+  left: -8%;
+  top: -4%;
+  width: 118%;
+  height: 92%;
+  z-index: 1;
+  pointer-events: none;
+  opacity: var(--demo-band-opacity);
+  transform: rotate(24deg);
+  transform-origin: center;
+  filter: blur(var(--demo-band-blur));
+  background:
+    radial-gradient(ellipse at 50% 50%, rgba(246, 250, 255, 0.4) 0 4%, rgba(207, 228, 255, 0.28) 10%, rgba(135, 184, 255, 0.16) 18%, rgba(80, 140, 255, 0.08) 24%, transparent 48%),
+    radial-gradient(ellipse at 48% 52%, rgba(255, 241, 214, 0.12) 0 10%, transparent 24%),
+    radial-gradient(ellipse at 54% 48%, rgba(128, 174, 255, 0.14) 0 12%, transparent 28%);
+  mix-blend-mode: screen;
+}
+
+.globe-demo-frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 50%, transparent 0 34%, rgba(34, 78, 145, 0.06) 74%, rgba(34, 78, 145, 0.16) 100%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 12%, transparent 86%, rgba(52, 94, 156, 0.1));
+}
+
+.globe-demo-surface .about-horizontal-starfield {
+  display: none !important;
+}
+
+.globe-demo-star {
+  position: absolute;
+  width: var(--size, 2px);
+  height: var(--size, 2px);
+  left: var(--x, 50%);
+  top: var(--y, 50%);
+  border-radius: 999px;
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, 1) 0 44%, rgba(198, 228, 255, 0.94) 58%, transparent 100%);
+  opacity: var(--opacity, 0.8);
+  box-shadow:
+    0 0 8px rgba(255, 255, 255, 0.28),
+    0 0 18px rgba(92, 152, 255, 0.18);
+  transform: translate3d(0, 0, 0);
+}
+
+.globe-demo-star.is-medium {
+  width: calc(var(--size, 2px) * 1.45);
+  height: calc(var(--size, 2px) * 1.45);
+}
+
+.globe-demo-star.is-large {
+  width: calc(var(--size, 2px) * 1.9);
+  height: calc(var(--size, 2px) * 1.9);
+  box-shadow:
+    0 0 10px rgba(255, 255, 255, 0.42),
+    0 0 22px rgba(108, 174, 255, 0.28);
+}
+
+.globe-demo-star.is-twinkle {
+  animation: globe-demo-twinkle var(--twinkle, 4s) ease-in-out infinite;
+  animation-delay: var(--delay, 0s);
+}
+
+.globe-demo-layer-nebula::before,
+.globe-demo-layer-nebula::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+.globe-demo-layer-nebula::before {
+  background:
+    radial-gradient(ellipse 46% 9% at 20% 28%, rgba(98, 140, 255, 0.14), transparent 60%),
+    radial-gradient(ellipse 56% 10% at 44% 48%, rgba(213, 180, 255, 0.12), transparent 56%),
+    radial-gradient(ellipse 44% 8% at 70% 66%, rgba(255, 202, 139, 0.08), transparent 60%);
+  transform: rotate(24deg) scale(1.12);
+  filter: blur(20px);
+}
+
+.globe-demo-layer-nebula::after {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 16%),
+    radial-gradient(circle at 18% 16%, rgba(114, 174, 255, 0.1), transparent 18%);
+}
+
+.globe-demo-layer-sun::before {
+  content: "";
+  position: absolute;
+  right: 7%;
+  top: 8%;
+  width: 220px;
+  height: 220px;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle, rgba(255, 250, 234, 0.98) 0 16%, rgba(255, 239, 188, 0.84) 26%, rgba(255, 224, 152, 0.42) 44%, rgba(255, 221, 168, 0.14) 62%, transparent 78%);
+  filter: blur(10px);
+  opacity: 0;
+}
+
+.globe-demo-layer-haze::before,
+.globe-demo-layer-haze::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+}
+
+.globe-demo-layer-haze::before {
+  background:
+    radial-gradient(ellipse 26% 10% at 24% 32%, rgba(255, 255, 255, 0.2), transparent 70%),
+    radial-gradient(ellipse 20% 8% at 42% 38%, rgba(255, 255, 255, 0.16), transparent 70%),
+    radial-gradient(ellipse 18% 7% at 62% 34%, rgba(255, 255, 255, 0.12), transparent 70%);
+}
+
+.globe-demo-layer-haze::after {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.2), transparent 24%),
+    linear-gradient(110deg, transparent 26%, rgba(255, 255, 255, 0.12) 38%, rgba(255, 255, 255, 0.06) 50%, transparent 62%);
+}
+
+.globe-demo-layer-constellation {
+  opacity: 0;
+}
+
+.globe-demo-layer-constellation .constellation-star,
+.globe-demo-layer-constellation .constellation-line {
+  position: absolute;
+}
+
+.globe-demo-layer-constellation .constellation-star {
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 224, 126, 0.96);
+  box-shadow: 0 0 10px rgba(255, 224, 126, 0.5);
+}
+
+.globe-demo-layer-constellation .c1 { left: 14%; top: 22%; }
+.globe-demo-layer-constellation .c2 { left: 18%; top: 26%; }
+.globe-demo-layer-constellation .c3 { left: 16%; top: 31%; }
+.globe-demo-layer-constellation .c4 { left: 21%; top: 35%; }
+
+.globe-demo-layer-constellation .constellation-line {
+  height: 1px;
+  background: rgba(255, 224, 126, 0.3);
+  transform-origin: left center;
+}
+
+.globe-demo-layer-constellation .l1 { left: 14.3%; top: 22.3%; width: 34px; transform: rotate(34deg); }
+.globe-demo-layer-constellation .l2 { left: 18.3%; top: 26.3%; width: 28px; transform: rotate(124deg); }
+.globe-demo-layer-constellation .l3 { left: 16.3%; top: 31.3%; width: 40px; transform: rotate(26deg); }
+
+.globe-demo-shooting-star {
+  position: absolute;
+  width: 140px;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.15), transparent);
+  border-radius: 999px;
+  transform: rotate(-32deg);
+  filter: blur(0.2px);
+  opacity: 0;
+  animation: globe-demo-shoot 2.6s linear forwards;
+}
+
+body[data-demo-theme="day-stars"] .globe-demo-frame::before {
+  opacity: 0.34;
+  filter: blur(14px);
+  background:
+    radial-gradient(ellipse at 50% 50%, rgba(246, 250, 255, 0.56) 0 4%, rgba(214, 228, 255, 0.4) 10%, rgba(142, 190, 255, 0.22) 18%, rgba(86, 138, 255, 0.1) 24%, transparent 46%),
+    radial-gradient(ellipse at 48% 52%, rgba(255, 243, 214, 0.18) 0 9%, transparent 24%),
+    radial-gradient(ellipse at 54% 48%, rgba(130, 176, 255, 0.18) 0 10%, transparent 26%);
+}
+
+body[data-demo-theme="day-stars"] .globe-demo-surface .about-horizontal-starfield::before {
+  opacity: 0;
+}
+
+body[data-demo-theme="day-stars"] .globe-demo-surface .about-horizontal-starfield::after {
+  opacity: 0;
+}
+
+body[data-demo-theme="day-stars"] .globe-demo-layer-stars {
+  opacity: 1;
+}
+
+body[data-demo-theme="day-stars"] .globe-demo-star {
+  opacity: calc(var(--opacity, 0.8) * 0.82);
+  box-shadow:
+    0 0 10px rgba(255, 255, 255, 0.24),
+    0 0 18px rgba(107, 168, 255, 0.2);
+}
+
+body[data-demo-theme="day-stars"] .globe-demo-layer-nebula {
+  opacity: 0.54;
+}
+
+body[data-demo-theme="day-stars"] .globe-demo-layer-stars::before {
+  content: "";
+  position: absolute;
+  inset: 10% 12% 22% 12%;
+  background:
+    linear-gradient(118deg, transparent 22%, rgba(255, 255, 255, 0.14) 40%, rgba(184, 214, 255, 0.16) 48%, transparent 62%);
+  filter: blur(10px);
+  transform: rotate(-8deg);
+}
+
+body[data-demo-theme="day-stars"] .globe-demo-layer-constellation,
+body[data-demo-theme="day-stars"] .globe-demo-layer-shooting,
+body[data-demo-theme="day-stars"] .globe-demo-layer-sun,
+body[data-demo-theme="day-stars"] .globe-demo-layer-haze {
+  opacity: 0;
+}
+
+body[data-demo-theme="day-atmosphere"] .globe-demo-frame {
+  background:
+    radial-gradient(circle at 8% 10%, rgba(125, 191, 255, 0.14), transparent 0 20%),
+    radial-gradient(circle at 92% 90%, rgba(255, 192, 110, 0.12), transparent 0 20%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(124, 164, 220, 0.1));
+}
+
+body[data-demo-theme="day-atmosphere"] .globe-demo-surface {
+  background:
+    radial-gradient(circle at 14% 18%, rgba(156, 214, 255, 0.34), transparent 0 16%),
+    radial-gradient(circle at 82% 12%, rgba(255, 246, 215, 0.78), transparent 0 14%),
+    radial-gradient(circle at 78% 82%, rgba(255, 210, 140, 0.16), transparent 0 18%),
+    linear-gradient(180deg, #e7f4ff 0%, #cbe5fb 36%, #8db8eb 100%);
+}
+
+body[data-demo-theme="day-atmosphere"] .globe-demo-surface::before {
+  background:
+    radial-gradient(circle at 80% 12%, rgba(255, 249, 236, 0.96), transparent 0 12%),
+    radial-gradient(circle at 72% 18%, rgba(255, 239, 198, 0.48), transparent 0 22%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.32), transparent 24%),
+    linear-gradient(112deg, transparent 18%, rgba(255, 255, 255, 0.16) 34%, rgba(255, 255, 255, 0.1) 48%, transparent 64%);
+  box-shadow: inset 0 0 120px rgba(41, 78, 138, 0.02);
+}
+
+body[data-demo-theme="day-atmosphere"] .globe-demo-surface::after {
+  background:
+    radial-gradient(ellipse at 20% 34%, rgba(255, 255, 255, 0.3), transparent 0 18%),
+    radial-gradient(ellipse at 42% 42%, rgba(255, 255, 255, 0.24), transparent 0 16%),
+    radial-gradient(ellipse at 64% 38%, rgba(255, 255, 255, 0.18), transparent 0 14%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.12), transparent 20%),
+    linear-gradient(0deg, rgba(77, 126, 188, 0.08), transparent 24%);
+}
+
+body[data-demo-theme="day-atmosphere"] .globe-demo-frame::before,
+body[data-demo-theme="day-atmosphere"] .globe-demo-layer-stars,
+body[data-demo-theme="day-atmosphere"] .globe-demo-layer-nebula,
+body[data-demo-theme="day-atmosphere"] .globe-demo-layer-constellation,
+body[data-demo-theme="day-atmosphere"] .globe-demo-layer-shooting,
+body[data-demo-theme="day-atmosphere"] .globe-demo-surface .about-horizontal-starfield,
+body[data-demo-theme="day-atmosphere"] .globe-demo-surface .about-horizontal-starfield::before,
+body[data-demo-theme="day-atmosphere"] .globe-demo-surface .about-horizontal-starfield::after {
+  opacity: 0;
+}
+
+body[data-demo-theme="day-atmosphere"] .globe-demo-layer-sun::before,
+body[data-demo-theme="day-atmosphere"] .globe-demo-layer-haze::before,
+body[data-demo-theme="day-atmosphere"] .globe-demo-layer-haze::after {
+  opacity: 1;
+}
+
+body[data-demo-theme="day-atmosphere"] .globe-demo-layer-haze::before {
+  background:
+    radial-gradient(ellipse 28% 11% at 22% 32%, rgba(255, 255, 255, 0.32), transparent 70%),
+    radial-gradient(ellipse 24% 10% at 44% 36%, rgba(255, 255, 255, 0.24), transparent 70%),
+    radial-gradient(ellipse 22% 9% at 66% 32%, rgba(255, 255, 255, 0.18), transparent 70%);
+}
+
+body[data-demo-theme="day-atmosphere"] .globe-demo-layer-haze::after {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.24), transparent 26%),
+    linear-gradient(112deg, transparent 20%, rgba(255, 255, 255, 0.18) 36%, rgba(255, 255, 255, 0.08) 52%, transparent 68%);
+}
+
+body[data-demo-theme="day-atmosphere"] .globe-demo-frame::after {
+  background:
+    radial-gradient(circle at 50% 50%, transparent 0 32%, rgba(72, 118, 180, 0.06) 74%, rgba(72, 118, 180, 0.14) 100%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 14%, transparent 86%, rgba(76, 120, 180, 0.08));
+}
+
+body[data-demo-theme="night"] .globe-demo-layer-stars,
+body[data-demo-theme="night"] .globe-demo-layer-nebula,
+body[data-demo-theme="night"] .globe-demo-layer-constellation,
+body[data-demo-theme="night"] .globe-demo-layer-shooting {
+  opacity: 1;
+}
+
+body[data-demo-theme="night"] .globe-demo-layer-sun,
+body[data-demo-theme="night"] .globe-demo-layer-haze {
+  opacity: 0;
+}
+
+body[data-demo-theme="night"] .globe-demo-star {
+  animation: globe-demo-twinkle var(--twinkle, 4s) ease-in-out infinite;
+  animation-delay: var(--delay, 0s);
+}
+
+.globe-demo-surface canvas {
+  position: relative;
+  z-index: 5;
+  filter: drop-shadow(0 12px 36px rgba(46, 86, 148, 0.2));
+}
+
+.globe-demo-surface > div,
+.globe-demo-surface > button {
+  position: absolute;
+}
+
+html[data-theme="dark"] .globe-demo-surface .about-horizontal-starfield::before {
+  opacity: 1;
+}
+
+html[data-theme="dark"] .globe-demo-surface .about-horizontal-starfield::after {
+  opacity: 0.92;
+}
+
+html[data-theme="dark"] .globe-demo-surface .about-horizontal-star {
+  animation: globe-demo-twinkle var(--star-duration, 4.2s) ease-in-out infinite;
+  animation-delay: var(--star-delay, 0s);
+  box-shadow:
+    0 0 10px var(--demo-star-halo),
+    0 0 22px rgba(255, 255, 255, 0.28),
+    0 0 42px rgba(100, 146, 255, 0.14);
+}
+
+html[data-theme="dark"] .globe-demo-copy h2 {
+  color: #f1f5ff;
+}
+
+html[data-theme="dark"] .globe-demo-frame::before {
+  background:
+    radial-gradient(ellipse at 50% 50%, rgba(246, 248, 255, 0.9) 0 4%, rgba(198, 206, 255, 0.72) 8%, rgba(147, 166, 255, 0.48) 14%, rgba(96, 120, 255, 0.34) 20%, rgba(62, 44, 120, 0.22) 28%, transparent 56%),
+    radial-gradient(ellipse at 42% 48%, rgba(131, 181, 255, 0.42) 0 12%, transparent 28%),
+    radial-gradient(ellipse at 55% 56%, rgba(235, 180, 255, 0.36) 0 14%, transparent 30%),
+    radial-gradient(ellipse at 64% 58%, rgba(255, 232, 255, 0.26) 0 8%, transparent 22%);
+}
+
+html[data-theme="dark"] .globe-demo-frame::after {
+  background:
+    radial-gradient(circle at 50% 50%, transparent 0 34%, rgba(0, 0, 0, 0.16) 72%, rgba(0, 0, 0, 0.42) 100%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 12%, transparent 84%, rgba(0, 0, 0, 0.28));
+}
+
+@keyframes globe-demo-twinkle {
+  0%,
+  100% {
+    opacity: calc(var(--star-opacity, 0.75) * 0.4);
+    transform: translate3d(var(--star-x, 0%), var(--star-y, 0%), 0) scale(calc(var(--star-scale, 1) * 0.82));
+  }
+
+  50% {
+    opacity: min(1, calc(var(--star-opacity, 0.75) + 0.3));
+    transform: translate3d(var(--star-x, 0%), var(--star-y, 0%), 0) scale(calc(var(--star-scale, 1) * 1.2));
+  }
+}
+
+@keyframes globe-demo-shoot {
+  0% {
+    opacity: 0;
+    transform: translate3d(-120px, 80px, 0) rotate(-32deg) scaleX(0.6);
+  }
+
+  12% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate3d(360px, -240px, 0) rotate(-32deg) scaleX(1);
+  }
+}
+
+@media (max-width: 900px) {
+  .globe-demo-shell {
+    padding: 18px;
+  }
+
+  .globe-demo-topbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .globe-demo-card {
+    min-height: auto;
+    padding: 20px;
+  }
+
+  .globe-demo-view {
+    min-height: 460px;
+  }
+
+  .globe-demo-copy h2 {
+    max-width: none;
+  }
+}

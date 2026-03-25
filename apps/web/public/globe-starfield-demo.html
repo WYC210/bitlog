@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Globe Starfield Demo</title>
+    <link rel="stylesheet" href="./ui/globe-starfield-demo.css" />
+  </head>
+  <body data-demo-theme="day">
+    <main class="globe-demo-shell">
+      <header class="globe-demo-topbar">
+        <div class="globe-demo-brand">
+          <span class="globe-demo-mark"></span>
+          <div>
+            <p class="globe-demo-eyebrow">Bitlog Visual Demo</p>
+            <h1>Travel Globe / Starfield Study</h1>
+          </div>
+        </div>
+
+        <div class="globe-demo-switch" role="tablist" aria-label="Theme switch">
+          <button class="globe-demo-switch-btn" type="button" data-theme-target="day-stars">Day A</button>
+          <button class="globe-demo-switch-btn" type="button" data-theme-target="day-atmosphere">Day B</button>
+          <button class="globe-demo-switch-btn" type="button" data-theme-target="night">Night Sky</button>
+        </div>
+      </header>
+
+      <section class="globe-demo-stage">
+        <div class="globe-demo-card">
+          <div class="globe-demo-copy">
+            <p class="globe-demo-kicker">Concept</p>
+            <h2 id="globeDemoTitle">Day mode variants and night mode are all available in this demo.</h2>
+            <p id="globeDemoBody">
+              Use the three buttons above to compare two different daytime directions and one night version before moving anything into the real about page.
+            </p>
+          </div>
+
+          <div class="globe-demo-view">
+            <div class="globe-demo-frame">
+              <div class="globe-demo-layer globe-demo-layer-nebula" aria-hidden="true"></div>
+              <div class="globe-demo-layer globe-demo-layer-stars" id="globeDemoStars" aria-hidden="true"></div>
+              <div class="globe-demo-layer globe-demo-layer-constellation" aria-hidden="true">
+                <span class="constellation-star c1"></span>
+                <span class="constellation-star c2"></span>
+                <span class="constellation-star c3"></span>
+                <span class="constellation-star c4"></span>
+                <span class="constellation-line l1"></span>
+                <span class="constellation-line l2"></span>
+                <span class="constellation-line l3"></span>
+              </div>
+              <div class="globe-demo-layer globe-demo-layer-sun" aria-hidden="true"></div>
+              <div class="globe-demo-layer globe-demo-layer-haze" aria-hidden="true"></div>
+              <div class="globe-demo-layer globe-demo-layer-shooting" id="globeDemoShooting" aria-hidden="true"></div>
+              <div class="globe-demo-surface" id="demoStarfieldGlobe"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="./ui/globe-starfield-demo.js"></script>
+  </body>
+</html>
